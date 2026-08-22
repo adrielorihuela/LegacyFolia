@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 18:07:26 -0500
+Subject: [PATCH] Skip dimensions turned off in the configuration
+
+A dimension that is switched off is never created, so nothing of it is
+read from disk, held in memory or ticked. Only the vanilla Nether and End
+have switches; a dimension a datapack adds is always loaded.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/src/main/java/io/papermc/paper/world/PaperWorldLoader.java b/src/main/java/io/papermc/paper/world/PaperWorldLoader.java
+index 66ee5e01f18946d30ff322b3d8a4eb93677a7373..e33a85a3d168c0664d757fd2395030770f784832 100644
+--- a/src/main/java/io/papermc/paper/world/PaperWorldLoader.java
++++ b/src/main/java/io/papermc/paper/world/PaperWorldLoader.java
+@@ -128,6 +128,11 @@ public record PaperWorldLoader(MinecraftServer server, String levelId) {
+             if (stem == overworldStem) {
+                 continue;
+             }
++            // LegacyFolia start - dimension switches
++            if (!io.github.adrielorihuela.legacyfolia.world.Dimensions.isEnabled(levelStemRegistry.getResourceKey(stem).orElseThrow())) {
++                continue;
++            }
++            // LegacyFolia end - dimension switches
+             this.loadInitialWorld(stem, this.hasDimensionData(stem));
+         }
+ 

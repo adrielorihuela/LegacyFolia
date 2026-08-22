@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 18:07:25 -0500
+Subject: [PATCH] Load the unified configuration at start-up
+
+config/server.config has to be read before anything looks at a setting:
+it overrides the Bukkit, Spigot and Paper configuration, and the dimension
+switches decide which worlds loadLevel creates further down.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index cd5551c0221ad2a7b5c7d452d8d91ffc9711c3ee..e8732e416874b24dfcef41be104a3d16e8260a5a 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -167,6 +167,13 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+ 
+     @Override
+     protected boolean initServer() throws IOException {
++        // LegacyFolia start - unified configuration
++        // Loaded before anything reads a setting: the unified file overrides bukkit.yml,
++        // spigot.yml and the Paper configuration, and the dimension switches decide which
++        // worlds get loaded further down in loadLevel.
++        io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
++        io.github.adrielorihuela.legacyfolia.world.Dimensions.load();
++        // LegacyFolia end - unified configuration
+         Thread consoleThread = new Thread("Server console handler") {
+             @Override
+             public void run() {
