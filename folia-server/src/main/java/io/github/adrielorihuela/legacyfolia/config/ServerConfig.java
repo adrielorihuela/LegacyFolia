@@ -5,6 +5,7 @@ import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.electronwill.nightconfig.core.io.ParsingException;
 import com.electronwill.nightconfig.core.io.ParsingMode;
+import com.electronwill.nightconfig.toml.TomlFormat;
 import com.electronwill.nightconfig.toml.TomlParser;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,7 +90,9 @@ public final class ServerConfig {
             }
         }
 
-        final CommentedFileConfig config = CommentedFileConfig.builder(path)
+        // The format is named rather than inferred: night-config picks a parser from the file
+        // extension, and ".config" means nothing to it.
+        final CommentedFileConfig config = CommentedFileConfig.builder(path, TomlFormat.instance())
             .preserveInsertionOrder()
             .sync()
             .build();
