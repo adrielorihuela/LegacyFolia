@@ -102,7 +102,10 @@ public final class SecretFiles {
         final Path path = path(name);
         try {
             Files.createDirectories(path.getParent());
-            Files.writeString(path, value + System.lineSeparator(), StandardCharsets.UTF_8);
+            // "\n" rather than the platform separator: these files get copied between a Windows
+            // machine and a Linux server, and read by shell scripts that would carry the carriage
+            // return straight into the value.
+            Files.writeString(path, value + "\n", StandardCharsets.UTF_8);
             return true;
         } catch (final IOException e) {
             LOGGER.warn("Could not write {}: {}", path, e.getMessage());
