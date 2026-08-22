@@ -60,7 +60,7 @@ public final class Dimensions {
      */
     public static boolean netherEnabled(final boolean inherited) {
         final Boolean settled = nether;
-        return settled != null ? settled : settle(NETHER_KEY, inherited, "the Nether");
+        return settled != null ? settled : settle(NETHER_KEY, inherited, "The Nether");
     }
 
     /**
@@ -71,7 +71,7 @@ public final class Dimensions {
      */
     public static boolean endEnabled(final boolean inherited) {
         final Boolean settled = end;
-        return settled != null ? settled : settle(END_KEY, inherited, "the End");
+        return settled != null ? settled : settle(END_KEY, inherited, "The End");
     }
 
     /**
@@ -107,7 +107,7 @@ public final class Dimensions {
                 if (config.getBoolean(key, true) != inherited) {
                     config.set(key, inherited);
                     config.save();
-                    LOGGER.info("Carried your existing setting for {} into config/{}: {} = {}.",
+                    LOGGER.info("{} keeps the setting it already had — config/{} now says {} = {}.",
                         label, ServerConfig.FILE_NAME, key, inherited);
                 }
             } else {
