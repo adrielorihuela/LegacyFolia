@@ -143,7 +143,7 @@ public final class ServerConfig {
      * @param source the template
      * @return the dotted paths that were added
      */
-    private static List<String> merge(final CommentedConfig target, final CommentedConfig source) {
+    static List<String> merge(final CommentedConfig target, final CommentedConfig source) {
         final List<String> added = new ArrayList<>();
         merge(target, source, "", added);
         return added;
