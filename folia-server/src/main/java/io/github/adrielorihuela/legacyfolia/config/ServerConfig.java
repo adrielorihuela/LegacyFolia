@@ -47,8 +47,12 @@ public final class ServerConfig {
 
     private final CommentedFileConfig config;
 
-    private ServerConfig(final CommentedFileConfig config) {
+    /** Whether this run is the one that created the file, for settings that migrate on first use. */
+    private final boolean created;
+
+    private ServerConfig(final CommentedFileConfig config, final boolean created) {
         this.config = config;
+        this.created = created;
     }
 
     /**
@@ -113,9 +117,37 @@ public final class ServerConfig {
             LOGGER.info("Created config/{}. Every setting in it is commented; start there.", FILE_NAME);
         }
 
-        final ServerConfig loaded = new ServerConfig(config);
+        final ServerConfig loaded = new ServerConfig(config, created);
         instance = loaded;
         return loaded;
+    }
+
+    /**
+     * Whether this run created the file.
+     *
+     * <p>Settings that used to live elsewhere use this to migrate: on the run that creates the
+     * file they copy what the old setting was set to into it, rather than imposing the template's
+     * default on a server that had already been configured.</p>
+     *
+     * @return whether {@code config/server.config} did not exist when the server started
+     */
+    public static boolean wasCreated() {
+        return get().created;
+    }
+
+    /**
+     * Sets a value, leaving its comment in place.
+     *
+     * @param path the dotted path
+     * @param value the value to store
+     */
+    public void set(final String path, final Object value) {
+        this.config.set(path, value);
+    }
+
+    /** Writes the file back out, comments and all. */
+    public void save() {
+        this.config.save();
     }
 
     private static CommentedConfig readTemplate() throws IOException {
