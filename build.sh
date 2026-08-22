@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ./gradlew applyAllPatches
-./gradlew build createMojmapBundlerJar
+./gradlew build createPaperclipJar
 
 echo
 echo "Build finished. Jar:"

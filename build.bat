@@ -5,7 +5,7 @@ setlocal
 cd /d "%~dp0"
 
 call gradlew applyAllPatches || exit /b 1
-call gradlew build createMojmapBundlerJar || exit /b 1
+call gradlew build createPaperclipJar || exit /b 1
 
 echo.
 echo Build finished. Jar:
