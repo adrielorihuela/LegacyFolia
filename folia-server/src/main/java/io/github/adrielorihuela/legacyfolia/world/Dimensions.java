@@ -107,7 +107,7 @@ public final class Dimensions {
                 if (config.getBoolean(key, true) != inherited) {
                     config.set(key, inherited);
                     config.save();
-                    LOGGER.info("{} keeps the setting it already had — config/{} now says {} = {}.",
+                    LOGGER.info("{} keeps the setting it already had; config/{} now says {} = {}.",
                         label, ServerConfig.FILE_NAME, key, inherited);
                 }
             } else {
@@ -133,7 +133,7 @@ public final class Dimensions {
             return;
         }
         warnedAboutOverworld = true;
-        LOGGER.warn("config/{}: dimensions.overworld cannot be turned off — the server has nowhere "
+        LOGGER.warn("config/{}: dimensions.overworld cannot be turned off, because the server has nowhere "
             + "to put players without it. Carrying on with it enabled.", ServerConfig.FILE_NAME);
     }
 
