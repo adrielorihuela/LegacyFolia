@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 19:43:37 -0500
+Subject: [PATCH] Update plugins before the loader reads the directory
+
+By the time loadPlugins looks, every jar it is meant to find has to
+already be there, so this is the last moment it can happen.
+
+A plugin that could not be installed and is not already on disk stops
+start-up rather than being skipped: the missing one may be what grants
+permissions, and a server that comes up without it comes up wide open.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index cd5551c0221ad2a7b5c7d452d8d91ffc9711c3ee..e70914d10934300ae57aaaaa8bbd5b471c7a9eca 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -293,6 +293,21 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             return false;
+         }
+ 
++        // LegacyFolia start - update plugins before they are loaded
++        // Here and nowhere later: by the time loadPlugins reads the directory, every jar it is
++        // meant to find has to already be there.
++        try {
++            io.github.adrielorihuela.legacyfolia.update.PluginUpdates.run(
++                this.getPluginsFolder().toPath(),
++                net.minecraft.SharedConstants.getCurrentVersion().name());
++        } catch (io.github.adrielorihuela.legacyfolia.update.PluginUpdateException e) {
++            LOGGER.error("Could not update plugins: {}", e.getMessage());
++            LOGGER.error("Starting without a plugin somebody listed on purpose is not safe -- it "
++                + "may be the one granting permissions. Fix the entry, or set "
++                + "plugins.auto-update.enabled to false in config/server.config.");
++            return false;
++        }
++        // LegacyFolia end - update plugins before they are loaded
+         // CraftBukkit start
+         this.server.loadPlugins();
+         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
