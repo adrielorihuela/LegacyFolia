@@ -1,3 +1,1 @@
-# Project overview
-
-This page has been moved to [the PaperMC documentation](https://docs.papermc.io/folia/reference/overview) site.
+Fork of Folia that restores 1.8 PvP, fixes the locator bar, replaces the scattered configuration with one commented file, and keeps plugins up to date on its own.
