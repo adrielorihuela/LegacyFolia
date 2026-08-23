@@ -82,6 +82,57 @@ public final class AdaptiveDistance {
     }
 
     /**
+     * Notes something only a person does on purpose: breaking a block, using an item, clicking in
+     * a container, attacking. Resets the away clock outright.
+     *
+     * @param player who did it
+     */
+    public static void onDeliberateAction(final ServerPlayer player) {
+        final PlayerActivity activity = activityOf(player);
+        if (activity != null) {
+            activity.recordDeliberateAction(System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Notes that the player moved, which is believed only if it looks like a person moved.
+     *
+     * @param player who moved
+     */
+    public static void onMovement(final ServerPlayer player) {
+        final PlayerActivity activity = activityOf(player);
+        if (activity != null) {
+            activity.recordMovement(player.getX(), player.getY(), player.getZ(),
+                player.getYRot(), player.getXRot(), System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Notes an arm swing, for the auto-clicker test.
+     *
+     * @param player who swung
+     */
+    public static void onSwing(final ServerPlayer player) {
+        final PlayerActivity activity = activityOf(player);
+        if (activity != null) {
+            activity.recordSwing(System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Notes a line of chat, which counts unless it is the same line again.
+     *
+     * @param player who said it
+     * @param message what was said
+     */
+    public static void onChat(final ServerPlayer player, final String message) {
+        final PlayerActivity activity = activityOf(player);
+        if (activity != null) {
+            activity.recordChatFromAnyThread(message, System.currentTimeMillis());
+        }
+    }
+
+    /**
      * Re-examines a player if enough time has passed, and applies anything that changed.
      *
      * <p>Called from the player's own tick, so it runs on their region's thread and touches nothing

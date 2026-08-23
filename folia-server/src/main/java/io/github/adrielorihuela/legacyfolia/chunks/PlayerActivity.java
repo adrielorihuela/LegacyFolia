@@ -11,9 +11,11 @@ import org.jspecify.annotations.Nullable;
  * turning at a perfectly even rate, or swinging with no jitter between clicks all keep a player
  * technically active while nobody is at the keyboard, and all three are recognised here.</p>
  *
- * <p>Everything in here belongs to one player and is only ever touched from that player's own
- * thread: the packets that feed it are handled there, and the check that reads it runs there. That
- * is what lets it use plain fields and a fixed ring rather than anything synchronised.</p>
+ * <p>Everything in here belongs to one player, and all of it but one method is only ever touched
+ * from that player's own thread: the packets that feed it are handled there, and the check that
+ * reads it runs there. That is what lets it use plain fields and a fixed ring rather than anything
+ * synchronised. The exception is chat, which Paper handles on a netty thread, so that path is
+ * confined to two volatile fields and is marked as such.
  */
 public final class PlayerActivity {
 
@@ -48,8 +50,10 @@ public final class PlayerActivity {
     private int swingsWritten;
     private int swingCursor;
 
-    private long lastHardActionAt = System.currentTimeMillis();
-    private @Nullable String lastChat;
+    // Volatile because chat arrives on a netty thread rather than the player's own. A single long
+    // write is safe from anywhere; nothing else in here is, which is why chat only touches this.
+    private volatile long lastHardActionAt = System.currentTimeMillis();
+    private volatile @Nullable String lastChat;
 
     /** Set by a client that tells us it is minimised or paused, if one ever does. */
     private boolean focused = true;
@@ -76,15 +80,19 @@ public final class PlayerActivity {
     /**
      * Records a line of chat, which counts as deliberate unless it is the same line again.
      *
+     * <p>Safe to call from any thread, and the only method here that is. Chat is handled on a netty
+     * thread rather than the player's own, so this touches nothing but the two volatile fields:
+     * clearing the movement history from over there would race with the thread writing it.</p>
+     *
      * @param message what was said
      * @param now the current time in milliseconds
      */
-    public void recordChat(final String message, final long now) {
+    public void recordChatFromAnyThread(final String message, final long now) {
         if (message.equals(this.lastChat)) {
             return;
         }
         this.lastChat = message;
-        recordDeliberateAction(now);
+        this.lastHardActionAt = now;
     }
 
     /**
