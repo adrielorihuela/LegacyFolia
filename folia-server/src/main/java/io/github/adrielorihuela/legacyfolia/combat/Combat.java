@@ -30,6 +30,50 @@ public final class Combat {
         return config;
     }
 
+    /**
+     * Whether this item can be raised to block, which in 1.8 meant a sword and nothing else.
+     *
+     * @param stack the item in hand
+     * @return whether right-clicking it should raise it
+     */
+    public static boolean canBlockWith(final net.minecraft.world.item.ItemStack stack) {
+        final CombatConfig current = config;
+        return current.enabled() && current.swordBlocking()
+            && stack.is(net.minecraft.tags.ItemTags.SWORDS);
+    }
+
+    /**
+     * How much of an incoming hit a raised sword takes off.
+     *
+     * <p>Zero when the target is not blocking, so the caller multiplies unconditionally rather than
+     * branching on the hot path.</p>
+     *
+     * @param target who is being hit
+     * @return the fraction of the damage that still lands
+     */
+    public static float blockingMultiplier(final net.minecraft.world.entity.LivingEntity target) {
+        final CombatConfig current = config;
+        if (!current.enabled() || !current.swordBlocking() || !target.isUsingItem()) {
+            return 1.0F;
+        }
+        return target.getUseItem().is(net.minecraft.tags.ItemTags.SWORDS)
+            ? (float) (1.0 - current.swordBlockingReduction()) : 1.0F;
+    }
+
+    /**
+     * How long a living entity is invulnerable after a hit, in ticks.
+     *
+     * <p>Read for every entity as it is created, so it stays a field read. Twenty either way: the
+     * window and the rule that a stronger hit still lands during it are both unchanged since 1.8,
+     * and this only exists so a server can lengthen or shorten it.</p>
+     *
+     * @return the number of ticks
+     */
+    public static int invulnerableDuration() {
+        final CombatConfig current = config;
+        return current.enabled() ? current.invulnerabilityTicks() : 20;
+    }
+
     /** Re-reads the settings, at start-up and on reload. */
     public static void reload() {
         config = CombatConfig.load();
