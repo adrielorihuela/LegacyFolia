@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 18:07:25 -0500
+Subject: [PATCH] Load the unified configuration and ask about the EULA
+
+config/server.config is read before anything looks at a setting, because
+it overrides the settings inherited from Bukkit, Spigot and Paper. It is
+loaded exactly once: settings that migrate into it on first use need to
+know whether this run is the one that created it, and a second load would
+tell them it was not.
+
+The EULA is then asked about at the console instead of the server
+stopping to tell you to go and edit a file.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 693ce1c23c7be6406eda22da57aa4a1b86a08f5f..c731ff94dc1fb796f9ef3c476a6cae6e838defb0 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -130,6 +130,12 @@ public class Main {
+             }
+             // Paper end
+             RegionFileVersion.configure(settings.getProperties().regionFileComression);
++            // LegacyFolia start - unified configuration
++            // Loaded here, before anything reads a setting: it overrides the settings inherited
++            // from Bukkit, Spigot and Paper. Loaded exactly once, because settings that migrate
++            // into it on first use need to know whether this run is the one that created it.
++            io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
++            // LegacyFolia end - unified configuration
+             Path eulaFile = Paths.get("eula.txt");
+             Eula eula = new Eula(eulaFile);
+             // Paper start - load config files early for access below if needed
+@@ -162,8 +168,15 @@ public class Main {
+                 LOGGER.warn("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
+             } else if (!eula.hasAgreedToEULA()) {
+                 // Paper end - eula system property
+-                LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
+-                return;
++                // LegacyFolia start - ask at the console rather than stopping
++                // Stopping a brand new server to go and edit a file is the most common reason a
++                // first start looks like a failure. Asking where the operator already is costs one
++                // keypress. Nothing is assumed: no console means no question, and the server stops
++                // exactly as it did before.
++                if (!io.github.adrielorihuela.legacyfolia.eula.EulaConsole.askAndRecord(eulaFile)) {
++                    return;
++                }
++                // LegacyFolia end - ask at the console rather than stopping
+             }
+ 
+             // Paper start - Detect headless JRE
