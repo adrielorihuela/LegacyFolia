@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 20:02:46 -0500
+Subject: [PATCH] Expose the hidden-entity half of canSee by id
+
+The locator bar has to ask whether a player can see somebody being ticked
+by another region thread. The other half of canSee travels in a snapshot,
+so this half only needs the id, and asking by id touches nothing but the
+asking player's own map.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index e20a66e56f2e4520b2708d6ebc377392e4362816..fb3afe37ae54898319fd49ff079629e815123e1f 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -2100,6 +2100,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
+         return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()); // SPIGOT-7312: Can always see self
+     }
+ 
++    // LegacyFolia start - half of canSee, by id
++    // The locator bar has to answer canSee about somebody being ticked by another region thread.
++    // The other half of it, isVisibleByDefault, belongs to that entity and is carried across in a
++    // snapshot; this half is this player's own map, so asking by id touches nothing but us.
++    public boolean isHiddenEntity(final java.util.UUID uuid) {
++        return this.invertedVisibilityEntities.containsKey(uuid);
++    }
++    // LegacyFolia end - half of canSee, by id
++
+     public boolean canSeePlayer(UUID uuid) {
+         org.bukkit.entity.Entity entity = this.getServer().getPlayer(uuid);
+ 

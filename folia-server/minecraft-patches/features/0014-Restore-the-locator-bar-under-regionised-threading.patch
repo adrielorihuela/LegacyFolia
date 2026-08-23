@@ -1,0 +1,218 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 20:02:46 -0500
+Subject: [PATCH] Restore the locator bar under regionised threading
+
+Folia emptied out trackWaypoint, addPlayer, updatePlayer and removePlayer
+and left the /waypoint command unregistered, which is why
+/gamerule locator_bar does nothing on it. All of it is put back, routed
+through RegionisedWaypoints so that neither direction reaches across a
+region boundary.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
+index 4ddb5e7ce3529466c3930caa9aa6b18158e9a63d..47a9ff8503d76579c617402c603daed07db8084e 100644
+--- a/net/minecraft/commands/Commands.java
++++ b/net/minecraft/commands/Commands.java
+@@ -261,7 +261,7 @@ public class Commands {
+         TimeCommand.register(this.dispatcher, context);
+         TitleCommand.register(this.dispatcher, context);
+         //TriggerCommand.register(this.dispatcher); // Folia - region threading - TODO later
+-        //WaypointCommand.register(this.dispatcher, context); // Folia - region threading - TODO later
++        WaypointCommand.register(this.dispatcher, context); // LegacyFolia - regionised locator bar
+         WeatherCommand.register(this.dispatcher);
+         WorldBorderCommand.register(this.dispatcher);
+         if (JvmProfiler.INSTANCE.isAvailable()) {
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index be15a671e0b39b455cd5983f4b90f8f3022a2ebc..3bd693c2d7b577bc9856b3a51a8c8b5d914baa38 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -3083,7 +3083,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         } else if (rule == GameRules.LOCATOR_BAR) {
+             // this.getAllLevels().forEach(level -> { // Paper - per-world game rules
+                 ServerWaypointManager waypointManager = level.getWaypointManager();
+-                waypointManager.locatorBarEnabled = (Boolean) value; // Paper - optimize ServerWaypointManager with locator bar disabled
++                waypointManager.setLocatorBarEnabled((Boolean) value); // LegacyFolia - regionised locator bar
+                 if ((Boolean)value) {
+                     level.players().forEach(waypointManager::updatePlayer);
+                 } else {
+diff --git a/net/minecraft/server/waypoints/ServerWaypointManager.java b/net/minecraft/server/waypoints/ServerWaypointManager.java
+index b455050c16946f54fc1d9893173777e39baf4290..a96565139c2ac07c348705c9ba0245cb36f47033 100644
+--- a/net/minecraft/server/waypoints/ServerWaypointManager.java
++++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
+@@ -1,127 +1,94 @@
+ package net.minecraft.server.waypoints;
+ 
+-import com.google.common.collect.HashBasedTable;
+-import com.google.common.collect.ImmutableSet;
+-import com.google.common.collect.Sets;
+-import com.google.common.collect.Table;
+-import com.google.common.collect.Tables;
+-import com.google.common.collect.Sets.SetView;
+ import java.util.HashSet;
+-import java.util.Map;
+ import java.util.Set;
+-import java.util.Map.Entry;
+ import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.waypoints.WaypointManager;
+ import net.minecraft.world.waypoints.WaypointTransmitter;
+ 
++// LegacyFolia start - regionised locator bar
++// Upstream drives the locator bar by reaching from whichever thread moved something into every
++// other player it should be shown to, which under regionised threading is a data race with a real
++// crash in it. Folia's answer was to empty these methods out, which is why /gamerule locator_bar
++// does nothing on it.
++//
++// Everything here now delegates to RegionisedWaypoints, where the two directions are separated so
++// that each runs on the thread that already owns the state it touches. Nothing is read across a
++// region boundary.
+ public class ServerWaypointManager implements WaypointManager<WaypointTransmitter> {
+-    private final Set<WaypointTransmitter> waypoints = new HashSet<>();
+-    private final Set<ServerPlayer> players = new HashSet<>();
+-    private final Table<ServerPlayer, WaypointTransmitter, WaypointTransmitter.Connection> connections = HashBasedTable.create();
+-    // Paper start - optimize ServerWaypointManager with locator bar disabled
+-    public boolean locatorBarEnabled; // Avoid a gamerule lookup for each player
++    private final io.github.adrielorihuela.legacyfolia.waypoint.RegionisedWaypoints delegate;
++
++    /** Kept only so the /waypoint command can still list what is being transmitted. */
++    private final Set<WaypointTransmitter> waypoints = java.util.concurrent.ConcurrentHashMap.newKeySet();
++
++    public boolean locatorBarEnabled; // Paper - optimize ServerWaypointManager with locator bar disabled
+ 
+     public ServerWaypointManager(net.minecraft.server.level.ServerLevel serverLevel) {
+         this.locatorBarEnabled = serverLevel.getGameRules().get(GameRules.LOCATOR_BAR);
++        this.delegate = new io.github.adrielorihuela.legacyfolia.waypoint.RegionisedWaypoints(this.locatorBarEnabled);
++    }
++
++    public io.github.adrielorihuela.legacyfolia.waypoint.RegionisedWaypoints delegate() {
++        return this.delegate;
++    }
++
++    public void setLocatorBarEnabled(final boolean enabled) {
++        this.locatorBarEnabled = enabled;
++        this.delegate.setEnabled(enabled);
+     }
+-    // Paper end - optimize ServerWaypointManager with locator bar disabled
+ 
+     @Override
+     public void trackWaypoint(final WaypointTransmitter waypoint) {
+-        // Folia - region threading
++        this.waypoints.add(waypoint);
++        if (waypoint instanceof LivingEntity source) {
++            this.delegate.publish(source);
++        }
+     }
+ 
+     @Override
+     public void updateWaypoint(final WaypointTransmitter waypoint) {
+-        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
+-        if (this.waypoints.contains(waypoint)) {
+-            Map<ServerPlayer, WaypointTransmitter.Connection> playerConnection = Tables.transpose(this.connections).row(waypoint);
+-            SetView<ServerPlayer> potentialPlayers = Sets.difference(this.players, playerConnection.keySet());
+-
+-            for (Entry<ServerPlayer, WaypointTransmitter.Connection> waypointConnection : ImmutableSet.copyOf(playerConnection.entrySet())) {
+-                this.updateConnection(waypointConnection.getKey(), waypoint, waypointConnection.getValue());
+-            }
+-
+-            for (ServerPlayer player : potentialPlayers) {
+-                this.createConnection(player, waypoint);
+-            }
++        if (waypoint instanceof LivingEntity source) {
++            this.delegate.publish(source);
+         }
+     }
+ 
+     @Override
+     public void untrackWaypoint(final WaypointTransmitter waypoint) {
+-        this.connections.column(waypoint).forEach((player, connection) -> connection.disconnect());
+-        Tables.transpose(this.connections).row(waypoint).clear();
+         this.waypoints.remove(waypoint);
++        if (waypoint instanceof net.minecraft.world.entity.Entity source) {
++            this.delegate.unpublish(source.getUUID());
++        }
+     }
+ 
+     public void addPlayer(final ServerPlayer player) {
+-        // Folia - region threading
++        if (player.isTransmittingWaypoint()) {
++            this.trackWaypoint(player);
++        }
++        this.delegate.refresh(player);
+     }
+ 
+     public void updatePlayer(final ServerPlayer player) {
+-        // Folia - region threading
++        this.delegate.refresh(player);
+     }
+ 
+     public void removePlayer(final ServerPlayer player) {
+-        // Folia - region threading
++        this.delegate.removeReceiver(player.getUUID());
++        this.untrackWaypoint(player);
+     }
+ 
+     public void breakAllConnections() {
+-        this.connections.values().forEach(WaypointTransmitter.Connection::disconnect);
+-        this.connections.clear();
++        this.delegate.clear();
+     }
+ 
+     public void remakeConnections(final WaypointTransmitter waypoint) {
+-        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
+-        for (ServerPlayer player : this.players) {
+-            this.createConnection(player, waypoint);
+-        }
++        // The icon carries the team colour, so a team change means republishing it.
++        this.updateWaypoint(waypoint);
+     }
+ 
+     public Set<WaypointTransmitter> transmitters() {
+-        return this.waypoints;
+-    }
+-
+-    // Paper start - optimize ServerWaypointManager with locator bar disabled
+-    // Avoid a gamerule lookup for each player
+-    private boolean isLocatorBarEnabledFor(final ServerPlayer player) {
+-        return locatorBarEnabled;
+-    // Paper end - optimize ServerWaypointManager with locator bar disabled
+-    }
+-
+-    private void createConnection(final ServerPlayer player, final WaypointTransmitter waypoint) {
+-        if (player != waypoint) {
+-            if (isLocatorBarEnabledFor(player)) {
+-                waypoint.makeWaypointConnectionWith(player).ifPresentOrElse(connection -> {
+-                    this.connections.put(player, waypoint, connection);
+-                    connection.connect();
+-                }, () -> {
+-                    WaypointTransmitter.Connection connection = this.connections.remove(player, waypoint);
+-                    if (connection != null) {
+-                        connection.disconnect();
+-                    }
+-                });
+-            }
+-        }
+-    }
+-
+-    private void updateConnection(final ServerPlayer player, final WaypointTransmitter waypoint, final WaypointTransmitter.Connection connection) {
+-        if (player != waypoint) {
+-            if (isLocatorBarEnabledFor(player)) {
+-                if (!connection.isBroken()) {
+-                    connection.update();
+-                } else {
+-                    waypoint.makeWaypointConnectionWith(player).ifPresentOrElse(newConnection -> {
+-                        newConnection.connect();
+-                        this.connections.put(player, waypoint, newConnection);
+-                    }, () -> {
+-                        connection.disconnect();
+-                        this.connections.remove(player, waypoint);
+-                    });
+-                }
+-            }
+-        }
++        return new HashSet<>(this.waypoints);
+     }
+ }
++// LegacyFolia end - regionised locator bar
