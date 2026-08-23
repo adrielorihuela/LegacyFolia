@@ -1,0 +1,179 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 23:12:40 -0500
+Subject: [PATCH] Wire the rest of the 1.8 combat mechanics
+
+Criticals: modern refuses one to a sprinting attacker and 1.8 did not,
+which is the whole sprint-jump critical of that version. The condition is
+restored and the multiplier made configurable.
+
+Sprint knockback and the invulnerability window already match 1.8 -- so
+does letting a stronger hit land during that window -- so those hooks
+only exist to let a server change them.
+
+Shields are refused where blocking is resolved. The off-hand swap is
+refused at the packet, and the inventory resent, because the client has
+already drawn the swap and would otherwise stay out of step.
+
+Sword blocking gives swords a use duration so they go through the same
+machinery a bow does, which is what sets the flag ViaVersion turns back
+into the 1.8 blocking animation, and the reduction is applied in the
+damage path rather than by inventing a component swords do not have.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index d2317ef82b88c16f09d58a3cdc82b00aacf2c9b8..5f673a2aa6689acded070a9806f6cb8d9920b46e 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2014,6 +2014,16 @@ public class ServerGamePacketListenerImpl
+                         return;
+                     }
+                 case SWAP_ITEM_WITH_OFFHAND:
++                    // LegacyFolia start - 1.8 had no off-hand
++                    final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++                        io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++                    if (legacyCombat.enabled() && legacyCombat.disableOffhand()) {
++                        // Refused rather than ignored: the client has already drawn the swap, so
++                        // it has to be told what the slots really hold or it stays out of step.
++                        this.player.containerMenu.sendAllDataToRemote();
++                        return;
++                    }
++                    // LegacyFolia end - 1.8 had no off-hand
+                     if (!this.player.isSpectator()) {
+                         ItemStack swap = this.player.getItemInHand(InteractionHand.OFF_HAND);
+                         // CraftBukkit start - inspiration taken from DispenserRegistry (See SpigotCraft#394)
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 58d56c155aaed589c13e8244b320be235c500757..a1c18b5af8ce896883ffd8cce5868ce2079d082d 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -304,7 +304,9 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
+     public boolean silentDeath = true; // Paper - mark entity as dying silently for cancellable death event
+     public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
+-    public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
++    // LegacyFolia - the window is already 20 ticks as it was in 1.8, and a stronger hit already
++    // lands during it for the difference; this only lets a server change the length.
++    public int invulnerableDuration = io.github.adrielorihuela.legacyfolia.combat.Combat.invulnerableDuration(); // Paper - configurable invulnerable duration // LegacyFolia - configurable
+     // CraftBukkit end
+     // Folia start - region threading
+     @Override
+@@ -1489,6 +1491,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             damage = Float.MAX_VALUE;
+         }
+ 
++        // LegacyFolia start - a raised sword halves the hit, as in 1.8
++        // Applied here rather than through the BLOCKS_ATTACKS component, because swords do not
++        // carry one and giving them a synthetic one would change what every other part of the
++        // game believes a sword is.
++        damage *= io.github.adrielorihuela.legacyfolia.combat.Combat.blockingMultiplier(this);
++        // LegacyFolia end - a raised sword halves the hit
++
+         EntityDamageEvent event; // CraftBukkit // Paper - move this into the actual invuln check....
+         boolean tookFullDamage = true;
+         if (this.invulnerableTime > (float)this.invulnerableDuration / 2.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN)) { // CraftBukkit - restore use of maxNoDamageTicks
+@@ -4448,6 +4457,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             return null;
+         }
+ 
++        // LegacyFolia start - 1.8 had no shields
++        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++        if (legacyCombat.enabled() && legacyCombat.disableShields()
++            && this.useItem.is(net.minecraft.world.item.Items.SHIELD)) {
++            return null;
++        }
++        // LegacyFolia end - 1.8 had no shields
++
+         BlocksAttacks blocksAttacks = this.useItem.get(DataComponents.BLOCKS_ATTACKS);
+         if (blocksAttacks != null) {
+             int elapsedTicks = this.useItem.getItem().getUseDuration(this.useItem, this) - this.useItemRemaining;
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index b3ef9dcc7cd3000eb0b557c351e185d81a08d751..b27b353a3c56b809f629b9f72bcdb8bbcc4ed3f7 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1053,7 +1053,12 @@ public abstract class Player extends Avatar implements ContainerUser {
+                     criticalAttack = criticalAttack && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
+                     if (criticalAttack) {
+                         damageSource = damageSource.critical(); // Paper - critical damage API
+-                        baseDamage *= 1.5F;
++                        // LegacyFolia start - configurable critical multiplier (1.5 in 1.8, as here)
++                        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig critConfig =
++                            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++                        baseDamage *= critConfig.enabled() && critConfig.legacyCriticals()
++                            ? (float) critConfig.criticalMultiplier() : 1.5F;
++                        // LegacyFolia end - configurable critical multiplier
+                     }
+ 
+                     float totalDamage = baseDamage + magicBoost;
+@@ -1066,9 +1071,17 @@ public abstract class Player extends Avatar implements ContainerUser {
+                     Vec3 oldMovement = entity.getDeltaMovement();
+                     boolean wasHurt = entity.hurtOrSimulate(damageSource, totalDamage);
+                     if (wasHurt) {
++                        // LegacyFolia start - configurable sprint knockback (0.5 in 1.8, as here)
++                        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig sprintConfig =
++                            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++                        final float sprintBonus = !knockbackAttack ? 0.0F
++                            : sprintConfig.enabled()
++                                ? (sprintConfig.sprintKnockback() ? (float) sprintConfig.sprintKnockbackStrength() : 0.0F)
++                                : 0.5F;
+                         this.causeExtraKnockback(
+-                            entity, this.getKnockback(entity, damageSource) + (knockbackAttack ? 0.5F : 0.0F), oldMovement, damageSource, totalDamage, true
++                            entity, this.getKnockback(entity, damageSource) + sprintBonus, oldMovement, damageSource, totalDamage, true
+                         );
++                        // LegacyFolia end - configurable sprint knockback
+                         if (sweepAttack) {
+                             this.doSweepAttack(entity, baseDamage, damageSource, attackStrengthScale);
+                         }
+@@ -1113,6 +1126,18 @@ public abstract class Player extends Avatar implements ContainerUser {
+     }
+ 
+     private boolean canCriticalAttack(final Entity entity) {
++        // LegacyFolia start - 1.8 allowed a sprinting critical
++        // The last condition below is not in 1.8. Sprinting there did not stop a hit critting,
++        // which is what makes the sprint-jump critical of that version work at all.
++        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++        if (legacyCombat.enabled() && legacyCombat.legacyCriticals()) {
++            return io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.isCritical(
++                this.fallDistance > 0.0, this.onGround(), this.onClimbable(), this.isInWater(),
++                this.isMobilityRestricted(), this.isPassenger())
++                && entity instanceof LivingEntity;
++        }
++        // LegacyFolia end - 1.8 allowed a sprinting critical
+         return this.fallDistance > 0.0
+             && !this.onGround()
+             && !this.onClimbable()
+diff --git a/net/minecraft/world/item/Item.java b/net/minecraft/world/item/Item.java
+index a6a5800f8c13977cedafc0cce95aed3a05306230..7448c5b4c3c41af846609699db684c33a17acb70 100644
+--- a/net/minecraft/world/item/Item.java
++++ b/net/minecraft/world/item/Item.java
+@@ -188,6 +188,12 @@ public class Item implements ItemLike, FeatureElement {
+ 
+     public InteractionResult use(final Level level, final Player player, final InteractionHand hand) {
+         ItemStack stack = player.getItemInHand(hand);
++        // LegacyFolia start - right-clicking a sword raises it
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.canBlockWith(stack)) {
++            player.startUsingItem(hand);
++            return InteractionResult.CONSUME;
++        }
++        // LegacyFolia end - right-clicking a sword raises it
+         Consumable consumable = stack.get(DataComponents.CONSUMABLE);
+         if (consumable != null) {
+             return consumable.startConsuming(player, stack, hand);
+@@ -308,6 +314,15 @@ public class Item implements ItemLike, FeatureElement {
+     }
+ 
+     public int getUseDuration(final ItemStack itemStack, final LivingEntity user) {
++        // LegacyFolia start - a sword can be held up to block, as in 1.8
++        // Swords have no use duration of their own now, so holding right-click would stop the
++        // moment it started. Giving them one puts them through the same "using an item" machinery
++        // as a bow, which is what sets the flag the client reads -- and what ViaVersion turns back
++        // into the 1.8 blocking animation for a client of that version.
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.canBlockWith(itemStack)) {
++            return 72000;
++        }
++        // LegacyFolia end - a sword can be held up to block
+         Consumable consumable = itemStack.get(DataComponents.CONSUMABLE);
+         if (consumable != null) {
+             return consumable.consumeTicks();
