@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 22:35:51 -0500
+Subject: [PATCH] Put back the combat mechanics of 1.8
+
+Three hooks, all of them switchable and all off unless [combat] asks for
+them.
+
+getAttackStrengthScale answering 1 removes the attack cooldown everywhere
+at once: the damage scaling, the charge indicator the client draws, and
+the sweep test that depends on a full-strength hit. isSweepAttack
+answering false removes the sweeping arc.
+
+The knockback hook is the one that matters most. Modern knockback only
+touches the vertical velocity of a target standing on the ground, so
+hitting somebody already airborne does not lift them; 1.8 lifted them
+every time, and that is what lets a combo hold somebody up.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 2e932d804007435c6bf4d9c613f6428d25ef55ae..eeb0619c97f991a90127701b990251b092050777 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -136,6 +136,7 @@ public class Main {
+             // into it on first use need to know whether this run is the one that created it.
+             io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
+             io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
++            io.github.adrielorihuela.legacyfolia.combat.Combat.reload();
+             // LegacyFolia end - unified configuration
+             Path eulaFile = Paths.get("eula.txt");
+             Eula eula = new Eula(eulaFile);
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 1cb8265c1313ad4893d45c344b03007fc4e2de4b..58d56c155aaed589c13e8244b320be235c500757 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -2091,11 +2091,20 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             }
+ 
+             Vec3 deltaVector = new Vec3(xd, 0.0, zd).normalize().scale(power);
+-            Vec3 targetMovement = new Vec3( // Paper - knockback events
++            // LegacyFolia start - 1.8 knockback
++            // The vertical component below is only applied to a target that is on the ground. In
++            // 1.8 it was applied always, which is what lets a combo hold somebody in the air, so
++            // the whole vector is handed to the legacy formula when that is turned on.
++            final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++                io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++            Vec3 targetMovement = legacyCombat.enabled() && legacyCombat.legacyKnockback()
++                ? io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.knockback(deltaMovement, xd, zd, legacyCombat)
++                : new Vec3( // Paper - knockback events
+                 deltaMovement.x / 2.0 - deltaVector.x,
+                 this.onGround() ? Math.min(0.4, deltaMovement.y / 2.0 + power) : deltaMovement.y,
+                 deltaMovement.z / 2.0 - deltaVector.z
+             );
++            // LegacyFolia end - 1.8 knockback
+             // Paper start - knockback events
+             Vec3 knockback = targetMovement.subtract(deltaMovement);
+             io.papermc.paper.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, attacker, eventCause, power, knockback);
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index 5ffcf20d06f8a0cc0394347d8ef4cfa1e89ebab2..b3ef9dcc7cd3000eb0b557c351e185d81a08d751 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1124,6 +1124,13 @@ public abstract class Player extends Avatar implements ContainerUser {
+     }
+ 
+     private boolean isSweepAttack(final boolean fullStrengthAttack, final boolean criticalAttack, final boolean knockbackAttack) {
++        // LegacyFolia start - 1.8 had no sweeping arc
++        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++        if (legacyCombat.enabled() && legacyCombat.noSweepAttack()) {
++            return false;
++        }
++        // LegacyFolia end - 1.8 had no sweeping arc
+         if (fullStrengthAttack && !criticalAttack && !knockbackAttack && this.onGround()) {
+             double approximateSpeedSq = this.getKnownMovement().horizontalDistanceSqr();
+             double maxSpeedForSweepAttack = this.getSpeed() * 2.5;
+@@ -1970,6 +1977,15 @@ public abstract class Player extends Avatar implements ContainerUser {
+     }
+ 
+     public float getAttackStrengthScale(final float a) {
++        // LegacyFolia start - 1.8 had no attack cooldown
++        // Answering 1 here removes it everywhere at once: the damage scaling, the charge indicator
++        // the client draws, and the sweep test that depends on a full-strength hit.
++        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++        if (legacyCombat.enabled() && legacyCombat.noAttackCooldown()) {
++            return 1.0F;
++        }
++        // LegacyFolia end - 1.8 had no attack cooldown
+         return Mth.clamp((this.attackStrengthTicker + a) / this.getCurrentItemAttackStrengthDelay(), 0.0F, 1.0F);
+     }
+ 
