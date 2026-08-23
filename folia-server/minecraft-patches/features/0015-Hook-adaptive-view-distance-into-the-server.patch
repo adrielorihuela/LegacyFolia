@@ -1,0 +1,119 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 22 Aug 2026 21:15:49 -0500
+Subject: [PATCH] Hook adaptive view distance into the server
+
+Activity comes from the packets that already carry those actions, placed
+after the thread guard so each runs on the player's own thread. The
+periodic check hangs off the player's own tick rather than a global
+sweep, which spreads the work out and keeps every read where it belongs.
+
+Chat is hooked before its guard on purpose: it is handled on a netty
+thread, and the method it calls touches only volatile fields.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index c731ff94dc1fb796f9ef3c476a6cae6e838defb0..2e932d804007435c6bf4d9c613f6428d25ef55ae 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -135,6 +135,7 @@ public class Main {
+             // from Bukkit, Spigot and Paper. Loaded exactly once, because settings that migrate
+             // into it on first use need to know whether this run is the one that created it.
+             io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
++            io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
+             // LegacyFolia end - unified configuration
+             Path eulaFile = Paths.get("eula.txt");
+             Eula eula = new Eula(eulaFile);
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 16f49ae6736c475207f31392307e280ec06edbc3..58f0bf2debea72d3d977c78e9d9da16ae004e8fc 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -969,6 +969,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     }
+ 
+     public void doTick() {
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.tick(this); // LegacyFolia - adaptive view distance
+         try {
+             if (this.valid && (!this.isSpectator() || !this.touchingUnloadedChunk())) { // Paper - don't tick dead players that are not in the world currently (pending respawn)
+                 super.tick();
+@@ -2941,6 +2942,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         this.language = information.language();
+         this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
+         this.requestedViewDistance = information.viewDistance();
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.evaluateNow(this); // LegacyFolia - adaptive view distance, the client just told us what it wants
+         this.chatVisibility = information.chatVisibility();
+         this.canChatColor = information.chatColors();
+         this.textFilteringEnabled = information.textFilteringEnabled();
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index c86b1fd5e200c478d178be32791b6e8c960d47e2..d2317ef82b88c16f09d58a3cdc82b00aacf2c9b8 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -1517,6 +1517,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handleMovePlayer(final ServerboundMovePlayerPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onMovement(this.player); // LegacyFolia - adaptive view distance
+         if (containsInvalidValues(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0), packet.getYRot(0.0F), packet.getXRot(0.0F))) {
+             this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
+         } else {
+@@ -1989,6 +1990,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handlePlayerAction(final ServerboundPlayerActionPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onDeliberateAction(this.player); // LegacyFolia - adaptive view distance
+         if (this.player.isImmobile()) return; // CraftBukkit
+         if (this.hasClientLoaded()) {
+             BlockPos pos = packet.getPos();
+@@ -2236,6 +2238,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handleUseItem(final ServerboundUseItemPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onDeliberateAction(this.player); // LegacyFolia - adaptive view distance
+         if (this.player.isImmobile()) return; // CraftBukkit
+         if (!this.checkLimit(packet.timestamp)) return; // Spigot - check limit
+         if (this.hasClientLoaded()) {
+@@ -2399,6 +2402,7 @@ public class ServerGamePacketListenerImpl
+     public void handleChat(final ServerboundChatPacket packet) {
+         // CraftBukkit start - async chat
+         // SPIGOT-3638
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onChat(this.player, packet.message()); // LegacyFolia - adaptive view distance (safe from this thread: volatile fields only)
+         if (this.server.isStopped()) {
+             return;
+         }
+@@ -2727,6 +2731,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handleAnimate(final ServerboundSwingPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onSwing(this.player); // LegacyFolia - adaptive view distance
+         if (this.player.isImmobile()) return; // CraftBukkit
+         this.player.resetLastActionTime();
+         // CraftBukkit start - Raytrace to look for 'rogue armswings'
+@@ -2951,6 +2956,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handleInteract(final ServerboundInteractPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onDeliberateAction(this.player); // LegacyFolia - adaptive view distance
+         if (this.player.isImmobile()) return; // CraftBukkit
+         if (this.hasClientLoaded()) {
+             ServerLevel level = this.player.level();
+@@ -3143,6 +3149,7 @@ public class ServerGamePacketListenerImpl
+     @Override
+     public void handleContainerClick(final ServerboundContainerClickPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.onDeliberateAction(this.player); // LegacyFolia - adaptive view distance
+         if (this.player.isImmobile()) return; // CraftBukkit
+         this.player.resetLastActionTime();
+         if (this.player.containerMenu.containerId == packet.containerId() && this.player.containerMenu.stillValid(this.player)) { // CraftBukkit
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index 259eb7574841b1b885093b534440f8a40db4e8e2..c3506e1b1e05e206b35489fac322c8e37e6894e7 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -566,6 +566,7 @@ public abstract class PlayerList {
+         player.retireScheduler(); // Paper - Folia schedulers
+         player.getBukkitEntity().packetProcessor.close(); // Folia - region threading
+         player.getAdvancements().clearTriggers();
++        io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.forget(player.getUUID()); // LegacyFolia - adaptive view distance
+         this.players.remove(player);
+         this.playersByName.remove(player.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
+         this.server.getCustomBossEvents().onPlayerDisconnect(player);
