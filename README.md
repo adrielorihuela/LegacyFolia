@@ -1,237 +1,197 @@
-[![Version](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fartifactory.papermc.io%2Fartifactory%2Funiverse%2Fdev%2Ffolia%2Ffolia-api%2Fmaven-metadata.xml&strategy=highestVersion&filter=26.1*&label=version&color=%23344ceb
-)](https://papermc.io/downloads/folia)
-[![Folia Build Status](https://img.shields.io/github/actions/workflow/status/PaperMC/Folia/build.yml?branch=ver/26.1.x)](https://github.com/PaperMC/Folia/actions)
-[![Discord](https://img.shields.io/discord/289587909051416579.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/papermc)
-===========
+# LegacyFolia — a Folia fork with 1.8 PvP, one config file, and plugin auto-updates
 
-<div align=center>
-    <img src="./folia.png">
-    <br /><br />
-    <p>Fork of <a href="https://github.com/PaperMC/Paper">Paper</a> which adds regionised multithreading to the dedicated server.</p>
-</div>
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen)](https://minecraft.net)
+[![Java](https://img.shields.io/badge/Java-25-orange)](https://adoptium.net)
+[![Upstream](https://img.shields.io/badge/fork%20of-PaperMC%2FFolia-blue)](https://github.com/PaperMC/Folia)
+[![Licence](https://img.shields.io/badge/licence-GPL--3.0-lightgrey)](LICENCE.txt)
 
-## Overview
+**LegacyFolia** is a fork of [Folia](https://github.com/PaperMC/Folia) — the multithreaded Minecraft
+server — that puts back **1.8 PvP**, fixes the **locator bar** Folia disabled, replaces the scattered
+configuration with **one commented file**, and **keeps your plugins up to date on its own**.
 
-Folia groups nearby loaded chunks to form an "independent region."
-See [the PaperMC documentation](https://docs.papermc.io/folia/reference/region-logic) for exact details on how Folia
-will group nearby chunks.
-Each independent region has its own tick loop, which is ticked at the
-regular Minecraft tickrate (20TPS). The tick loops are executed
-on a thread pool in parallel. There is no main thread anymore, 
-as each region effectively has its own "main thread" that executes
-the entire tick loop.
+It is a Folia server first: regionised multithreading, the full Paper and Bukkit plugin API, and
+every upstream commit merged in. Everything below is added on top, and every part of it can be
+switched off.
 
-For a server with many spread out players, Folia will create many
-spread out regions and tick them all in parallel on a configurable sized
-threadpool. Thus, Folia should scale well for servers like this.
+---
 
-Folia is also its own project, this will not be merged into Paper
-for the foreseeable future. 
+## Why this fork exists
 
-A more detailed but abstract overview: [Project overview](https://docs.papermc.io/folia/reference/overview).
+Folia scales a Minecraft server across CPU cores by giving each region of the world its own tick
+loop. That is excellent, and this fork does not change any of it. What it changes is everything
+around it that makes a Folia server tedious to run:
 
-## FAQ
+| Problem | What LegacyFolia does |
+|---|---|
+| Modern combat killed 1.8 PvP | Restores it, from 1.8.8's own source, mechanic by mechanic |
+| `/gamerule locator_bar` does nothing on Folia | Fixed properly, region-safe |
+| Settings spread across six files in three formats | One commented `config/server.config` |
+| No way to turn off the Nether or the End | One `[dimensions]` section — and a **2× faster start-up** |
+| Velocity secret sits in plain text in a shared YAML | Its own `config/forwarding.secret` |
+| The server stops on first start to make you edit `eula.txt` | Asks you at the console instead |
+| Updating plugins is a manual chore | Checked and updated at every start, verified by checksum |
+| Every player is sent chunks they never look at | Each gets only the chunks they use |
 
-### What server types can benefit from Folia?
-Server types that naturally spread players out, 
-like skyblock or SMP, will benefit the most from Folia. The server
-should have a sizeable player count, too.
+---
 
-### What hardware will Folia run best on?
-Ideally, at least 16 _cores_ (not threads).
+## Features
 
-### How to best configure Folia?
-First, it is recommended that the world is pre-generated so that the number
-of chunk system worker threads required is reduced greatly.
+### 1.8 PvP, from the original source
 
-The following is a _very rough_ estimation based off of the testing
-done before Folia was released on the test server we ran that
-had ~330 players peak. So, it is not exact and will require further tuning - 
-just take it as a starting point.
+Not "close to 1.8" — read out of the 1.8.8 sources and reproduced. Enabled by default; every knob
+lives under `[combat]`.
 
-The total number of cores on the machine available should be 
-taken into account. Then, allocate threads for: 
-- netty IO :~4 per 200-300 players
-- chunk system io threads: ~3 per 200-300 players
-- chunk system workers if pre-generated, ~2 per 200-300 players
-- There is no best guess for chunk system workers if not pre-generated, as
-  on the test server we ran we gave 16 threads but chunk generation was still
-  slow at ~300 players.
-- GC Settings: ???? But, GC settings _do_ allocate concurrent threads, and you need
-  to know exactly how many. This is typically through the `-XX:ConcGCThreads=n` flag. Do not
-  confuse this flag with `-XX:ParallelGCThreads=n`, as parallel GC threads only run when
-  the application is paused by GC and as such should not be taken into account.
+- **No attack cooldown.** Swing as fast as you can click. No damage scaling, no charge indicator.
+- **No sweeping arc.**
+- **1.8 knockback.** The one that matters most: modern knockback only lifts a target standing on the
+  ground, so hitting somebody already airborne does nothing to their height. In 1.8 it lifted them
+  every time — which is what lets a combo hold somebody up.
+- **Sprint-jump criticals.** Modern Minecraft refuses a critical to a sprinting attacker. 1.8 did
+  not. That single condition is most of what makes 1.8 combat read differently, and it is restored.
+- **W-tap knockback.** Sprinting adds knockback, cancels your sprint and cuts your own speed.
+- **Sword blocking.** Right-click to raise a sword and halve incoming damage.
+- **No shields, no off-hand.**
 
-After all of that allocation, the remaining cores on the system until 80%
-allocation (total threads allocated < 80% of cpus available) can be
-allocated to tickthreads (under global config, threaded-regions.threads). 
+Full detail, including what was verified against the original and what was not:
+**[docs/PVP-1.8.md](docs/PVP-1.8.md)**
 
-The reason you should not allocate more than 80% of the cores is due to the
-fact that plugins or even the server may make use of additional threads 
-that you cannot configure or even predict.
+### The locator bar, fixed
 
-Additionally, the above is all a rough guess based on player count, but
-it is very likely that the thread allocation will not be ideal, and you 
-will need to tune it based on usage of the threads that you end up seeing.
+`/gamerule locator_bar` does nothing on Folia. Its four supporting methods are emptied out upstream
+with the note *"Need to implement waypoints correctly"* ([PaperMC/Folia#370](https://github.com/PaperMC/Folia/issues/370)),
+because the locator bar only shows somebody past 332 blocks — which under regionised threading means
+they are almost always on another thread, and reading their entity from yours is a crash waiting to
+happen.
 
-## Plugin compatibility
+LegacyFolia fixes it rather than working around it. Transmitters publish an immutable snapshot on
+their own thread; receivers read only snapshots. Nothing crosses a region boundary, and the whole
+cost is one map write per moving player.
 
-There is no more main thread. I expect _every_ single plugin
-that exists to require _some_ level of modification to function
-in Folia. Additionally, multithreading of _any kind_ introduces
-possible race conditions in plugin held data - so, there are bound
-to be changes that need to be made.
+### One configuration file
 
-So, have your expectations for compatibility at 0.
+`config/server.config` — TOML, grouped by what settings **do** rather than which server introduced
+them, with a comment on every key explaining what it is for.
 
-## API plans
+It does not replace `bukkit.yml`, `spigot.yml` or `paper-global.yml`. Those are still generated,
+still read, and still what plugins see; this file overrides them at start-up. **No plugin can tell
+the difference.**
 
-Currently, there is a lot of API that relies on the main thread. 
-I expect basically zero plugins that are compatible with Paper to 
-be compatible with Folia. However, there are plans to add API that 
-would allow Folia plugins to be compatible with Paper.
+```toml
+[dimensions]
+nether = false          # never loaded: no world folder, no chunks, no ticking
+end = false
 
-For example, the Bukkit Scheduler. The Bukkit Scheduler inherently
-relies on a single main thread. Folia's RegionScheduler and Folia's
-EntityScheduler allow scheduling of tasks to the "next tick" of whatever
-region "owns" either a location or an entity. These could be implemented
-on regular Paper, except they schedule to the main thread - in both cases,
-the execution of the task will occur on the thread that "owns" the
-location or entity. This concept applies in general, as the current Paper
-(single threaded) can be viewed as one giant "region" that encompasses
-all chunks in all worlds. 
+[combat]
+enabled = true          # 1.8 PvP
+no-attack-cooldown = true
 
-It is not yet decided whether to add this API to Paper itself directly
-or to Paperlib.
-
-### The new rules
-
-First, Folia breaks many plugins. To aid users in figuring out which
-plugins work, only plugins that have been explicitly marked by the
-author(s) to work with Folia will be loaded. By placing
-"folia-supported: true" into the plugin's plugin.yml, plugin authors
-can mark their plugin as compatible with regionised multithreading.
-
-The other important rule is that the regions tick in _parallel_, and not 
-_concurrently_. They do not share data, they do not expect to share data,
-and sharing of data _will_ cause data corruption. 
-Code that is running in one region under no circumstance can 
-be accessing or modifying data that is in another region. Just 
-because multithreading is in the name, it doesn't mean that everything 
-is now thread-safe. In fact, there are only a _few_ things that were 
-made thread-safe to make this happen. As time goes on, the number 
-of thread context checks will only grow, even _if_ it comes at a 
-performance penalty - _nobody_ is going to use or develop for a 
-server platform that is buggy as hell, and the only way to 
-prevent and find these bugs is to make bad accesses fail _hard_ at the 
-source of the bad access.
-
-This means that Folia compatible plugins need to take advantage of 
-API like the RegionScheduler and the EntityScheduler to ensure 
-their code is running on the correct thread context.
-
-In general, it is safe to assume that a region owns chunk data
-in an approximate 8 chunks from the source of an event (i.e. player
-breaks block, can probably access 8 chunks around that block). But,
-this is not guaranteed - plugins should take advantage of upcoming
-thread-check API to ensure correct behavior.
-
-The only guarantee of thread-safety comes from the fact that a
-single region owns data in certain chunks - and if that region is
-ticking, then it has full access to that data. This data is 
-specifically entity/chunk/poi data, and is entirely unrelated
-to **ANY** plugin data.
-
-Normal multithreading rules apply to data that plugins store/access
-their own data or another plugin's - events/commands/etc. are called 
-in _parallel_ because regions are ticking in _parallel_ (we CANNOT 
-call them in a synchronous fashion, as this opens up deadlock issues 
-and would handicap performance). There are no easy ways out of this, 
-it depends solely on what data is being accessed. Sometimes a 
-concurrent collection (like ConcurrentHashMap) is enough, and often a 
-concurrent collection used carelessly will only _hide_ threading 
-issues, which then become near impossible to debug.
-
-### Current API additions
-
-To properly understand API additions, please read
-[Project overview](https://docs.papermc.io/folia/reference/overview).
-
-- RegionScheduler, AsyncScheduler, GlobalRegionScheduler, and EntityScheduler 
-  acting as a replacement for  the BukkitScheduler.
-  The entity scheduler is retrieved via Entity#getScheduler, and the
-  rest of the schedulers can be retrieved from the Bukkit/Server classes.
-- Bukkit#isOwnedByCurrentRegion to test if the current ticking region
-  owns positions/entities
-
-### Thread contexts for API
-
-To properly understand API additions, please read
-[Project overview](https://docs.papermc.io/folia/reference/overview).
-
-General rules of thumb:
-
-1. Commands for entities/players are called on the region which owns
-the entity/player. Console commands are executed on the global region.
-
-2. Events involving a single entity (i.e player breaks/places block) are
-called on the region owning entity. Events involving actions on an entity
-(such as entity damage) are invoked on the region owning the target entity.
-
-3. The async modifier for events is deprecated - all events
-fired from regions or the global region are considered _synchronous_, 
-even though there is no main thread anymore. 
-
-### Current broken API
-
-- Most API that interacts with portals / respawning players / some
-  player login API is broken.
-- ALL scoreboard API is considered broken (this is global state that
-  I've not figured out how to properly implement yet)
-- World loading/unloading
-- Entity#teleport. This will NEVER UNDER ANY CIRCUMSTANCE come back, 
-  use teleportAsync
-- Could be more
-
-### Planned API additions
-
-- Proper asynchronous events. This would allow the result of an event
-  to be completed later, on a different thread context. This is required
-  to implement some things like spawn position select, as asynchronous
-  chunk loads are required when accessing chunk data out-of-region.
-- World loading/unloading
-- More to come here
-
-### Planned API changes
-
-- Super aggressive thread checks across the board. This is absolutely
-  required to prevent plugin devs from shipping code that may randomly
-  break random parts of the server in entirely _undiagnosable_ manners.
-- More to come here
-
-### Maven information
-* Maven Repo (for folia-api):
-```xml
-<repository>
-    <id>papermc</id>
-    <url>https://repo.papermc.io/repository/maven-public/</url>
-</repository>
+[plugins.auto-update]
+enabled = true
+hangar = ["ViaVersion"]
+modrinth = ["viabackwards"]
+github = ["ViaVersion/ViaRewind"]
+luckperms = true
 ```
-* Artifact Information:
-```xml
-<dependency>
-    <groupId>dev.folia</groupId>
-    <artifactId>folia-api</artifactId>
-    <version>[26.1.2.build,)</version>
-    <scope>provided</scope>
-</dependency>
- ```
 
+Reference for every key: **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)**
 
-## License
-The PATCHES-LICENSE file describes the license for api & server patches,
-found in `./patches` and its subdirectories except when noted otherwise.
+### Plugin auto-updates
 
-The fork is based off of PaperMC's fork example found [here](https://github.com/PaperMC/paperweight-examples).
-As such, it contains modifications to it in this project, please see the repository for license information
-of modified files.
+Listed plugins are checked at every start, before they load, from **Hangar**, **Modrinth**,
+**GitHub releases** and **LuckPerms**.
+
+- Whether a plugin is current is decided by the **checksum its source publishes**, never by the file
+  name, and the same checksum verifies the download.
+- Old jars of the same plugin are removed, because two jars claiming one plugin id make the loader
+  refuse whichever it reads second.
+- A source being down is a warning if the jar is already there, and a **hard stop** if it is not —
+  the missing plugin may be the one granting permissions.
+- GitHub walks the whole release list, so a project whose newest tag is a pre-release still works.
+
+Detail: **[docs/PLUGIN-UPDATER.md](docs/PLUGIN-UPDATER.md)**
+
+### Turn off the Nether and the End
+
+For a lobby, a minigame server or anything that never leaves the overworld. A dimension that is off
+is never created: no world folder, no chunks in memory, nothing ticking, no region threads.
+
+Measured on an empty server: **23.5s → 10.8s to start**.
+
+### Adaptive view distance
+
+A server's view distance has to suit whoever wants the most, so everybody else is sent and ticked
+chunks they throw away on arrival. Each player gets what their client actually asked for, and a
+player who is away is reduced further — with anti-AFK macro and auto-clicker detection, so
+"away" means away.
+
+### An EULA prompt instead of a wall
+
+First start asks at the console. Press **Enter** to agree, **Escape** to stop. A server with no
+console attached — systemd, Docker, `--noconsole` — is never asked and stops exactly as before,
+because a prompt nobody can see is indistinguishable from a hang.
+
+### The forwarding secret in its own file
+
+`config/forwarding.secret`, the same name Velocity uses, so you can copy the proxy's file straight
+across. If you already had one in `paper-global.yml` it is moved for you and the old key blanked —
+configurations get pasted into issues and photographed in screenshots, and secrets go with them.
+
+---
+
+## Getting started
+
+```bash
+java -Xms4G -Xmx4G -jar legacyfolia.jar nogui
+```
+
+Requires **Java 25**. On first start it asks about the EULA, writes `config/server.config`, and
+creates `config/forwarding.secret` and `config/github.token` empty for you to fill in when needed.
+
+Then open `config/server.config` — everything is in there, and everything is commented.
+
+## Building
+
+```bash
+./build.sh
+```
+
+Applies the patches and builds the jar into `folia-server/build/libs/`. On Windows, `build.bat`.
+
+## Updating to a new Folia build
+
+```bash
+./update.sh
+```
+
+Adds the upstream remote if it is missing, fetches, merges, and re-applies the patches. Safe on a
+fresh clone from any machine. See **[docs/UPDATING.md](docs/UPDATING.md)**.
+
+Merges stay cheap by design: almost all of this fork is ordinary source in
+`folia-server/src/main/java`, and the patches into Minecraft are a handful of lines each that call
+into it.
+
+---
+
+## Compatibility
+
+- **Plugins**: everything that runs on Folia runs here. The Bukkit, Spigot and Paper configuration
+  files are untouched and still authoritative for what plugins read. Declare `folia-supported: true`
+  as you would for Folia.
+- **Clients**: 26.2 natively; 1.8 clients through [ViaVersion](https://hangar.papermc.io/ViaVersion/ViaVersion)
+  and ViaBackwards, which is the intended way to play the 1.8 PvP.
+- **Proxies**: Velocity modern forwarding and BungeeCord, as upstream.
+
+## Licence
+
+GPL-3.0, as Folia and Paper are. Patches are licenced per `PATCHES-LICENSE`.
+
+The 1.8.8 reference sources are **not** distributed here — they are Mojang's, decompiled, and not
+ours to redistribute, which is why CraftBukkit ships BuildTools rather than sources.
+`reference/fetch-1.8.8-source.sh` reproduces them from the exact Spigot build the combat mechanics
+were read from, for anybody who wants to check the fidelity themselves.
+
+## Credits
+
+- [PaperMC](https://github.com/PaperMC) for Paper and Folia, which this is a fork of.
+- The adaptive view distance began as [ChunkScope](https://github.com/adrielorihuela/ChunkScope) and
+  the plugin updater as the one in [HybridVelocity](https://github.com/adrielorihuela/HybridAuth).
