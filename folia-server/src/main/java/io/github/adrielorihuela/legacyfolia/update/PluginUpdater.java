@@ -223,8 +223,17 @@ public final class PluginUpdater {
                     release.source(), release.fileName());
             }
 
-            // Only once the replacement is known good.
-            pruneOtherJars(release.baseName(), target);
+            // Only once the replacement is known good -- and before the move, because leaving
+            // both on disk is worse than leaving the old one: two jars claiming one plugin id
+            // make the loader refuse whichever it reads second.
+            try {
+                pruneOtherJars(release.baseName(), target);
+            } catch (final IOException e) {
+                throw new PluginUpdateException("the old " + release.baseName() + " jar could not "
+                    + "be removed (" + e.getMessage() + "), and installing the new one alongside "
+                    + "it would leave two jars claiming the same plugin. Stop the server and "
+                    + "delete the old jar by hand", e);
+            }
             Files.move(part, target, StandardCopyOption.REPLACE_EXISTING);
             LOGGER.info("{} {} installed.", label, release.version());
         } finally {
