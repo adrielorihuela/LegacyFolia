@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Mon, 24 Aug 2026 05:18:11 -0500
+Subject: [PATCH] Keep the whitelist, bans, ops and EULA with the configuration
+
+They are configuration whatever their format, and the root of a server
+directory is not where an operator wants to hunt for them.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index eeb0619c97f991a90127701b990251b092050777..01ea96f5c4d4dd52a15893ed45937749362d56d1 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -138,7 +138,7 @@ public class Main {
+             io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
+             io.github.adrielorihuela.legacyfolia.combat.Combat.reload();
+             // LegacyFolia end - unified configuration
+-            Path eulaFile = Paths.get("eula.txt");
++            Path eulaFile = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolvePath("eula.txt"); // LegacyFolia - the EULA is configuration too
+             Eula eula = new Eula(eulaFile);
+             // Paper start - load config files early for access below if needed
+             org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("bukkit-settings"));
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index c3506e1b1e05e206b35489fac322c8e37e6894e7..e18490e5df9e0278dcdcc9f59f2aa10f84ce6dde 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -103,10 +103,12 @@ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+ public abstract class PlayerList {
+-    public static final File USERBANLIST_FILE = new File("banned-players.json");
+-    public static final File IPBANLIST_FILE = new File("banned-ips.json");
+-    public static final File OPLIST_FILE = new File("ops.json");
+-    public static final File WHITELIST_FILE = new File("whitelist.json");
++    // LegacyFolia start - these are configuration, whatever their format, and belong with it
++    public static final File USERBANLIST_FILE = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolve("banned-players.json");
++    public static final File IPBANLIST_FILE = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolve("banned-ips.json");
++    public static final File OPLIST_FILE = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolve("ops.json");
++    public static final File WHITELIST_FILE = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolve("whitelist.json");
++    // LegacyFolia end
+     public static final Component CHAT_FILTERED_FULL = Component.translatable("chat.filtered_full");
+     public static final Component DUPLICATE_LOGIN_DISCONNECT_MESSAGE = Component.translatable("multiplayer.disconnect.duplicate_login");
+     private static final Logger LOGGER = LogUtils.getLogger();
