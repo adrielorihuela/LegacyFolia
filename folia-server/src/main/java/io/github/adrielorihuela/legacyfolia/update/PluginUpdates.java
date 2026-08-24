@@ -38,16 +38,22 @@ public final class PluginUpdates {
      */
     public static void run(final Path pluginDirectory, final String minecraftVersion)
         throws PluginUpdateException {
-        if (!ServerConfig.isLoaded() || !ServerConfig.get().getBoolean(ENABLED, false)) {
+        if (!ServerConfig.isLoaded()) {
+            return;
+        }
+
+        // Created before anything else, and whether or not the updater is switched on. It used to
+        // sit below the check for that, which meant the file only ever appeared for people who had
+        // already turned the feature on -- exactly the ones who did not need to be shown where the
+        // token goes.
+        final String tokenFile = tokenFileName();
+        SecretFiles.createIfAbsent(tokenFile);
+
+        if (!ServerConfig.get().getBoolean(ENABLED, false)) {
             return;
         }
 
         final List<PluginUpdater.Wanted> wanted = wanted();
-
-        // Created even when nothing is listed yet, so it is there to be filled in before it is
-        // needed rather than after the rate limit has already been hit.
-        final String tokenFile = tokenFileName();
-        SecretFiles.createIfAbsent(tokenFile);
         if (wanted.isEmpty()) {
             return;
         }
