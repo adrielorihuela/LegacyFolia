@@ -55,11 +55,14 @@ public final class EulaConsole {
         try {
             decision = ask();
         } catch (final Exception e) {
-            // Deliberately broad. Building a terminal fails in more ways than IOException --
-            // JLine throws IllegalStateException when no provider works -- and none of them are
-            // a reason to stop a server from starting, which is what an escaping exception did.
-            LOGGER.info("You need to agree to the EULA in order to run the server. "
-                + "Go to eula.txt for more info.");
+            // Deliberately broad: a terminal fails to open in more ways than IOException, and none
+            // of them are a reason to stop a server from starting.
+            //
+            // Said differently from the no-console case on purpose. These two used to print the
+            // same line, which is exactly how the bug that made this branch fire every time went
+            // unnoticed: there was no way to tell "nobody is watching" from "the question broke".
+            LOGGER.warn("Could not ask about the EULA at the console: {}", e.toString());
+            LOGGER.warn("Agree by hand instead: set eula=true in {}.", eulaFile);
             LOGGER.debug("Could not ask at the console", e);
             return false;
         }
@@ -112,6 +115,15 @@ public final class EulaConsole {
      * short.</p>
      */
     private static Decision ask() throws IOException {
+        // The console appender has already built the system terminal by the time this runs --
+        // PaperBootstrap logs two lines before Main.main, which initialises it. Asking JLine for a
+        // second one throws "A system terminal is already running", so the existing one is borrowed
+        // instead, and deliberately not closed: closing it would take the server console with it.
+        final Terminal existing = net.minecrell.terminalconsole.TerminalConsoleAppender.getTerminal();
+        if (existing != null) {
+            return ask(existing, timeoutMillis());
+        }
+
         try (Terminal terminal = TerminalBuilder.builder().system(true).dumb(false).build()) {
             return ask(terminal, timeoutMillis());
         }
