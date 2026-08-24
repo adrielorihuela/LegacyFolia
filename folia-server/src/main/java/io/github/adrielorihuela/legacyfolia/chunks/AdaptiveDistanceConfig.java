@@ -39,7 +39,7 @@ public record AdaptiveDistanceConfig(boolean enabled, int viewReduction, int sim
     }
 
     /**
-     * Reads the settings from {@code config/server.config}.
+     * Reads the settings from {@code config/performance.toml}.
      *
      * @return the configuration, disabled if the file has not been loaded
      */

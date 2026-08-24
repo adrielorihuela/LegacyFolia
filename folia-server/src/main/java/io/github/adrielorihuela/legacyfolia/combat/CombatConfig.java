@@ -51,7 +51,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
     }
 
     /**
-     * Reads the settings from {@code config/server.config}.
+     * Reads the settings from {@code config/combat.toml}.
      *
      * @return the configuration
      */

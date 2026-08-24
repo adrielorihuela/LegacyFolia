@@ -80,7 +80,7 @@ public final class Combat {
         if (config.enabled()) {
             LOGGER.info("1.8 combat is on: no attack cooldown, no sweep, and knockback that lifts "
                 + "an airborne target. Every part of it is switchable under [combat] in "
-                + "config/server.config.");
+                + "config/combat.toml.");
         }
     }
 }
