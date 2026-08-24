@@ -77,7 +77,7 @@ public final class Dimensions {
     /**
      * Settles one dimension, once.
      *
-     * <p>On a server whose {@code config/server.config} has just been created the direction is
+     * <p>On a server whose configuration has just been created the direction is
      * reversed: whatever the old setting was is written into the new file, so upgrading a server
      * that turned the Nether off years ago never quietly switches it back on.</p>
      *
@@ -99,24 +99,22 @@ public final class Dimensions {
                 return inherited;
             }
 
-            final ServerConfig config = ServerConfig.get();
             final boolean enabled;
 
-            if (ServerConfig.wasCreated()) {
+            if (ServerConfig.wasCreated(key)) {
                 enabled = inherited;
-                if (config.getBoolean(key, true) != inherited) {
-                    config.set(key, inherited);
-                    config.save();
-                    LOGGER.info("{} keeps the setting it already had; config/{} now says {} = {}.",
-                        label, ServerConfig.FILE_NAME, key, inherited);
+                if (ServerConfig.getBoolean(key, true) != inherited) {
+                    ServerConfig.set(key, inherited);
+                    LOGGER.info("{} keeps the setting it already had; the configuration now says {} = {}.",
+                        label, key, inherited);
                 }
             } else {
-                enabled = config.getBoolean(key, inherited);
+                enabled = ServerConfig.getBoolean(key, inherited);
                 if (!enabled) {
-                    LOGGER.info("{} is disabled in config/{}, so its world will not be loaded.",
-                        label, ServerConfig.FILE_NAME);
+                    LOGGER.info("{} is disabled in the configuration, so its world will not be loaded.",
+                        label);
                 }
-                warnIfOverworldDisabled(config);
+                warnIfOverworldDisabled();
             }
 
             if (NETHER_KEY.equals(key)) {
@@ -128,13 +126,13 @@ public final class Dimensions {
         }
     }
 
-    private static void warnIfOverworldDisabled(final ServerConfig config) {
-        if (warnedAboutOverworld || config.getBoolean(OVERWORLD_KEY, true)) {
+    private static void warnIfOverworldDisabled() {
+        if (warnedAboutOverworld || ServerConfig.getBoolean(OVERWORLD_KEY, true)) {
             return;
         }
         warnedAboutOverworld = true;
-        LOGGER.warn("config/{}: dimensions.overworld cannot be turned off, because the server has nowhere "
-            + "to put players without it. Carrying on with it enabled.", ServerConfig.FILE_NAME);
+        LOGGER.warn("dimensions.overworld cannot be turned off, because the server has nowhere "
+            + "to put players without it. Carrying on with it enabled.");
     }
 
     /**

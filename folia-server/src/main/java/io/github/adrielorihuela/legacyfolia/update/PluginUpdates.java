@@ -49,7 +49,7 @@ public final class PluginUpdates {
         final String tokenFile = tokenFileName();
         SecretFiles.createIfAbsent(tokenFile);
 
-        if (!ServerConfig.get().getBoolean(ENABLED, false)) {
+        if (!ServerConfig.getBoolean(ENABLED, false)) {
             return;
         }
 
@@ -69,18 +69,17 @@ public final class PluginUpdates {
 
     /** Everything the configuration asks for, flattened in the order the sources are listed. */
     private static List<PluginUpdater.Wanted> wanted() {
-        final ServerConfig config = ServerConfig.get();
         final List<PluginUpdater.Wanted> wanted = new ArrayList<>();
 
         for (final String source : LIST_SOURCES) {
-            for (final String spec : config.getStringList("plugins.auto-update." + source)) {
+            for (final String spec : ServerConfig.getStringList("plugins.auto-update." + source)) {
                 wanted.add(new PluginUpdater.Wanted(source, spec));
             }
         }
 
         // LuckPerms is a switch rather than a list: there is one of it, and its own metadata
         // service publishes exactly one build per platform.
-        if (config.getBoolean(LUCKPERMS, false)) {
+        if (ServerConfig.getBoolean(LUCKPERMS, false)) {
             wanted.add(new PluginUpdater.Wanted("luckperms", "luckperms"));
         }
 
@@ -89,7 +88,7 @@ public final class PluginUpdates {
 
     private static String tokenFileName() {
         final String configured =
-            ServerConfig.get().getString(TOKEN_FILE, SecretFiles.GITHUB_TOKEN);
+            ServerConfig.getString(TOKEN_FILE, SecretFiles.GITHUB_TOKEN);
         return configured.isBlank() ? SecretFiles.GITHUB_TOKEN : configured;
     }
 }

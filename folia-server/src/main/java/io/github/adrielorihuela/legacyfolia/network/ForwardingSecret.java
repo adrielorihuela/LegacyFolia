@@ -99,7 +99,7 @@ public final class ForwardingSecret {
             return SecretFiles.FORWARDING_SECRET;
         }
         final String configured =
-            ServerConfig.get().getString(FILE_KEY, SecretFiles.FORWARDING_SECRET);
+            ServerConfig.getString(FILE_KEY, SecretFiles.FORWARDING_SECRET);
         return configured.isBlank() ? SecretFiles.FORWARDING_SECRET : configured;
     }
 }

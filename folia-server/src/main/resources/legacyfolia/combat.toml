@@ -1,0 +1,83 @@
+# ============================================================================
+#  LegacyFolia
+# ============================================================================
+#
+#  Settings are grouped by what they do, not by which server this fork
+#  inherited them from. Every one of them is commented.
+#
+#  When you upgrade, new settings appear here with their comments and your own
+#  edits are left untouched.
+#
+#  Documentation: https://github.com/adrielorihuela/LegacyFolia
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Combat — the 1.8 mechanics
+# ----------------------------------------------------------------------------
+#  Every default below is the value 1.8.8 actually used, read from that
+#  version's own source rather than from memory. Turn this on and change
+#  nothing and you get the combat that version had.
+#
+#  Each mechanic is switchable on its own, because a server may want the old
+#  knockback without the old attack speed, or the other way round.
+[combat]
+
+# Whether any of this applies. On by default.
+enabled = true
+
+# Every hit does full damage, with no charge-up between swings.
+#
+# This is the single biggest difference. Since 1.9 a hit is scaled by how long
+# you waited, and the client draws a charge indicator to match. Turning this on
+# removes all of that: swing as fast as you can click, as it was.
+no-attack-cooldown = true
+
+# Remove the sweeping arc that hits everything around the target.
+no-sweep-attack = true
+
+# Use 1.8's knockback formula.
+#
+# The difference that matters: modern knockback only pushes a target upward if
+# they are standing on the ground, so hitting somebody already in the air does
+# not lift them. In 1.8 it lifted them every time, which is what lets a combo
+# hold somebody off the ground.
+legacy-knockback = true
+
+# The knockback strengths. 0.4 across the board in 1.8. The vertical limit caps
+# how far upward a hit can throw somebody however fast they were already rising.
+knockback-horizontal = 0.4
+knockback-vertical = 0.4
+knockback-vertical-limit = 0.4
+
+# Sprinting adds a level of knockback and then cancels your own sprint, and
+# your horizontal speed is cut to 0.6 of what it was. This is what makes
+# w-tapping work.
+sprint-knockback = true
+sprint-knockback-strength = 0.5
+
+# Critical hits: falling, not on the ground, not on a ladder, not in water, not
+# blinded and not riding anything, for 1.5x damage.
+legacy-criticals = true
+critical-multiplier = 1.5
+
+# How long after a hit another cannot land, in ticks.
+invulnerability-ticks = 20
+
+# Let a stronger hit through during those ticks, for the difference in damage
+# only. Without this, tapping somebody for half a heart makes them briefly
+# immune to an axe, which is not how 1.8 played.
+damage-overriding = true
+
+# Right-clicking with a sword blocks, halving incoming damage.
+#
+# Note that this is a reimplementation rather than a restoration: swords have
+# no blocking animation left in modern versions, so the state is kept on the
+# server and signalled to the client. Players connecting through ViaVersion
+# from a 1.8 client see the blocking animation; modern clients get the damage
+# reduction without it.
+sword-blocking = true
+sword-blocking-reduction = 0.5
+
+# Shields and the off-hand slot did not exist in 1.8.
+disable-shields = true
+disable-offhand = true

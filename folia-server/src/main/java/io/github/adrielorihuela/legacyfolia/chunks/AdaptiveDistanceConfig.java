@@ -47,18 +47,17 @@ public record AdaptiveDistanceConfig(boolean enabled, int viewReduction, int sim
         if (!ServerConfig.isLoaded()) {
             return disabled();
         }
-        final ServerConfig config = ServerConfig.get();
         return new AdaptiveDistanceConfig(
-            config.getBoolean(PREFIX + "enabled", false),
-            config.getInt(PREFIX + "view-reduction", 4),
-            config.getInt(PREFIX + "simulation-reduction", 4),
-            config.getInt(PREFIX + "min-distance", 3),
-            config.getInt(PREFIX + "max-distance", 32),
-            config.getInt(PREFIX + "afk-seconds", 300),
-            config.getInt(PREFIX + "check-seconds", 10),
-            config.getBoolean(PREFIX + "detect-anti-afk-macros", true),
-            config.getBoolean(PREFIX + "detect-auto-clickers", true),
-            config.getBoolean(PREFIX + "debug", false));
+            ServerConfig.getBoolean(PREFIX + "enabled", false),
+            ServerConfig.getInt(PREFIX + "view-reduction", 4),
+            ServerConfig.getInt(PREFIX + "simulation-reduction", 4),
+            ServerConfig.getInt(PREFIX + "min-distance", 3),
+            ServerConfig.getInt(PREFIX + "max-distance", 32),
+            ServerConfig.getInt(PREFIX + "afk-seconds", 300),
+            ServerConfig.getInt(PREFIX + "check-seconds", 10),
+            ServerConfig.getBoolean(PREFIX + "detect-anti-afk-macros", true),
+            ServerConfig.getBoolean(PREFIX + "detect-auto-clickers", true),
+            ServerConfig.getBoolean(PREFIX + "debug", false));
     }
 
     /** Everything off, for before the configuration exists. */

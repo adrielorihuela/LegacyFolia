@@ -1,0 +1,72 @@
+# ============================================================================
+#  LegacyFolia
+# ============================================================================
+#
+#  Settings are grouped by what they do, not by which server this fork
+#  inherited them from. Every one of them is commented.
+#
+#  When you upgrade, new settings appear here with their comments and your own
+#  edits are left untouched.
+#
+#  Documentation: https://github.com/adrielorihuela/LegacyFolia
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Plugins
+# ----------------------------------------------------------------------------
+[plugins.auto-update]
+
+# Keep the plugins listed below up to date, checked once at every start-up,
+# before they are loaded.
+#
+# Whether a plugin is current is decided by the checksum its source publishes,
+# not by the file name, and the same checksum verifies the download, so a
+# truncated file is never put in place. Older jars of the same plugin are
+# removed, because two jars claiming one plugin id make the loader refuse
+# whichever it happens to read second.
+#
+# If a source cannot be reached and the jar is already there, the server warns
+# and carries on with what it has. If the jar is NOT there, the server stops:
+# starting without a plugin you listed on purpose is not safe, since it may be
+# the one granting permissions.
+enabled = false
+
+# Plugins from hangar.papermc.io, by project slug.
+# The newest Paper build for this Minecraft version is used; if there is none,
+# the plugin's newest build is used instead and the server says so. Channels
+# are tried Release, then Beta, Alpha and Snapshot, because some plugins go
+# months publishing only betas.
+hangar = []
+
+# Plugins from modrinth.com, by project slug -- the name in its page's address,
+# not its display name. Both the paper and folia loaders are accepted.
+modrinth = []
+
+# Plugins from GitHub releases, as "owner/repo". The owner cannot be left out.
+#
+# Add ":regex" when a release attaches several jars and you need to pick one,
+# for example "ViaVersion/ViaRewind:Bukkit". Sources and javadoc jars are
+# always ignored.
+#
+# Releases are walked newest first and pre-releases are accepted, because many
+# projects ship betas for months between stable tags. Drafts are skipped.
+github = []
+
+# LuckPerms, from its own metadata service. A switch rather than a list, since
+# there is only one of it.
+#
+# Note that LuckPerms publishes no checksum in any format, so this is the one
+# plugin whose freshness is judged by its file name, which carries the build
+# number. The server says so in the log rather than letting it look verified.
+luckperms = false
+
+# A file holding a GitHub token, relative to config/ unless absolute.
+#
+# Entirely optional: without one, GitHub allows sixty requests an hour per
+# address, which is plenty unless the server restarts constantly. With one it
+# is five thousand. A token is also what lets this reach a private repository.
+#
+# The file is created empty on first start. Put the token in it on one line.
+# The GITHUB_TOKEN environment variable overrides it.
+github-token-file = "github.token"
+

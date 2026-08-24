@@ -1,0 +1,35 @@
+# ============================================================================
+#  LegacyFolia
+# ============================================================================
+#
+#  Settings are grouped by what they do, not by which server this fork
+#  inherited them from. Every one of them is commented.
+#
+#  When you upgrade, new settings appear here with their comments and your own
+#  edits are left untouched.
+#
+#  Documentation: https://github.com/adrielorihuela/LegacyFolia
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Network — how players reach this server
+# ----------------------------------------------------------------------------
+[network.velocity]
+
+# The file holding the Velocity modern-forwarding secret, relative to config/
+# unless an absolute path is given.
+#
+# The secret lives in its own file rather than inline, because configuration
+# files get pasted into issues and support channels and photographed in
+# screenshots, and anything on the line below whatever was being asked about
+# goes with them. This is the same file name Velocity uses on the proxy side,
+# so you can copy the proxy's file across unchanged.
+#
+# The file is created empty on first start. Put the secret in it, on one line,
+# with nothing else. If you are upgrading and already had the secret in
+# config/paper-global.yml, it is moved here for you and the old key is blanked.
+#
+# The PAPER_VELOCITY_SECRET environment variable still overrides this, for
+# containers that would rather not mount a file.
+secret-file = "forwarding.secret"
+

@@ -59,25 +59,24 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
         if (!ServerConfig.isLoaded()) {
             return off();
         }
-        final ServerConfig config = ServerConfig.get();
         final CombatConfig defaults = vanilla18(true);
         return new CombatConfig(
-            config.getBoolean(PREFIX + "enabled", defaults.enabled()),
-            config.getBoolean(PREFIX + "no-attack-cooldown", defaults.noAttackCooldown()),
-            config.getBoolean(PREFIX + "no-sweep-attack", defaults.noSweepAttack()),
-            config.getBoolean(PREFIX + "legacy-knockback", defaults.legacyKnockback()),
-            config.getDouble(PREFIX + "knockback-horizontal", defaults.knockbackHorizontal()),
-            config.getDouble(PREFIX + "knockback-vertical", defaults.knockbackVertical()),
-            config.getDouble(PREFIX + "knockback-vertical-limit", defaults.knockbackVerticalLimit()),
-            config.getBoolean(PREFIX + "sprint-knockback", defaults.sprintKnockback()),
-            config.getDouble(PREFIX + "sprint-knockback-strength", defaults.sprintKnockbackStrength()),
-            config.getBoolean(PREFIX + "legacy-criticals", defaults.legacyCriticals()),
-            config.getDouble(PREFIX + "critical-multiplier", defaults.criticalMultiplier()),
-            config.getInt(PREFIX + "invulnerability-ticks", defaults.invulnerabilityTicks()),
-            config.getBoolean(PREFIX + "damage-overriding", defaults.damageOverriding()),
-            config.getBoolean(PREFIX + "sword-blocking", defaults.swordBlocking()),
-            config.getDouble(PREFIX + "sword-blocking-reduction", defaults.swordBlockingReduction()),
-            config.getBoolean(PREFIX + "disable-shields", defaults.disableShields()),
-            config.getBoolean(PREFIX + "disable-offhand", defaults.disableOffhand()));
+            ServerConfig.getBoolean(PREFIX + "enabled", defaults.enabled()),
+            ServerConfig.getBoolean(PREFIX + "no-attack-cooldown", defaults.noAttackCooldown()),
+            ServerConfig.getBoolean(PREFIX + "no-sweep-attack", defaults.noSweepAttack()),
+            ServerConfig.getBoolean(PREFIX + "legacy-knockback", defaults.legacyKnockback()),
+            ServerConfig.getDouble(PREFIX + "knockback-horizontal", defaults.knockbackHorizontal()),
+            ServerConfig.getDouble(PREFIX + "knockback-vertical", defaults.knockbackVertical()),
+            ServerConfig.getDouble(PREFIX + "knockback-vertical-limit", defaults.knockbackVerticalLimit()),
+            ServerConfig.getBoolean(PREFIX + "sprint-knockback", defaults.sprintKnockback()),
+            ServerConfig.getDouble(PREFIX + "sprint-knockback-strength", defaults.sprintKnockbackStrength()),
+            ServerConfig.getBoolean(PREFIX + "legacy-criticals", defaults.legacyCriticals()),
+            ServerConfig.getDouble(PREFIX + "critical-multiplier", defaults.criticalMultiplier()),
+            ServerConfig.getInt(PREFIX + "invulnerability-ticks", defaults.invulnerabilityTicks()),
+            ServerConfig.getBoolean(PREFIX + "damage-overriding", defaults.damageOverriding()),
+            ServerConfig.getBoolean(PREFIX + "sword-blocking", defaults.swordBlocking()),
+            ServerConfig.getDouble(PREFIX + "sword-blocking-reduction", defaults.swordBlockingReduction()),
+            ServerConfig.getBoolean(PREFIX + "disable-shields", defaults.disableShields()),
+            ServerConfig.getBoolean(PREFIX + "disable-offhand", defaults.disableOffhand()));
     }
 }

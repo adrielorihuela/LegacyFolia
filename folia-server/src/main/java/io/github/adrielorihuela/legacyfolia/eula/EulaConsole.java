@@ -171,7 +171,7 @@ public final class EulaConsole {
     /** How long to wait, from the unified configuration, or the default before it is loaded. */
     private static long timeoutMillis() {
         final int seconds = ServerConfig.isLoaded()
-            ? ServerConfig.get().getInt(TIMEOUT_KEY, DEFAULT_TIMEOUT_SECONDS)
+            ? ServerConfig.getInt(TIMEOUT_KEY, DEFAULT_TIMEOUT_SECONDS)
             : DEFAULT_TIMEOUT_SECONDS;
         return seconds <= 0 ? 0 : seconds * 1000L;
     }

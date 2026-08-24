@@ -1,0 +1,38 @@
+# ============================================================================
+#  LegacyFolia
+# ============================================================================
+#
+#  Settings are grouped by what they do, not by which server this fork
+#  inherited them from. Every one of them is commented.
+#
+#  When you upgrade, new settings appear here with their comments and your own
+#  edits are left untouched.
+#
+#  Documentation: https://github.com/adrielorihuela/LegacyFolia
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Dimensions — which worlds the server creates at all
+# ----------------------------------------------------------------------------
+#  Turning a dimension off means it is never created: no world folder, no
+#  chunks in memory, no entities ticking, no region threads spent on it. On a
+#  lobby or a minigame server that never uses the Nether or the End, this is
+#  the cheapest performance setting there is.
+#
+#  Turning one off later does not delete a world folder that already exists;
+#  it just stops loading it. Turning it back on picks up where it left off.
+[dimensions]
+
+# The main world. Cannot be turned off — the server has nowhere to put players
+# without it, so setting this to false is refused and logged at start-up.
+overworld = true
+
+# The Nether, stored in world/dimensions/minecraft/the_nether.
+# Off means nether portals do nothing when entered.
+nether = true
+
+# The End, stored in world/dimensions/minecraft/the_end.
+# Off means end portals do nothing when entered, and the ender dragon fight
+# never exists.
+end = true
+
