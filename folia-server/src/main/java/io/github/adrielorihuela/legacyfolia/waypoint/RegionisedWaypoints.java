@@ -33,8 +33,18 @@ public final class RegionisedWaypoints {
     /** What each transmitter last published. Written by its own thread, read by every receiver. */
     private final Map<UUID, WaypointSnapshot> transmitters = new ConcurrentHashMap<>();
 
-    /** What each receiver is currently showing. Only ever touched by that receiver's thread. */
-    private final Map<UUID, Map<UUID, Shown>> shown = new ConcurrentHashMap<>();
+    /**
+     * What each receiver is currently showing, and who they are.
+     *
+     * <p>The player is held alongside the markers because a transmitter going away has to tell
+     * every receiver so, and that means reaching their connection from the transmitter's thread.
+     * Sending a packet is safe from anywhere; nothing else about the player is touched here.</p>
+     */
+    private final Map<UUID, Receiver> shown = new ConcurrentHashMap<>();
+
+    /** One receiver and the markers currently on their locator bar. */
+    private record Receiver(ServerPlayer player, Map<UUID, Shown> markers) {
+    }
 
     /** Set from the gamerule, so the hot paths do not look it up per player. */
     private volatile boolean enabled;
@@ -72,6 +82,14 @@ public final class RegionisedWaypoints {
         if (!this.enabled) {
             return;
         }
+        // Vanilla decides this with an attribute, not a flag: crouching, wearing a head or a carved
+        // pumpkin, and invisibility each apply a -100% modifier to WAYPOINT_TRANSMIT_RANGE. Asking
+        // the question upstream already answers is what keeps those rules working here, rather than
+        // reimplementing a list of them that would drift.
+        if (!source.isTransmittingWaypoint()) {
+            unpublish(source.getUUID());
+            return;
+        }
         this.transmitters.put(source.getUUID(), WaypointSnapshot.of(source));
     }
 
@@ -81,14 +99,17 @@ public final class RegionisedWaypoints {
      * @param uuid the transmitter that has gone
      */
     public void unpublish(final UUID uuid) {
-        if (this.transmitters.remove(uuid) == null) {
-            return;
-        }
-        // The receivers each hold a packet's worth of state about this one. Sending the removal
-        // from here is safe in a way that reading their entities would not be: a connection send
-        // is thread-safe, and nothing else about them is touched.
-        for (final Map<UUID, Shown> connections : this.shown.values()) {
-            connections.remove(uuid);
+        this.transmitters.remove(uuid);
+
+        // The removal has to be pushed, not left for the receivers to notice. refresh() only runs
+        // when a receiver moves, so a receiver standing still would never reconcile; and clearing
+        // the marker without sending this is what left it frozen on the client forever, whether
+        // the transmitter had crouched, put a head on, changed dimension or disconnected.
+        for (final Receiver receiver : this.shown.values()) {
+            if (receiver.markers().remove(uuid) != null && receiver.player().connection != null) {
+                receiver.player().connection.send(
+                    ClientboundTrackedWaypointPacket.removeWaypoint(uuid));
+            }
         }
     }
 
@@ -106,8 +127,13 @@ public final class RegionisedWaypoints {
             return;
         }
 
-        final Map<UUID, Shown> connections =
-            this.shown.computeIfAbsent(receiver.getUUID(), key -> new ConcurrentHashMap<>());
+        // Replaced rather than reused, because a player who reconnects is a different object with
+        // a different connection and the old one would send into a closed channel.
+        final Map<UUID, Shown> connections = this.shown
+            .compute(receiver.getUUID(), (key, existing) -> existing != null
+                && existing.player() == receiver ? existing
+                : new Receiver(receiver, new ConcurrentHashMap<>()))
+            .markers();
         final Vec3 at = receiver.position();
         final double receiveRange = receiver.getAttributeValue(Attributes.WAYPOINT_RECEIVE_RANGE);
         final boolean spectating = receiver.isSpectator();
