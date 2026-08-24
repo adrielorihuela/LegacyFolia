@@ -29,7 +29,7 @@ class SecretFilesTest {
     @Test
     @DisplayName("a bare name is resolved inside the config directory")
     void bareNamesGoUnderConfig() {
-        assertEquals(ServerConfig.DIRECTORY.resolve("forwarding.secret"),
+        assertEquals(ConfigFile.DIRECTORY.resolve("forwarding.secret"),
             SecretFiles.path("forwarding.secret"));
     }
 

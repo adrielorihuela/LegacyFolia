@@ -1,217 +1,120 @@
 package io.github.adrielorihuela.legacyfolia.config;
 
-import com.electronwill.nightconfig.core.CommentedConfig;
-import com.electronwill.nightconfig.core.Config;
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-import com.electronwill.nightconfig.core.io.ParsingException;
-import com.electronwill.nightconfig.core.io.ParsingMode;
-import com.electronwill.nightconfig.toml.TomlFormat;
-import com.electronwill.nightconfig.toml.TomlParser;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * The one file an administrator is meant to edit: {@code config/server.config}.
+ * The configuration an administrator is meant to edit, spread over a handful of files in
+ * {@code config/} and grouped by what the settings do.
  *
- * <p>Every setting here is grouped by what it does rather than by which of the server's ancestors
- * introduced it, so that turning the Nether off is not split across three files with three
- * different syntaxes. The settings this fork adds live here and nowhere else; the settings
- * inherited from Bukkit, Spigot and Paper keep their own files, and this one overrides them at
- * start-up. Nothing is removed from those files and nothing stops reading them, so a plugin
- * calling {@code SpigotConfig} or {@code Bukkit.spigot().getConfig()} sees what it always saw.</p>
+ * <p>Which file a setting lives in follows from what it is for, never from which of the server's
+ * ancestors introduced it. Turning the Nether off belongs with the world, not in the Paper file;
+ * the proxy secret belongs with the network, not in Spigot's. That is the whole point: an operator
+ * looking for a setting should be able to guess where it is.</p>
  *
- * <p>The file is created from a template that carries a comment on every key. On upgrade, keys the
- * template has gained are merged in with their comments while keys the administrator has set are
- * left alone, so a new release explains its new options without discarding anybody's edits.</p>
+ * <p>Callers never name a file. They ask for a dotted path — {@code dimensions.nether},
+ * {@code combat.enabled} — and the first segment decides which file answers. Moving a section
+ * between files is then a one-line change here and nothing at all anywhere else.</p>
  */
 public final class ServerConfig {
 
     private static final Logger LOGGER = LogManager.getLogger("LegacyFolia");
 
-    /** Where the file lives, next to the Paper configuration it overrides. */
-    public static final Path DIRECTORY = Path.of("config");
-
-    public static final String FILE_NAME = "server.config";
-
-    private static final String TEMPLATE_RESOURCE = "legacyfolia/server.config";
-
-    private static volatile ServerConfig instance;
-
-    private final CommentedFileConfig config;
-
-    /** Whether this run is the one that created the file, for settings that migrate on first use. */
-    private final boolean created;
-
-    private ServerConfig(final CommentedFileConfig config, final boolean created) {
-        this.config = config;
-        this.created = created;
-    }
+    public static final String SERVER = "server.toml";
+    public static final String WORLD = "world.toml";
+    public static final String NETWORK = "network.toml";
+    public static final String PERFORMANCE = "performance.toml";
+    public static final String COMBAT = "combat.toml";
+    public static final String PLUGINS = "plugins.toml";
 
     /**
-     * The loaded configuration.
+     * Which file owns each top-level section.
      *
-     * @return the configuration
-     * @throws IllegalStateException if called before {@link #load()}
+     * <p>Every section a caller can ask for has to appear here. A path whose first segment is
+     * missing is a programming error rather than a configuration one, and is treated as such.</p>
      */
-    public static ServerConfig get() {
-        final ServerConfig loaded = instance;
-        if (loaded == null) {
-            throw new IllegalStateException("config/" + FILE_NAME + " has not been loaded yet");
-        }
-        return loaded;
+    private static final Map<String, String> SECTIONS = Map.of(
+        "server", SERVER,
+        "dimensions", WORLD,
+        "world", WORLD,
+        "network", NETWORK,
+        "chunks", PERFORMANCE,
+        "performance", PERFORMANCE,
+        "combat", COMBAT,
+        "plugins", PLUGINS);
+
+    /** Loaded in this order, which is the order they are reported in. */
+    private static final List<String> FILES =
+        List.of(SERVER, WORLD, NETWORK, PERFORMANCE, COMBAT, PLUGINS);
+
+    private static volatile Map<String, ConfigFile> files;
+
+    private ServerConfig() {
     }
 
-    /** Whether the configuration has been loaded, for code that runs on both sides of start-up. */
+    /** Whether the configuration has been read, for code that runs on both sides of start-up. */
     public static boolean isLoaded() {
-        return instance != null;
+        return files != null;
     }
 
     /**
-     * Reads {@code config/server.config}, creating it from the template when it is not there.
+     * Reads every configuration file, creating the ones that are not there.
      *
-     * <p>A file that cannot be parsed stops the server rather than being replaced: it is somebody's
-     * configuration, and quietly starting with defaults would apply a setup nobody chose.</p>
-     *
-     * @return the loaded configuration
-     * @throws IOException if the file could not be read or created
+     * @throws IOException if a file could not be read or created
      */
-    public static ServerConfig load() throws IOException {
-        Files.createDirectories(DIRECTORY);
-        final Path path = DIRECTORY.resolve(FILE_NAME);
-
-        final boolean created = !Files.exists(path);
-        if (created) {
-            try (InputStream in = openTemplate()) {
-                Files.copy(in, path, StandardCopyOption.REPLACE_EXISTING);
-            }
+    public static void load() throws IOException {
+        final Map<String, ConfigFile> loaded = new LinkedHashMap<>();
+        for (final String fileName : FILES) {
+            loaded.put(fileName, ConfigFile.open(fileName));
         }
+        files = loaded;
 
-        // The format is named rather than inferred: night-config picks a parser from the file
-        // extension, and ".config" means nothing to it.
-        final CommentedFileConfig config = CommentedFileConfig.builder(path, TomlFormat.instance())
-            .preserveInsertionOrder()
-            .sync()
-            .build();
-        try {
-            config.load();
-        } catch (final ParsingException e) {
-            throw new IOException("config/" + FILE_NAME + " is not valid TOML: " + e.getMessage(), e);
+        final long created = loaded.values().stream().filter(ConfigFile::wasCreated).count();
+        if (created == FILES.size()) {
+            LOGGER.info("Created the configuration in config/. Every setting in it is commented; "
+                + "start there.");
+        } else if (created > 0) {
+            LOGGER.info("Created {} new configuration file(s) in config/.", created);
         }
-
-        final List<String> added = merge(config, readTemplate());
-        if (!added.isEmpty()) {
-            config.save();
-            LOGGER.info("Added {} new setting(s) to config/{}: {}",
-                added.size(), FILE_NAME, String.join(", ", added));
-        }
-
-        if (created) {
-            LOGGER.info("Created config/{}. Every setting in it is commented; start there.", FILE_NAME);
-        }
-
-        final ServerConfig loaded = new ServerConfig(config, created);
-        instance = loaded;
-        return loaded;
     }
 
     /**
-     * Whether this run created the file.
-     *
-     * <p>Settings that used to live elsewhere use this to migrate: on the run that creates the
-     * file they copy what the old setting was set to into it, rather than imposing the template's
-     * default on a server that had already been configured.</p>
-     *
-     * @return whether {@code config/server.config} did not exist when the server started
-     */
-    public static boolean wasCreated() {
-        return get().created;
-    }
-
-    /**
-     * Sets a value, leaving its comment in place.
+     * The file that owns a dotted path.
      *
      * @param path the dotted path
-     * @param value the value to store
+     * @return the file it lives in
      */
-    public void set(final String path, final Object value) {
-        this.config.set(path, value);
-    }
-
-    /** Writes the file back out, comments and all. */
-    public void save() {
-        this.config.save();
-    }
-
-    private static CommentedConfig readTemplate() throws IOException {
-        final CommentedConfig parsed = CommentedConfig.inMemory();
-        try (InputStream in = openTemplate()) {
-            new TomlParser().parse(in, parsed, ParsingMode.REPLACE);
+    private static ConfigFile fileFor(final String path) {
+        final Map<String, ConfigFile> loaded = files;
+        if (loaded == null) {
+            throw new IllegalStateException("the configuration has not been read yet");
         }
-        return parsed;
-    }
-
-    private static InputStream openTemplate() throws IOException {
-        final InputStream in = ServerConfig.class.getClassLoader()
-            .getResourceAsStream(TEMPLATE_RESOURCE);
-        if (in == null) {
-            throw new IOException("the built-in " + TEMPLATE_RESOURCE + " is missing from the jar");
+        final int dot = path.indexOf('.');
+        final String section = dot == -1 ? path : path.substring(0, dot);
+        final String fileName = SECTIONS.get(section);
+        if (fileName == null) {
+            throw new IllegalArgumentException("no configuration file owns the section '" + section
+                + "'. Add it to ServerConfig.SECTIONS.");
         }
-        return in;
+        return loaded.get(fileName);
     }
 
     /**
-     * Copies keys the file does not have from the template, along with their comments.
+     * Whether the file owning a path was created on this run.
      *
-     * <p>Only missing keys are written. A value somebody set is never replaced by the default, and
-     * a key the template no longer has is never deleted — an unknown key is far more likely to come
-     * from a newer build than to be worth throwing away.</p>
+     * <p>A setting that used to live elsewhere uses this to migrate: on the run that creates its
+     * file it adopts whatever the old setting said, rather than imposing the template's default on
+     * a server that was already configured.</p>
      *
-     * @param target the loaded configuration
-     * @param source the template
-     * @return the dotted paths that were added
+     * @param path the dotted path
+     * @return whether that file did not exist when the server started
      */
-    static List<String> merge(final CommentedConfig target, final CommentedConfig source) {
-        final List<String> added = new ArrayList<>();
-        merge(target, source, "", added);
-        return added;
-    }
-
-    private static void merge(final CommentedConfig target, final CommentedConfig source,
-                              final String prefix, final List<String> added) {
-        for (final CommentedConfig.Entry entry : source.entrySet()) {
-            final String key = entry.getKey();
-            final List<String> at = List.of(key);
-            final String path = prefix.isEmpty() ? key : prefix + "." + key;
-            final Object value = entry.getValue();
-
-            if (value instanceof final CommentedConfig section) {
-                if (!(target.get(at) instanceof final CommentedConfig existing)) {
-                    target.set(at, section);
-                    target.setComment(at, entry.getComment());
-                    added.add(path);
-                    continue;
-                }
-                if (target.getComment(at) == null) {
-                    target.setComment(at, entry.getComment());
-                }
-                merge(existing, section, path, added);
-                continue;
-            }
-
-            if (!target.contains(at)) {
-                target.set(at, value);
-                target.setComment(at, entry.getComment());
-                added.add(path);
-            }
-        }
+    public static boolean wasCreated(final String path) {
+        return fileFor(path).wasCreated();
     }
 
     /**
@@ -221,8 +124,8 @@ public final class ServerConfig {
      * @param fallback what to use when the key is absent
      * @return the configured value
      */
-    public boolean getBoolean(final String path, final boolean fallback) {
-        return this.config.get(path) instanceof final Boolean bool ? bool : fallback;
+    public static boolean getBoolean(final String path, final boolean fallback) {
+        return fileFor(path).getBoolean(path, fallback);
     }
 
     /**
@@ -232,8 +135,8 @@ public final class ServerConfig {
      * @param fallback what to use when the key is absent
      * @return the configured value
      */
-    public int getInt(final String path, final int fallback) {
-        return this.config.get(path) instanceof final Number number ? number.intValue() : fallback;
+    public static int getInt(final String path, final int fallback) {
+        return fileFor(path).getInt(path, fallback);
     }
 
     /**
@@ -243,8 +146,8 @@ public final class ServerConfig {
      * @param fallback what to use when the key is absent
      * @return the configured value
      */
-    public double getDouble(final String path, final double fallback) {
-        return this.config.get(path) instanceof final Number number ? number.doubleValue() : fallback;
+    public static double getDouble(final String path, final double fallback) {
+        return fileFor(path).getDouble(path, fallback);
     }
 
     /**
@@ -254,8 +157,8 @@ public final class ServerConfig {
      * @param fallback what to use when the key is absent
      * @return the configured value, trimmed
      */
-    public String getString(final String path, final String fallback) {
-        return this.config.get(path) instanceof final String string ? string.trim() : fallback;
+    public static String getString(final String path, final String fallback) {
+        return fileFor(path).getString(path, fallback);
     }
 
     /**
@@ -264,45 +167,19 @@ public final class ServerConfig {
      * @param path the dotted path
      * @return the configured values, never {@code null}
      */
-    public List<String> getStringList(final String path) {
-        if (!(this.config.get(path) instanceof final List<?> list)) {
-            return List.of();
-        }
-        final List<String> strings = new ArrayList<>(list.size());
-        for (final Object element : list) {
-            if (element instanceof final String string && !string.isBlank()) {
-                strings.add(string.trim());
-            }
-        }
-        return List.copyOf(strings);
+    public static List<String> getStringList(final String path) {
+        return fileFor(path).getStringList(path);
     }
 
     /**
-     * An enum-like setting matched case-insensitively, with dashes standing in for underscores.
+     * Sets a value and writes its file back out, comments and all.
      *
      * @param path the dotted path
-     * @param type the enum class
-     * @param fallback what to use when the key is absent or unrecognised
-     * @param <E> the enum type
-     * @return the configured constant
+     * @param value the value to store
      */
-    public <E extends Enum<E>> E getEnum(final String path, final Class<E> type, final E fallback) {
-        final String name = getString(path, "");
-        if (name.isEmpty()) {
-            return fallback;
-        }
-        for (final E constant : type.getEnumConstants()) {
-            if (constant.name().equalsIgnoreCase(name.replace('-', '_'))) {
-                return constant;
-            }
-        }
-        LOGGER.warn("config/{}: {} is not a recognised value for {}, using {}.",
-            FILE_NAME, name, path, fallback.name().toLowerCase(Locale.ROOT));
-        return fallback;
-    }
-
-    /** The underlying file, for the few callers that need to walk it. */
-    public Config raw() {
-        return this.config;
+    public static void set(final String path, final Object value) {
+        final ConfigFile file = fileFor(path);
+        file.set(path, value);
+        file.save();
     }
 }

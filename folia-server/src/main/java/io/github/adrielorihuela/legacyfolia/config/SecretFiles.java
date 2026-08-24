@@ -45,7 +45,7 @@ public final class SecretFiles {
      */
     public static Path path(final String name) {
         final Path asGiven = Path.of(name);
-        return asGiven.isAbsolute() ? asGiven : ServerConfig.DIRECTORY.resolve(asGiven);
+        return asGiven.isAbsolute() ? asGiven : ConfigFile.DIRECTORY.resolve(asGiven);
     }
 
     /**

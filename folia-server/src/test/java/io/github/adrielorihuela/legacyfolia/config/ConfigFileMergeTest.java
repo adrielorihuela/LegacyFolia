@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * The merge is the one part of loading that can destroy somebody's work, so it is pinned down
  * here: it may only ever add.
  */
-class ServerConfigMergeTest {
+class ConfigFileMergeTest {
 
     private static CommentedConfig template() {
         final CommentedConfig template = CommentedConfig.inMemory();
@@ -31,7 +31,7 @@ class ServerConfigMergeTest {
     void fillsAnEmptyFile() {
         final CommentedConfig target = CommentedConfig.inMemory();
 
-        final List<String> added = ServerConfig.merge(target, template());
+        final List<String> added = ConfigFile.merge(target, template());
 
         // A wholly missing section is copied in one go, so it is reported as the one path added
         // rather than as each of the keys inside it.
@@ -49,7 +49,7 @@ class ServerConfigMergeTest {
         target.set(List.of("dimensions", "nether"), false);
         target.set(List.of("dimensions", "end"), false);
 
-        final List<String> added = ServerConfig.merge(target, template());
+        final List<String> added = ConfigFile.merge(target, template());
 
         assertTrue(added.isEmpty(), "nothing was missing, so nothing should have been added");
         assertEquals(Boolean.FALSE, target.get(List.of("dimensions", "nether")));
@@ -62,7 +62,7 @@ class ServerConfigMergeTest {
         final CommentedConfig target = CommentedConfig.inMemory();
         target.set(List.of("dimensions", "nether"), false);
 
-        final List<String> added = ServerConfig.merge(target, template());
+        final List<String> added = ConfigFile.merge(target, template());
 
         assertIterableEquals(List.of("dimensions.end"), added);
         assertEquals(Boolean.FALSE, target.get(List.of("dimensions", "nether")),
@@ -77,7 +77,7 @@ class ServerConfigMergeTest {
         final CommentedConfig target = CommentedConfig.inMemory();
         target.set(List.of("dimensions", "from-a-newer-build"), "keep me");
 
-        ServerConfig.merge(target, template());
+        ConfigFile.merge(target, template());
 
         assertEquals("keep me", target.get(List.of("dimensions", "from-a-newer-build")));
     }
@@ -87,8 +87,8 @@ class ServerConfigMergeTest {
     void isIdempotent() {
         final CommentedConfig target = CommentedConfig.inMemory();
 
-        ServerConfig.merge(target, template());
-        final List<String> secondPass = ServerConfig.merge(target, template());
+        ConfigFile.merge(target, template());
+        final List<String> secondPass = ConfigFile.merge(target, template());
 
         assertTrue(secondPass.isEmpty(), "a second merge should find nothing left to add");
     }
@@ -99,7 +99,7 @@ class ServerConfigMergeTest {
         final CommentedConfig target = CommentedConfig.inMemory();
         target.set(List.of("dimensions"), "not a section");
 
-        final List<String> added = ServerConfig.merge(target, template());
+        final List<String> added = ConfigFile.merge(target, template());
 
         assertIterableEquals(List.of("dimensions"), added);
         assertTrue(target.get(List.of("dimensions")) instanceof CommentedConfig);
