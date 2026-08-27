@@ -25,7 +25,7 @@ around it that makes a Folia server tedious to run:
 |---|---|
 | Modern combat killed 1.8 PvP | Restores it, from 1.8.8's own source, mechanic by mechanic |
 | `/gamerule locator_bar` does nothing on Folia | Fixed properly, region-safe |
-| Settings spread across six files in three formats | One commented `config/server.config` |
+| Settings spread across six files in three formats | A few commented TOML files in `config/`, grouped by what they do |
 | No way to turn off the Nether or the End | One `[dimensions]` section — and a **2× faster start-up** |
 | Velocity secret sits in plain text in a shared YAML | Its own `config/forwarding.secret` |
 | The server stops on first start to make you edit `eula.txt` | Asks you at the console instead |
@@ -69,7 +69,7 @@ cost is one map write per moving player.
 
 ### One configuration file
 
-`config/server.config` — TOML, grouped by what settings **do** rather than which server introduced
+`config/` holds a handful of TOML files — grouped by what settings **do** rather than which server introduced
 them, with a comment on every key explaining what it is for.
 
 It does not replace `bukkit.yml`, `spigot.yml` or `paper-global.yml`. Those are still generated,
@@ -144,10 +144,10 @@ configurations get pasted into issues and photographed in screenshots, and secre
 java -Xms4G -Xmx4G -jar legacyfolia.jar nogui
 ```
 
-Requires **Java 25**. On first start it asks about the EULA, writes `config/server.config`, and
+Requires **Java 25**. On first start it asks about the EULA, writes the configuration into `config/`, and
 creates `config/forwarding.secret` and `config/github.token` empty for you to fill in when needed.
 
-Then open `config/server.config` — everything is in there, and everything is commented.
+Then open `config/` — every setting is in there, and every one of them is commented.
 
 ## Building
 

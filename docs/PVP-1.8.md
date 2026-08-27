@@ -1,6 +1,6 @@
 # 1.8 PvP
 
-Enabled by default. Everything is under `[combat]` in `config/server.config`, and every mechanic can
+Enabled by default. Everything is under `[combat]` in `config/combat.toml`, and every mechanic can
 be switched off on its own.
 
 ## Where these came from

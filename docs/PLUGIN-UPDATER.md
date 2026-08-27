@@ -1,6 +1,6 @@
 # Plugin auto-updates
 
-Off by default. Turn it on under `[plugins.auto-update]` in `config/server.config` and list what you
+Off by default. Turn it on under `[plugins.auto-update]` in `config/plugins.toml` and list what you
 want kept current.
 
 ```toml

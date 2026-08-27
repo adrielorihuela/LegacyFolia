@@ -1,8 +1,21 @@
 # Configuration
 
-Everything this fork adds lives in **`config/server.config`**, in TOML, grouped by what settings do
-rather than by which server introduced them. Every key carries a comment explaining what it is for,
-so this page is about how the file behaves rather than a list of keys you already have.
+Everything this fork adds lives in **`config/`**, as TOML, split into one file per area and grouped
+by what settings do rather than by which server introduced them. Every key carries a comment
+explaining what it is for, so this page is about how the files behave rather than a list of keys you
+already have.
+
+| File | What is in it |
+|---|---|
+| `config/server.toml` | Start-up and the console |
+| `config/world.toml` | Which dimensions exist |
+| `config/network.toml` | Proxies and the forwarding secret |
+| `config/performance.toml` | View and simulation distance |
+| `config/combat.toml` | 1.8 PvP |
+| `config/plugins.toml` | Automatic plugin updates |
+
+A setting's home follows from what it is for, never from where it came from. You should be able to
+guess which file to open.
 
 ## It does not replace anything
 
@@ -10,15 +23,15 @@ so this page is about how the file behaves rather than a list of keys you alread
 `server.properties`, `permissions.yml`, `help.yml` and `commands.yml` are all still generated, still
 read, and still what plugins see. Nothing was removed and nothing stopped being loaded.
 
-What `server.config` does is **override them at start-up**. A key set here wins; a key left out
-leaves the original file's value exactly as it was.
+What the TOML files do is **override them at start-up**. A key set there wins; a key left out leaves
+the original file's value exactly as it was.
 
 This matters more than it sounds. `Bukkit.spigot().getConfig()`, `SpigotConfig`,
 `GlobalConfiguration.get()`, `Server#getViewDistance`, `Server#getAllowNether` — all of them keep
 answering what they always answered. **A plugin cannot tell this fork from Folia by reading
 configuration.**
 
-The dimension switches are the clearest example of why the file exists at all. Upstream can already
+The dimension switches are the clearest example of why these files exist at all. Upstream can already
 turn the Nether and the End off, but the Nether switch is `misc.enable-nether` in
 `config/paper-global.yml` and the End switch is `settings.allow-end` in `bukkit.yml` — two files,
 two formats, two names, for one decision. `[dimensions]` presents both as one section and answers on
@@ -26,16 +39,16 @@ their behalf, so `Bukkit.getAllowNether()` still tells plugins the truth about w
 
 ## Upgrading
 
-When a release adds settings, they appear in your file with their comments the next time you start.
+When a release adds settings, they appear in your files with their comments the next time you start.
 Your own edits are never touched, and a key the template no longer knows about is never deleted — an
 unrecognised key is far more likely to come from a newer build than to be worth throwing away.
 
-Settings that used to live elsewhere migrate on the run that creates the file. If you had turned the
-End off in `bukkit.yml` years ago, `server.config` is created with `end = false` rather than the
+Settings that used to live elsewhere migrate on the run that creates their file. If you had turned
+the End off in `bukkit.yml` years ago, `world.toml` is created with `end = false` rather than the
 template's default, and the log says so:
 
 ```
-[LegacyFolia] The End keeps the setting it already had; config/server.config now says dimensions.end = false.
+[LegacyFolia] The End keeps the setting it already had; the configuration now says dimensions.end = false.
 ```
 
 A file that cannot be parsed stops the server rather than being replaced. It is somebody's
@@ -51,6 +64,15 @@ configuration, and quietly starting with defaults would apply a setup nobody cho
 | `[plugins.auto-update]` | Keeping plugins current — see [PLUGIN-UPDATER.md](PLUGIN-UPDATER.md) |
 | `[chunks.adaptive-view-distance]` | Giving each player only the chunks they use |
 | `[combat]` | 1.8 PvP — see [PVP-1.8.md](PVP-1.8.md) |
+
+## What else lives in config/
+
+The files a server keeps beside its jar are configuration too, whatever their format, so they live
+here as well: `whitelist.json`, `ops.json`, `banned-players.json`, `banned-ips.json` and `eula.txt`.
+Anything still in the root of an existing server is moved on the first start, with a line in the log
+saying so. Nothing is lost; a move that fails leaves the file where it was and carries on using it.
+
+After that the root holds the jar and the directories the server generates, and nothing else.
 
 ## Secrets
 
