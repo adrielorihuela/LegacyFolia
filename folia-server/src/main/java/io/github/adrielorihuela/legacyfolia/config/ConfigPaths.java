@@ -38,6 +38,23 @@ public final class ConfigPaths {
         return resolvePath(name).toFile();
     }
 
+    /** Where things the server can rebuild by itself go. */
+    public static final Path CACHE_DIRECTORY = Path.of("cache");
+
+    /**
+     * The path a rebuildable file should live at, moving it out of the root if it is still there.
+     *
+     * <p>Separate from {@link #resolve} because a cache is not configuration. Losing the user cache
+     * costs a few lookups against Mojang; losing the ban list costs somebody their moderation
+     * history. Filing them together would invite treating them the same.</p>
+     *
+     * @param name the file's name
+     * @return where it lives now
+     */
+    public static File cache(final String name) {
+        return migrate(Path.of(name), CACHE_DIRECTORY.resolve(name)).toFile();
+    }
+
     /**
      * The same, as a {@link Path}.
      *
