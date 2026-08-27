@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Thu, 27 Aug 2026 16:44:59 -0500
+Subject: [PATCH] Keep the user cache in cache/
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 01ea96f5c4d4dd52a15893ed45937749362d56d1..1c987f400681de356bd239f410b3bffc408b2a7b 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -197,7 +197,7 @@ public class Main {
+ 
+             // Paper start - fix SPIGOT-5824
+             File universePath;
+-            File userCacheFile = new File(Services.USERID_CACHE_FILE);
++            File userCacheFile = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.cache(Services.USERID_CACHE_FILE); // LegacyFolia - a cache, not configuration
+             if (options.has("universe")) {
+                 universePath = (File) options.valueOf("universe"); // CraftBukkit
+                 userCacheFile = new File(universePath, Services.USERID_CACHE_FILE);
