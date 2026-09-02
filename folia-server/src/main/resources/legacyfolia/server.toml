@@ -12,7 +12,7 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-#  Server — start-up and console
+#  Server - start-up and console
 # ----------------------------------------------------------------------------
 [server]
 
@@ -41,3 +41,377 @@ eula-prompt-timeout-seconds = 120
 # Set it back to 16 for vanilla's behaviour. This is the same protection the
 # server has always enforced; only its default is different.
 spawn-protection-radius = 0
+
+# The name of the main world folder, and the name every plugin sees as the
+# default world. This is a folder name, not a display name: the server looks
+# for it inside the world container (see world.toml, [world.storage]) and
+# creates it on first start if it is not there. The Nether and the End live
+# inside it, under dimensions/. Pointing this at another name loads a different
+# save; it does not rename anything on disk.
+level-name = "world"
+
+# The line shown under the server name in a client's server list.
+#
+# Legacy section signs colour it (write the section character itself; &a is not
+# translated for you), and a literal \n splits it into the two lines the client
+# draws. Plugins may replace it at runtime through Bukkit.setMotd, in which case
+# this is only the value the server starts with.
+motd = "A Minecraft Server"
+
+# How many players may be connected at once. Reaching it is what makes further
+# logins fail with the server-full message below; operators are not exempt.
+# This is a limit on connections, not a licence: raising it costs memory and
+# tick time in proportion.
+max-players = 20
+
+# The difficulty every world starts at: peaceful, easy, normal or hard.
+#
+# Peaceful is not just "no damage": hostile mobs are removed as they spawn and
+# hunger stops draining, so it changes mob behaviour, not only numbers.
+# Operators can change this in game with /difficulty, and unless the world is
+# locked that change lives in the world data rather than coming back here.
+difficulty = "easy"
+
+# The game mode a player who has never joined starts in: survival, creative,
+# adventure or spectator.
+gamemode = "survival"
+
+# Put every player back into the mode above each time they join.
+#
+# Off, the server remembers whatever mode a player was last in, so an operator
+# who switched to creative to fix a build stays in creative after a relog. On,
+# joining always resets to the default, which is what a minigame or a lobby
+# wants and what a survival server usually does not.
+force-gamemode = false
+
+# Hardcore: difficulty is locked to hard and death is permanent, leaving the
+# dead player as a spectator with no way back short of an operator's /gamemode.
+#
+# This is read when a world is created and written into that world's data, so
+# turning it on later does not retroactively harden an existing save, and
+# turning it off does not release players already stuck in spectator.
+hardcore = false
+
+# Stop ticking entirely after this many seconds with nobody online. -1 keeps
+# the server ticking always, which is the behaviour every version before 1.21.2
+# had and the reason this is not vanilla's own number here.
+#
+# While paused the server uses almost no CPU, but nothing moves: no crop
+# growth, no furnace progress, no daylight, no scheduled plugin task that
+# depends on ticks. A server that runs timed events or a shop that restocks on
+# a tick counter must leave this off. The pause ends the moment somebody
+# connects.
+#
+# Folia note: pausing is decided per region, so a mostly empty world can stop
+# the regions nobody is in while the rest keeps ticking.
+pause-when-empty-seconds = -1
+
+# Kick a player who has not moved or interacted for this many minutes.
+# 0 never kicks. The timer counts real idleness, not AFK-pool cleverness: a
+# player standing in a moving minecart still counts as idle.
+player-idle-timeout = 0
+
+# How many recently seen player names the server keeps in its name-to-UUID
+# cache, and whether that cache is written only at shutdown.
+#
+# These were spigot.yml's settings.user-cache-size and
+# settings.save-user-cache-on-stop-only. Note that the file they control is no
+# longer configuration and no longer lives beside it: it is cache/usercache.json,
+# owned by the server, safe to delete, and rebuilt from Mojang's API on demand.
+#
+# Writing only on stop saves a disk write per lookup on a busy server, at the
+# price of losing the additions made since the last clean shutdown if the
+# process is killed. Losing them costs an extra API lookup each, nothing more.
+user-cache-size = 1000
+save-user-cache-on-stop-only = false
+
+# ----------------------------------------------------------------------------
+#  Server list status - what a client sees before it connects
+# ----------------------------------------------------------------------------
+[server.status]
+
+# Answer server-list pings at all. Off, the server looks offline in the
+# multiplayer list while still accepting players who connect anyway, which
+# hides a private server without firewalling it.
+enable-status = true
+
+# Report the player count as empty in that ping. The real count still governs
+# max-players; only the number shown is hidden.
+hide-online-players = false
+
+# Seconds between the status packets the server pushes to clients sitting on
+# the server list screen. 0 leaves it to the client to ask.
+status-heartbeat-interval = 0
+
+# How many player names to attach to the ping as the hover sample.
+# 0 sends none, which is what a server that treats its player list as private
+# wants. Negative values are treated as 0.
+sample-count = 12
+
+# Rotate that sample every so often so the same names are not always the ones
+# shown, in ticks. 0 keeps the server's own order, which means the
+# longest-connected players are permanently the sample.
+player-shuffle = 0
+
+# ----------------------------------------------------------------------------
+#  Console - the terminal the server was started in, and what reaches it
+# ----------------------------------------------------------------------------
+[server.console]
+
+# Colour commands as they are typed at the console, and offer tab completion
+# there, using the same command tree the client is sent.
+#
+# Both cost nothing while idle but need a real terminal. A server whose output
+# is piped to a log file or read by a panel sees escape codes rather than
+# colour; turn highlighting off in that case.
+enable-brigadier-highlighting = true
+enable-brigadier-completions = true
+
+# Treat the console as holding every permission, including the ones plugins
+# invent, rather than the operator set it holds by default.
+#
+# Off is the safe reading: the console is an operator, so it can run vanilla
+# commands, but a plugin that checks its own permission node can still refuse
+# it. On papers over plugins that never considered the console, and at the same
+# time removes any way for a plugin to keep something out of its reach.
+has-all-permissions = false
+
+# Echo what operators do to the other operators. The first covers commands run
+# at the console and in game, the second commands arriving over RCON.
+broadcast-console-to-ops = true
+broadcast-rcon-to-ops = true
+
+# Turn on trace level logging for the server and its libraries.
+#
+# This was two settings doing the same thing from two files - server.properties'
+# debug and spigot.yml's settings.debug - so it is one key here. Expect a very
+# large and very fast log; this is a setting for reproducing a bug, not for
+# running with.
+debug = false
+
+# Warn in the console when a chunk is generated or loaded synchronously in the
+# middle of a tick, which is the usual sign of a plugin doing world work where
+# it should not. Noisy, and worth leaving on: the noise is the point.
+warn-on-overload = true
+
+# How loudly to complain when a plugin calls a deprecated API method:
+# "default" follows the server's own judgement, "true" always prints the
+# warning with a stack trace, "false" never does.
+deprecated-verbose = "default"
+
+# ----------------------------------------------------------------------------
+#  Access - who may connect, and what they may do once connected
+# ----------------------------------------------------------------------------
+[server.access]
+
+# Verify every joining player against Mojang's authentication servers.
+#
+# Off, anybody may connect under any name, including the name of an operator.
+# The only situation in which off is safe is a server unreachable from the
+# internet that sits behind a proxy doing the checking instead; see
+# network.toml, [network.velocity] and [network.bungeecord], which is where
+# that proxy is told to forward the verified identity.
+online-mode = true
+
+# Only let whitelisted players in, and, with enforcement on, kick anyone
+# already online who is not on the list the moment the list changes. Without
+# enforcement, removing somebody from the whitelist takes effect on their next
+# join rather than immediately.
+white-list = false
+enforce-whitelist = false
+
+# Require a signed chat profile. Off lets clients that cannot sign chat join,
+# and their messages arrive unsigned and unverifiable.
+enforce-secure-profile = true
+
+# The permission level operators are given (0 to 4), and the level a datapack
+# function runs at.
+#
+# 1 bypasses spawn protection, 2 adds the cheat commands and is what command
+# blocks and functions run at, 3 adds the moderation commands, and 4 adds stop
+# and the ability to op other players. Lowering the function level below 2
+# breaks most datapacks.
+op-permission-level = 4
+function-permission-level = 2
+
+# Write player IP addresses into the log on join. Off keeps them out of the log
+# file entirely, which is what a server bound by a data protection policy
+# usually needs; it does not hide them from plugins.
+log-ips = true
+
+# Allow flight in survival for players whose client or plugin enables it.
+#
+# Off, the server treats sustained flight as cheating and kicks with the
+# flying-player message below. On, it does not check at all, which is required
+# for any plugin that grants flight and avoids the occasional elytra false
+# positive. This is not a permission: on means allowed for everyone.
+allow-flight = false
+
+# ----------------------------------------------------------------------------
+#  Messages - the text the server sends when it refuses or ends a connection
+# ----------------------------------------------------------------------------
+#  Legacy section signs colour these. A value that looks like a translation key
+#  (multiplayer.disconnect.flying) is sent as a key and the client renders it in
+#  its own language; replacing it with plain text makes it English for everyone.
+[server.messages]
+
+# Shown to a player who is not on the whitelist while white-list is on.
+whitelist = "You are not whitelisted on this server!"
+
+# Answer to a command the server does not know. Plugins that own their own
+# command tree usually replace this before you ever see it.
+unknown-command = 'Unknown command. Type "/help" for help.'
+
+# Shown when max-players is reached.
+server-full = "The server is full!"
+
+# Version mismatch on join. {0} is replaced with the version the other side
+# should be on: the server's version in the first, the client's in the second.
+outdated-client = "Outdated client! Please use {0}"
+outdated-server = "Outdated server! I'm still on {0}"
+
+# Shown while the restart script in [server.watchdog] is being run.
+restart = "Server is restarting"
+
+# Shown to everyone when the server stops normally.
+shutdown = "Server closed"
+
+# Sent when a command is refused for lack of permission. This is the vanilla
+# fallback; most plugins send their own instead.
+no-permission = "I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error."
+
+# Reconnecting sooner than the connection throttle in network.toml allows. The
+# threshold lives there, with the other rate limits; only the wording is here,
+# because these two ended up in different files by accident of history.
+kick-connection-throttle = "Connection throttled! Please wait before reconnecting."
+
+# Mojang's authentication servers did not answer while online-mode is on.
+kick-authentication-servers-down = "multiplayer.disconnect.authservers_down"
+
+# Flight detected while allow-flight is off, on foot and in a vehicle.
+kick-flying-player = "multiplayer.disconnect.flying"
+kick-flying-vehicle = "multiplayer.disconnect.flying"
+
+# ----------------------------------------------------------------------------
+#  Resource pack - the pack the server offers or demands on join
+# ----------------------------------------------------------------------------
+[server.resource-pack]
+
+# The URL the client downloads from. Empty offers no pack at all and makes
+# every other setting here inert. It must be reachable by the client, not by
+# the server, and it must be a direct link to the zip.
+url = ""
+
+# A UUID naming this pack. Leave it empty and the server derives a stable one
+# from the URL; set it when you want to replace a pack under the same identity.
+id = ""
+
+# The SHA-1 of the zip, in lowercase hex. Without it clients re-download the
+# pack whenever they cannot tell it apart from the one they cached, so leaving
+# this empty costs you bandwidth on every join.
+sha1 = ""
+
+# The text shown in the accept or decline dialog, as a JSON chat component.
+# Empty uses the client's own wording.
+prompt = ""
+
+# Disconnect a player who declines. On, the pack is effectively mandatory: the
+# dialog still appears, but declining ends the connection.
+required = false
+
+# ----------------------------------------------------------------------------
+#  Watchdog - what happens when a tick stops coming back
+# ----------------------------------------------------------------------------
+#  The watchdog is a separate thread that watches the ticking threads. It used
+#  to be configured from two files at once: spigot.yml owned the timeout and the
+#  restart, paper-global.yml owned the early warnings. They are one mechanism,
+#  so they are one section here.
+#
+#  Folia note: with region threading there is no single main thread to hang, so
+#  the watchdog watches each region's ticking and names the region that stopped.
+[server.watchdog]
+
+# Seconds a tick may take before the watchdog decides the server is dead,
+# prints the stack traces and stops the process. 0 disables it entirely, which
+# is only sensible while attached with a debugger, because a hung server holds
+# every connected player in place with no error at all.
+timeout-seconds = 60
+
+# Start printing warning stack traces once a tick has taken this many
+# milliseconds, and then repeat every so many, up to the timeout above.
+#
+# This is the useful half of the watchdog: it catches the plugin that takes
+# four seconds every so often, which never reaches the timeout and so never
+# leaves a trace of itself in the log.
+early-warning-delay-ms = 10000
+early-warning-interval-ms = 5000
+
+# Run the script below instead of simply exiting after a watchdog kill or a
+# /restart. The server hands off to it and exits; if the script does not exist
+# or is not executable the server just stops, and says so.
+#
+# Under systemd, docker or any supervisor that already restarts the process,
+# turn this off: two things restarting the same server race each other.
+restart-on-crash = true
+restart-script = "./start.sh"
+
+# ----------------------------------------------------------------------------
+#  Saving - what the server writes about players, and how often
+# ----------------------------------------------------------------------------
+[server.saving]
+
+# How often, in ticks, players are written to disk. 6000 ticks is five minutes.
+#
+# Three settings used to answer "how often is something saved": bukkit's
+# ticks-per.autosave, paper's player-auto-save.rate and paper's per-world
+# chunks.auto-save-interval. They are not the same question. This one is only
+# about players; chunk saving lives in performance.toml, under [chunks].
+#
+# The player key defaulted to -1, meaning "whatever the chunk interval is",
+# which resolved to 6000. The number below is that resolved value, so the
+# behaviour is unchanged and the indirection is gone. Lower it if crashes are
+# costing your players inventories; the cost is one file write per online
+# player each time it fires.
+player-save-interval-ticks = 6000
+
+# Never write player data at all. Every join starts empty and nothing survives
+# a disconnect.
+#
+# This exists for lobbies whose player state lives in a database, and it is
+# ruinous anywhere else. Note that it disables writing, not reading: player
+# files that already exist are still loaded.
+disable-player-saving = false
+
+# Never write statistics, and the values to force every player's statistics to
+# regardless. Keys are namespaced stat ids mapped to integers; unknown ids are
+# logged and ignored. Both exist to stop plugins from reading progress out of
+# vanilla statistics on a server where that progress means nothing.
+disable-stat-saving = false
+forced-stats = {}
+
+# Never write advancement progress, and the advancements to remove from the
+# server entirely. A disabled advancement cannot be granted, does not appear in
+# the client's tree and does not fire its events; the default entry is a
+# placeholder that matches nothing, kept so the list is never empty.
+disable-advancement-saving = false
+disabled-advancements = ["minecraft:story/disabled"]
+
+# ----------------------------------------------------------------------------
+#  Data packs - which packs a newly created world starts with
+# ----------------------------------------------------------------------------
+#  Read only when a world is created. Afterwards the world's own data owns the
+#  list and /datapack is how it changes; editing these does nothing to a save
+#  that already exists.
+[server.data-packs]
+
+# Packs enabled and disabled on creation. "vanilla" is the built-in pack that
+# holds the recipes, loot tables and advancements of the game itself; taking it
+# out of the enabled list leaves a world with no recipes at all.
+initial-enabled-packs = ["vanilla"]
+initial-disabled-packs = []
+
+# An external chat filtering service, as a JSON blob, and the version number
+# sent with each request. Empty means no filtering, which is the only setting
+# here that needs no service running.
+text-filtering-config = ""
+text-filtering-version = 0
