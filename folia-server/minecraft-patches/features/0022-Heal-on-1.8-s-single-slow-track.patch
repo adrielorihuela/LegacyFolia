@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 07:58:55 -0500
+Subject: [PATCH] Heal on 1.8's single slow track
+
+Modern food added a saturation-driven fast track that spends saturation to
+heal every ten ticks while the food bar is full. It did not exist in 1.8, and
+it is the reason a modern player who has just eaten heals back through a fight
+in a way a 1.8 player never could.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/food/FoodData.java b/net/minecraft/world/food/FoodData.java
+index 38ccab90d09c92e6b70d1457931b64fb4e6ff7ec..4467b8ec9bc0db9081d32cc62d127afbd1fc06a1 100644
+--- a/net/minecraft/world/food/FoodData.java
++++ b/net/minecraft/world/food/FoodData.java
+@@ -66,7 +66,7 @@ public class FoodData {
+         }
+ 
+         boolean naturalRegen = level.getGameRules().get(GameRules.NATURAL_HEALTH_REGENERATION);
+-        if (naturalRegen && this.saturationLevel > 0.0F && player.isHurt() && this.foodLevel >= FoodConstants.MAX_FOOD) {
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.fastRegenerationAllowed() && naturalRegen && this.saturationLevel > 0.0F && player.isHurt() && this.foodLevel >= FoodConstants.MAX_FOOD) { // LegacyFolia - 1.8 had no saturation-driven fast healing
+             this.tickTimer++;
+             if (this.tickTimer >= this.saturatedRegenRate) { // CraftBukkit
+                 float saturationSpent = Math.min(this.saturationLevel, 6.0F);
+@@ -75,12 +75,12 @@ public class FoodData {
+                 player.causeFoodExhaustion(saturationSpent, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
+                 this.tickTimer = 0;
+             }
+-        } else if (naturalRegen && this.foodLevel >= FoodConstants.HEAL_LEVEL && player.isHurt()) {
++        } else if (io.github.adrielorihuela.legacyfolia.combat.Combat.regenerates(this.foodLevel, player.isHurt(), naturalRegen)) { // LegacyFolia - 1.8's single slow healing track
+             this.tickTimer++;
+-            if (this.tickTimer >= this.unsaturatedRegenRate) { // CraftBukkit - add regen rate manipulation
++            if (this.tickTimer >= io.github.adrielorihuela.legacyfolia.combat.Combat.regenIntervalTicks(this.unsaturatedRegenRate)) { // CraftBukkit - add regen rate manipulation // LegacyFolia - configurable interval
+                 player.heal(1.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED); // CraftBukkit - added RegainReason
+                 // this.addExhaustion(6.0F); // CraftBukkit - EntityExhaustionEvent
+-                player.causeFoodExhaustion(player.level().spigotConfig.regenExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
++                player.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.regenExhaustion(player.level().spigotConfig.regenExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's regeneration cost
+                 this.tickTimer = 0;
+             }
+         } else if (this.foodLevel <= 0) {
