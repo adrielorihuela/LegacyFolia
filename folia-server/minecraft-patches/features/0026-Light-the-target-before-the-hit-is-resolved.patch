@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:05:49 -0500
+Subject: [PATCH] Light the target before the hit is resolved
+
+1.8 set fire aspect alight and only then dealt the damage, for one flat second
+rather than four per level. A hit that was entirely blocked, or that landed
+inside the invulnerability window and did nothing, still left the target
+burning, and that is a real part of how fire aspect was used.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index 8035a72a47f29c8cd347ac090268cdceb9b84419..b3df0d452c9f8ead116a42fa294096df91d51991 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1069,6 +1069,15 @@ public abstract class Player extends Avatar implements ContainerUser {
+                     }
+ 
+                     Vec3 oldMovement = entity.getDeltaMovement();
++                    // LegacyFolia start - 1.8 lit the target before resolving the hit
++                    // A hit that is fully blocked, or that lands inside the invulnerability window
++                    // and does nothing at all, still set the target on fire.
++                    final int legacyFireSeconds =
++                        io.github.adrielorihuela.legacyfolia.combat.Combat.fireAspectSeconds(attackingItemStack);
++                    if (legacyFireSeconds > 0) {
++                        entity.igniteForSeconds(legacyFireSeconds);
++                    }
++                    // LegacyFolia end - 1.8 lit the target before resolving the hit
+                     boolean wasHurt = entity.hurtOrSimulate(damageSource, totalDamage);
+                     if (wasHurt) {
+                         // LegacyFolia start - configurable sprint knockback (0.5 in 1.8, as here)
+@@ -1089,6 +1098,13 @@ public abstract class Player extends Avatar implements ContainerUser {
+                         this.attackVisualEffects(entity, criticalAttack, sweepAttack, fullStrengthAttack, false, magicBoost);
+                         this.setLastHurtMob(entity);
+                         this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);
++                        // LegacyFolia start - fire aspect burned for one flat second in 1.8
++                        // The enchantment's own post-attack effect has just run and set four
++                        // seconds per level; take it back down to what the old duration was.
++                        if (legacyFireSeconds > 0) {
++                            entity.setRemainingFireTicks(Math.min(entity.getRemainingFireTicks(), legacyFireSeconds * 20));
++                        }
++                        // LegacyFolia end - fire aspect burned for one flat second in 1.8
+                         this.damageStatsAndHearts(entity, oldLivingEntityHealth);
+                         this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.attackExhaustion(this.level().spigotConfig.combatExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's attack cost
+                     } else {
