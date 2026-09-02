@@ -1,6 +1,8 @@
 package io.github.adrielorihuela.legacyfolia.config;
 
+import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,14 @@ import org.apache.logging.log4j.Logger;
  * <p>Callers never name a file. They ask for a dotted path — {@code dimensions.nether},
  * {@code combat.enabled} — and the first segment decides which file answers. Moving a section
  * between files is then a one-line change here and nothing at all anywhere else.</p>
+ *
+ * <p>Most of what the server settles is decided once for the whole server, and the methods here
+ * answer for that. More than half of the settings inherited from Spigot and Paper, however, are
+ * decided per world, and for those a caller asks {@link #forWorld(String)} for that world's view
+ * instead. The view resolves {@code [worlds.<name>]} over {@code [worlds.default]} over the global
+ * section, which is the same chain Spigot and Paper each implement separately today; see
+ * {@link WorldConfig} for why it is flattened rather than walked. Views are cached per world and
+ * dropped whole whenever the files are read again.</p>
  */
 public final class ServerConfig {
 
@@ -30,6 +40,8 @@ public final class ServerConfig {
     public static final String PERFORMANCE = "performance.toml";
     public static final String COMBAT = "combat.toml";
     public static final String PLUGINS = "plugins.toml";
+    public static final String WORLDS = "worlds.toml";
+    public static final String GAMEPLAY = "gameplay.toml";
 
     /**
      * Which file owns each top-level section.
@@ -45,13 +57,28 @@ public final class ServerConfig {
         "chunks", PERFORMANCE,
         "performance", PERFORMANCE,
         "combat", COMBAT,
-        "plugins", PLUGINS);
+        "plugins", PLUGINS,
+        "worlds", WORLDS,
+        "gameplay", GAMEPLAY);
+
+    /**
+     * The sections a world may override.
+     *
+     * <p>These are the files whose contents are flattened to make a world's view, so a path a
+     * caller passes to a {@link WorldConfig} has to start in one of them. Everything else —
+     * a port, a proxy secret, the message shown to a kicked player — is the server's, not a
+     * world's, and asking for it per world would be a category error rather than a lookup that
+     * happens to miss.</p>
+     */
+    private static final List<String> PER_WORLD_FILES = List.of(GAMEPLAY, PERFORMANCE, WORLD);
 
     /** Loaded in this order, which is the order they are reported in. */
     private static final List<String> FILES =
-        List.of(SERVER, WORLD, NETWORK, PERFORMANCE, COMBAT, PLUGINS);
+        List.of(SERVER, WORLD, NETWORK, PERFORMANCE, COMBAT, PLUGINS, WORLDS, GAMEPLAY);
 
     private static volatile Map<String, ConfigFile> files;
+
+    private static final WorldConfigCache WORLD_VIEWS = new WorldConfigCache(ServerConfig::resolve);
 
     private ServerConfig() {
     }
@@ -72,6 +99,7 @@ public final class ServerConfig {
             loaded.put(fileName, ConfigFile.open(fileName));
         }
         files = loaded;
+        WORLD_VIEWS.invalidate();
 
         final long created = loaded.values().stream().filter(ConfigFile::wasCreated).count();
         if (created == FILES.size()) {
@@ -80,6 +108,35 @@ public final class ServerConfig {
         } else if (created > 0) {
             LOGGER.info("Created {} new configuration file(s) in config/.", created);
         }
+    }
+
+    /**
+     * The configuration as one world sees it.
+     *
+     * <p>Cheap to call and cheap to hold on to: the view for a world is built once and reused, so
+     * a tick loop may ask for it every tick, and a caller that keeps one only has to remember that
+     * it is a snapshot of the last load.</p>
+     *
+     * @param worldName the world's name, as the server knows it
+     * @return that world's view, built if this is the first time it has been asked for
+     */
+    public static WorldConfig forWorld(final String worldName) {
+        return WORLD_VIEWS.get(worldName);
+    }
+
+    /** Builds one world's view out of the files that were loaded. */
+    private static WorldConfig resolve(final String worldName) {
+        final Map<String, ConfigFile> loaded = files;
+        if (loaded == null) {
+            throw new IllegalStateException("the configuration has not been read yet");
+        }
+        final List<UnmodifiableConfig> globals = new ArrayList<>(PER_WORLD_FILES.size());
+        for (final String fileName : PER_WORLD_FILES) {
+            globals.add(loaded.get(fileName).raw());
+        }
+        final Object worlds = loaded.get(WORLDS).raw().get(List.of("worlds"));
+        return WorldConfig.resolve(worldName, globals,
+            worlds instanceof final UnmodifiableConfig section ? section : null);
     }
 
     /**

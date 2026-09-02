@@ -1,0 +1,134 @@
+# ============================================================================
+#  LegacyFolia
+# ============================================================================
+#
+#  Settings are grouped by what they do, not by which server this fork
+#  inherited them from. Every one of them is commented.
+#
+#  When you upgrade, new settings appear here with their comments and your own
+#  edits are left untouched.
+#
+#  Documentation: https://github.com/adrielorihuela/LegacyFolia
+# ============================================================================
+#
+#  This file holds the rules of the game itself: how fast a player gets
+#  hungry, how fast wheat grows, what mobs do, what despawns and when. It is
+#  separate from world.toml, which answers a different question — which worlds
+#  exist and how they are generated — and from performance.toml, which is
+#  about what the server spends its time on rather than about what happens in
+#  the game.
+#
+#  The dividing line is whether changing a setting would be visible to a
+#  player who never looked at the tick rate. Halving the crop growth rate is
+#  visible; raising the entity activation range is not.
+#
+#  Almost everything here is decided per world. A value set in this file is
+#  what every world uses; a world that wants its own answer overrides it in
+#  worlds.toml, and nothing else has to change. See that file for how the two
+#  fit together.
+
+# ----------------------------------------------------------------------------
+#  Hunger — what each action costs
+# ----------------------------------------------------------------------------
+#  Every one of these is an exhaustion cost. Exhaustion is the hidden counter
+#  behind the food bar: it fills up as a player acts, and each time it fills
+#  it takes a half-haunch of saturation, then of food. Raising a cost here
+#  makes that action drain the bar faster; setting it to 0 makes it free.
+#
+#  These are what a hardcore server tightens and what a build server usually
+#  turns off entirely.
+[gameplay.hunger]
+
+# ----------------------------------------------------------------------------
+#  Growth — how fast things that grow, grow
+# ----------------------------------------------------------------------------
+#  Each crop has its own rate, given as a percentage of the vanilla chance to
+#  advance a stage on any given random tick. 100 is vanilla, 200 is twice as
+#  fast, 0 stops that crop growing at all.
+#
+#  Rates are per crop rather than global because they do not have the same
+#  starting point: sugar cane and bamboo already grow far faster than wheat,
+#  so one multiplier applied to all of them would not mean the same thing
+#  twice.
+#
+#  The height limits for the plants that grow upwards live here too, since
+#  they answer the same question about the same blocks.
+[gameplay.growth]
+
+# ----------------------------------------------------------------------------
+#  Mobs — what they do once they exist
+# ----------------------------------------------------------------------------
+#  Behaviour only: whether zombies break doors, whether villagers can be
+#  cured, whether pigmen come through portals, which effects mobs may carry.
+#
+#  How many mobs there are and how often the server looks for room to put more
+#  is a cost question, not a rules question, and lives in performance.toml
+#  under spawning.
+[gameplay.mobs]
+
+# ----------------------------------------------------------------------------
+#  Environment — weather, water, fire, ice and the passage of time
+# ----------------------------------------------------------------------------
+#  The world acting on itself, with no player involved: how fast fire spreads,
+#  whether ice melts under a torch, how often lightning strikes, how long a
+#  fish takes to bite, how quickly nether portals cool down.
+#
+#  Several of these are the settings people reach for when a server feels
+#  either too punishing or too static, and they are the ones most likely to
+#  differ between the overworld and the Nether — which is exactly what the
+#  per-world override in worlds.toml is for.
+[gameplay.environment]
+
+# ----------------------------------------------------------------------------
+#  Items — what is dropped, what is picked up, and what disappears
+# ----------------------------------------------------------------------------
+#  Despawn timers for dropped items, arrows and tridents; how loot chests
+#  refill; how much a hopper moves and how often; how much TNT may prime in a
+#  single tick.
+#
+#  The despawn rates are the ones to reach for first: they decide how long a
+#  player has to come back for what they died holding, and are the difference
+#  between a forgiving server and an unforgiving one.
+[gameplay.items]
+
+# ----------------------------------------------------------------------------
+#  Redstone — which implementation runs, and in what order
+# ----------------------------------------------------------------------------
+#  The choice of redstone engine, and the order block updates are applied in.
+#
+#  Changing these changes what existing contraptions do. An alternative
+#  implementation is faster and removes the locational quirks of the vanilla
+#  one, but a machine built to depend on those quirks will stop working. Treat
+#  this as a decision made once, when a world is created, rather than as a
+#  knob to try on a live server.
+[gameplay.redstone]
+
+# ----------------------------------------------------------------------------
+#  Exploits — what players are allowed to get away with
+# ----------------------------------------------------------------------------
+#  Three separate things that all answer to the same question.
+#
+#  Fixes turn off duplication bugs and similar mistakes that vanilla still
+#  has. Some servers keep them, because a farm the community built may depend
+#  on one.
+#
+#  Anti-xray hides ores from clients that have no business seeing them, at a
+#  cost in CPU and bandwidth that is paid per chunk sent.
+#
+#  Unsupported settings are exactly that: things that are known to break the
+#  game or the server if turned on, kept because a small number of servers
+#  genuinely want them. Nothing in that group is safe by default and none of
+#  it is supported.
+[gameplay.exploits]
+
+# ----------------------------------------------------------------------------
+#  Sounds — how far the events everybody hears carry
+# ----------------------------------------------------------------------------
+#  The dragon dying, a wither being summoned and an end portal being made are
+#  broadcast to every player in the world rather than to those nearby, which
+#  on a large server means announcing one group's progress to everyone.
+#
+#  A radius here replaces that broadcast with a normal, positional sound: 0
+#  keeps the vanilla behaviour of telling everybody, anything higher limits it
+#  to players within that many blocks.
+[gameplay.sounds]

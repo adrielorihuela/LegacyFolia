@@ -1,0 +1,78 @@
+# ============================================================================
+#  LegacyFolia
+# ============================================================================
+#
+#  Settings are grouped by what they do, not by which server this fork
+#  inherited them from. Every one of them is commented.
+#
+#  When you upgrade, new settings appear here with their comments and your own
+#  edits are left untouched.
+#
+#  Documentation: https://github.com/adrielorihuela/LegacyFolia
+# ============================================================================
+#
+#  This file is the exception to the grouping. Every other file answers "what
+#  does this setting do"; this one answers "and which world does it apply to".
+#
+#  More than half of the server's settings are decided per world. The Nether
+#  is not the overworld: it wants a shorter view distance, different mob
+#  limits and no weather at all. Written as one global value each, those
+#  settings would force the same answer on every world, and a server that
+#  tunes its Nether separately would quietly lose that tuning.
+#
+#  So: a setting in gameplay.toml, performance.toml or world.toml is what
+#  every world uses, and a world that disagrees says so here. Nothing is
+#  duplicated — a world only names the settings it wants to differ on.
+#
+#  ---------------------------------------------------------------------------
+#  How a value is chosen
+#  ---------------------------------------------------------------------------
+#  In order, first answer wins:
+#
+#    1. [worlds.<name>]   what this one world says
+#    2. [worlds.default]  what every world says unless it says otherwise
+#    3. the setting in gameplay.toml / performance.toml / world.toml
+#    4. the value built into the server
+#
+#  Steps 1 and 2 are what Spigot called world-settings.<world> and
+#  world-settings.default, and what Paper split across <world>/paper-world.yml
+#  and paper-world-defaults.yml. It is one chain here rather than four.
+#
+#  ---------------------------------------------------------------------------
+#  How to write an override
+#  ---------------------------------------------------------------------------
+#  Name the setting by its full path — the same path it has in the file it
+#  normally lives in, section included. Both of these mean the same thing, so
+#  use whichever reads better for how much you are overriding:
+#
+#    [worlds.world_nether]
+#    "gameplay.environment.thunder-chance" = 0
+#
+#    [worlds.world_nether.gameplay.environment]
+#    thunder-chance = 0
+#
+#  The section name is the world's folder name, which is what the server calls
+#  it: world, world_nether, world_the_end, or whatever a plugin created. A
+#  name with anything other than letters, digits, underscores or dashes in it
+#  has to be quoted: [worlds."my world"].
+#
+#  A world with no section here is not a mistake and is not a special case: it
+#  simply uses [worlds.default] and the global files, which is what a world
+#  with an empty section would get anyway.
+#
+#  Overriding a setting that is not decided per world does nothing. Only
+#  gameplay.toml, performance.toml and world.toml are consulted per world; a
+#  port or a proxy secret belongs to the server, not to one of its worlds.
+
+# ----------------------------------------------------------------------------
+#  Every world
+# ----------------------------------------------------------------------------
+#  Overrides that apply to all worlds at once, including ones created later by
+#  a plugin. This exists so that "all my worlds, except that one" can be said
+#  in two sections instead of in one section per world.
+#
+#  Reaching for this section is usually a sign the value belongs in the global
+#  file instead: a setting every world agrees on is not a per-world setting.
+#  It earns its place when the global default is one a plugin or another part
+#  of the server depends on and only your worlds should differ.
+[worlds.default]
