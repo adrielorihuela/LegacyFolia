@@ -12,7 +12,7 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-#  Combat — the 1.8 mechanics
+#  Combat - the 1.8 mechanics
 # ----------------------------------------------------------------------------
 #  Every default below is the value 1.8.8 actually used, read from that
 #  version's own source rather than from memory. Turn this on and change
@@ -116,7 +116,7 @@ armor-points-cap = 20
 
 # Protection, as the random per-hit roll it actually was.
 #
-# Each piece is worth ceil((6 + level^2) / 3 * 0.75) points — 2, 3, 4 or 6 for
+# Each piece is worth ceil((6 + level^2) / 3 * 0.75) points - 2, 3, 4 or 6 for
 # levels one to four. The total is capped at 25, and then 1.8 rolled
 # ((points + 1) >> 1) + random((points >> 1) + 1), capped at 20, on every
 # single hit. A full set of Protection IV is 24 points, which rolls between 12
@@ -171,8 +171,8 @@ splash-radius = 4.0
 # The formula is (1 + damage) * 0.5, not damage * 0.5: a hit of 7 blocks down
 # to 4.0 rather than 3.5, and a hit of 1 is not reduced at all. The setting
 # below is the 0.5 factor in that expression. 1.8 also applied blocking BEFORE
-# armour — the order was hard hat, blocking, armour, resistance, protection,
-# absorption — so blocking and armour compound rather than being alternatives.
+# armour - the order was hard hat, blocking, armour, resistance, protection,
+# absorption - so blocking and armour compound rather than being alternatives.
 sword-blocking = true
 sword-blocking-reduction = 0.5
 
