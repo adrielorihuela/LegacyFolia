@@ -12,9 +12,100 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-#  Network — how players reach this server
+#  Network - how players reach this server
+# ----------------------------------------------------------------------------
+#  Everything that arrives on or leaves through a socket: the listening
+#  address, the proxy in front of it, the remote consoles, and the limits that
+#  decide how much a single connection may ask of the server.
+#
+#  None of this is decided per world. A world is a place inside the server; a
+#  port is how the server itself is reached. Naming any of these settings in
+#  worlds.toml does nothing.
+[network]
+
+# The address to listen on. Empty means every address the machine has.
+#
+# Set this when the machine has more than one address and only one of them
+# should carry Minecraft traffic, or to "127.0.0.1" when a proxy on the same
+# machine is the only thing that should ever connect. Binding to loopback is
+# the cheapest possible protection for a backend server: no firewall rule can
+# be forgotten if the socket was never reachable in the first place.
+ip = ""
+
+# The port to listen on. 25565 is the port a client assumes when the player
+# types a bare address with no colon in it.
+port = 25565
+
+# Use the operating system's own networking layer (epoll on Linux, kqueue on
+# BSD) instead of Java's portable one.
+#
+# Faster and with fewer allocations per packet, and it is what every Linux
+# server actually runs on. It falls back on its own if the native library is
+# missing, so leaving this on costs nothing on a platform that has no such
+# layer. Turn it off only to rule the native layer out while chasing a bug.
+use-native-transport = true
+
+# Compress packets larger than this many bytes, in bytes.
+#
+# Below the threshold a packet travels as-is, because compressing a handful of
+# bytes costs more CPU than the bandwidth it saves. 256 is the vanilla value.
+# -1 disables compression entirely, which is what you want when the client is
+# a proxy on the same machine: there is no link to save bandwidth on and the
+# compression is pure CPU.
+compression-threshold = 256
+
+# How hard to compress, from 0 (none) to 9 (smallest).
+#
+# The string "default" leaves it to zlib, which is 6. Lower it when the server
+# is CPU-bound and bandwidth is free; raise it only when bandwidth is the
+# thing you are actually short of, which is rare.
+compression-level = "default"
+
+# How many threads Netty uses for its event loops.
+#
+# This is set as a system property before Netty starts, so it takes effect
+# only at start-up and never on a reload. Four is enough for almost any
+# player count, because these threads only move bytes; the work that a packet
+# causes happens on a region thread, not here.
+netty-threads = 4
+
+# Refuse a login whose Mojang session was authenticated from a different IP
+# address than the one connecting.
+#
+# It stops one narrow kind of session-stealing proxy. It also breaks any
+# player whose connection legitimately changes address mid-handshake, which is
+# common on mobile networks, so vanilla ships it off.
+prevent-proxy-connections = false
+
+# Accept players transferred here by another server's /transfer command.
+#
+# Off by default because it means any server that knows this address can push
+# players at it. Turn it on only when the servers doing the transferring are
+# yours.
+accepts-transfers = false
+
+# ----------------------------------------------------------------------------
+#  Velocity modern forwarding
 # ----------------------------------------------------------------------------
 [network.velocity]
+
+# Whether players arrive through a Velocity proxy using modern forwarding.
+#
+# Modern forwarding is signed: the proxy proves each player's identity with
+# the shared secret below, so this backend can trust the name and UUID it is
+# handed without talking to Mojang itself. That signature is why this is the
+# forwarding to prefer over BungeeCord's, which has no such proof.
+#
+# If this is on and the secret file is empty, the server logs an error and
+# turns it back off rather than starting in a state where anybody who can
+# reach the port can claim to be anybody.
+enabled = false
+
+# Whether the proxy checks the player against Mojang.
+#
+# Leave this on. Off means the proxy lets unauthenticated players through and
+# this server believes whatever name they gave.
+online-mode = true
 
 # The file holding the Velocity modern-forwarding secret, relative to config/
 # unless an absolute path is given.
@@ -33,3 +124,261 @@
 # containers that would rather not mount a file.
 secret-file = "forwarding.secret"
 
+# ----------------------------------------------------------------------------
+#  BungeeCord forwarding
+# ----------------------------------------------------------------------------
+#  These two settings used to live in different files, which is how servers
+#  ended up with forwarding switched on and its online-mode switched off
+#  without anybody noticing: the switch was in spigot.yml and the safety was
+#  in paper-global.yml. They are one section here so that the pair is read
+#  together.
+[network.bungeecord]
+
+# Whether players arrive through a BungeeCord-style proxy.
+#
+# Unlike Velocity's, this forwarding is unsigned: the proxy simply writes the
+# player's name, UUID and address into the handshake and this server takes its
+# word for it. Anything that can reach this port can therefore claim to be any
+# player, including an operator. If you turn this on, the port MUST be
+# unreachable from outside - bind ip above to loopback, or firewall it.
+#
+# Note that turning this on also makes connection throttling report -1, since
+# every connection then appears to come from the proxy's single address; see
+# [network.limits].
+enabled = false
+
+# Whether the proxy checks players against Mojang before forwarding them.
+#
+# This does not change what this server does - it cannot, since it is not the
+# one talking to Mojang. It tells this server what the proxy promised, which
+# is what decides whether a player gets their real UUID and skin or an offline
+# one derived from their name. Setting it to true while the proxy is actually
+# in offline mode does not make anybody authenticated; it only makes this
+# server wrong about them.
+online-mode = true
+
+# ----------------------------------------------------------------------------
+#  PROXY protocol
+# ----------------------------------------------------------------------------
+[network.proxy-protocol]
+
+# Read the HAProxy PROXY protocol header at the start of each connection.
+#
+# This is how a TCP load balancer, which does not understand Minecraft's
+# protocol, still tells the server what the real client address was. Without
+# it every player appears to come from the balancer, which breaks bans by
+# address and connection throttling alike.
+#
+# Only turn this on when something really is sending those headers. A plain
+# client does not, and its first packet will be rejected as malformed.
+enabled = false
+
+# ----------------------------------------------------------------------------
+#  Remote console
+# ----------------------------------------------------------------------------
+[network.rcon]
+
+# Whether to open the RCON port at all.
+#
+# RCON is a plaintext protocol with a single shared password and no rate
+# limit worth the name. It has full console authority: whoever gets in can run
+# any command. Treat the port as internal.
+enabled = false
+
+# The port RCON listens on.
+port = 25575
+
+# The address RCON binds to. Empty means it follows [network].ip.
+#
+# This inheritance is the useful part: a server bound to every address will
+# also expose RCON on every address unless you say otherwise here. Setting
+# this to "127.0.0.1" keeps the game port public and the console private.
+ip = ""
+
+# The RCON password. An empty password means the listener refuses to start.
+#
+# This is a password in a configuration file, which is the reason RCON is off
+# by default. If you turn it on, treat this file as a secret: it is the one
+# key to the whole console.
+password = ""
+
+# ----------------------------------------------------------------------------
+#  Query
+# ----------------------------------------------------------------------------
+[network.query]
+
+# Whether to answer GameSpy4 query packets, the old UDP protocol that server
+# lists and monitoring tools use to ask who is online.
+enabled = false
+
+# The UDP port to answer on. It is a separate socket from the game port even
+# when the number is the same.
+port = 25565
+
+# Whether a query answer lists the installed plugins and their versions.
+#
+# Off is the more careful setting: a plugin list is a list of the versions an
+# attacker would look up known bugs for. On is the friendlier one for a
+# monitoring page you control.
+expose-plugins = true
+
+# ----------------------------------------------------------------------------
+#  Management server
+# ----------------------------------------------------------------------------
+#  The HTTP management API added by vanilla 1.21.9. Separate from RCON and far
+#  more capable; the same warning applies twice over.
+[network.management]
+
+# Whether to start it.
+enabled = false
+
+# The address it binds to. "localhost" keeps it off the network entirely,
+# which is the only configuration that needs no further thought.
+host = "localhost"
+
+# The port it listens on. 0 asks the operating system for a free one, which is
+# only useful when something else discovers the port for you.
+port = 0
+
+# Whether the API is served over TLS. Leave this on unless the listener is on
+# loopback: without it, the bearer token below crosses the network in clear.
+tls-enabled = true
+
+# The PKCS#12 keystore holding the TLS certificate. Empty means a certificate
+# generated at start-up, which is fine for a client that is told to trust it
+# and useless for a browser.
+tls-keystore = ""
+
+# Which web origins may call the API from a browser, comma separated. Empty
+# means none, which is right for everything except a web panel you host.
+allowed-origins = ""
+
+# Two settings deliberately absent from this file: the API's bearer token and
+# the keystore password. Secrets do not go in configuration, for the same
+# reason the Velocity secret does not - see secret-file above. Until they have
+# files of their own, set them with the management-server-secret and
+# management-server-tls-keystore-password properties.
+
+# ----------------------------------------------------------------------------
+#  Limits - what one connection may ask of the server
+# ----------------------------------------------------------------------------
+#  Every setting here answers the same question: how much can a single client
+#  cost this server before it is cut off. They are gathered because that is
+#  one decision, even though it used to be spread across four files.
+[network.limits]
+
+# The largest number of packets a player may send per second before being
+# kicked. 0 means no limit.
+#
+# This is the crudest of the limits here and the one with the fewest false
+# positives, because it counts packets rather than judging them. A modern
+# client at a high frame rate sends a lot, so anything under about 500 will
+# start kicking legitimate players.
+rate-limit = 0
+
+# The shortest time between two connections from the same address, in
+# milliseconds. 0 disables it.
+#
+# This is what stops a login flood: the second attempt inside the window is
+# refused with the message in server.toml rather than being allowed to occupy
+# a login thread.
+#
+# It is ignored entirely when [network.bungeecord].enabled or
+# [network.velocity].enabled is on, because then every connection arrives from
+# the proxy's own address and throttling would refuse your whole network after
+# the first player. Throttle at the proxy instead.
+connection-throttle = 4000
+
+# How long a player must wait between chat messages and between commands, in
+# seconds, before the server treats it as spam and kicks them.
+#
+# These are not per-message delays: the server keeps a counter that each
+# message raises and each tick lowers, so a burst is what trips it, not a fast
+# typist.
+chat-spam-threshold-seconds = 10
+command-spam-threshold-seconds = 10
+
+# Commands that do not count towards the command spam threshold.
+#
+# For plugin commands that a player is expected to send in bursts - skill
+# keybinds, menu clicks bound to a command - which would otherwise get them
+# kicked for playing normally. Matching is by prefix.
+#
+# The exclusions are only consulted when enable-spam-exclusions is on. That
+# second switch exists because the list is not empty by default, and treating
+# a default list as an intentional one silently exempted "/skill" on every
+# server that never touched it.
+spam-exclusions = ["/skill"]
+enable-spam-exclusions = false
+
+# Tab completion and recipe-book lookups, which are cheap for the client to
+# ask for and expensive for the server to answer.
+#
+# Each request adds its increment to a counter that drains one per tick; when
+# the counter passes the limit, the player is kicked. So the limit divided by
+# the increment is roughly how many requests are tolerated in a burst, and any
+# sustained rate under one per tick per increment is never noticed.
+tab-spam-increment = 1
+tab-spam-limit = 500
+recipe-spam-increment = 1
+recipe-spam-limit = 20
+
+# Packets per second from one connection before it is closed, counted before
+# the packet is decoded. Set to -1 to disable.
+#
+# This one runs earlier and cheaper than rate-limit above: it is the guard
+# against a connection that is malformed on purpose, where the cost is in the
+# decoding itself.
+incoming-packet-threshold = 300
+
+# The packet rate limiter, which is the same idea measured over a window.
+#
+# interval is the window in seconds, max-packet-rate the packets per second
+# averaged over it that a player may not exceed, and action what happens when
+# they do: "KICK" to disconnect them or "DROP" to silently discard the
+# excess. Kicking is right for the overall limit, because a client that far
+# out of bounds is broken or hostile either way.
+[network.limits.packet-limiter.all-packets]
+interval = 7.0
+max-packet-rate = 500.0
+action = "KICK"
+
+# ----------------------------------------------------------------------------
+#  Monitoring
+# ----------------------------------------------------------------------------
+[network.monitoring]
+
+# Expose the JVM's JMX beans so that an external tool can read heap use, GC
+# behaviour and thread counts.
+#
+# JMX has no authentication of its own here, and it can do rather more than
+# read. Only turn it on when the port is not reachable from outside.
+enable-jmx-monitoring = false
+
+# ----------------------------------------------------------------------------
+#  Spark, the bundled profiler
+# ----------------------------------------------------------------------------
+[network.monitoring.spark]
+
+# Whether spark is available at all. It costs nothing while idle: no sampling
+# happens until somebody runs /spark, which is why this is on by default.
+enabled = true
+
+# Start the profiler during start-up rather than when it is first asked for.
+#
+# The one case that needs this is profiling start-up itself - a plugin that
+# takes thirty seconds to enable is invisible to a profiler that only begins
+# afterwards.
+enable-immediately = false
+
+# ----------------------------------------------------------------------------
+#  Update checking
+# ----------------------------------------------------------------------------
+[network.monitoring.update-checker]
+
+# Ask upstream at start-up whether a newer build exists, and say so in the
+# log.
+#
+# It is one request at start-up and it changes nothing on its own. Turn it off
+# on a machine that should make no outbound connections at all.
+enabled = true
