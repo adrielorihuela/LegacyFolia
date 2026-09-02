@@ -10,9 +10,172 @@
 #
 #  Documentation: https://github.com/adrielorihuela/LegacyFolia
 # ============================================================================
+#
+#  This file is the price list. Everything in it buys the same thing -- CPU
+#  time, memory or bandwidth -- and every number is a trade against how far a
+#  player can see, how many mobs are alive, and how much of the world is awake
+#  at once. Nothing here changes a rule of the game; it changes what the
+#  server is willing to spend keeping those rules running.
+#
+#  A key marked PER WORLD may be overridden for a single world in worlds.toml,
+#  under [worlds.<name>], using its full dotted path. The resolution order is
+#  that world's own section, then [worlds.default], then the value in this
+#  file, then the value compiled into the server.
+# ============================================================================
 
 # ----------------------------------------------------------------------------
-#  Chunks
+#  Chunks -- how much world is loaded, sent and written
+# ----------------------------------------------------------------------------
+[chunks]
+
+# How far, in chunks, a player is sent terrain. PER WORLD.
+#
+# This is the most expensive single number on the server: the count of chunks
+# each player holds is roughly the square of it, so going from 10 to 16 is not
+# sixty percent more work, it is two and a half times more. It is also what the
+# client draws, so raising it is the most visible improvement you can make and
+# the one that costs the most.
+#
+# UNIFIED (map section 3.3). Until now this decision lived in two places:
+# view-distance in server.properties (server-wide, default 10) and a per-world
+# view-distance in spigot.yml where any value <= 0 meant "use whatever the
+# server-wide one is", the result then being clamped to 3..32. There is one key
+# now: this is the server-wide value, and a world that wants something else
+# says so in worlds.toml rather than writing a magic 0. The clamp to 3..32
+# still applies, because Minecraft's own protocol will not carry anything
+# outside it.
+view-distance = 10
+
+# How far, in chunks, the world is actually ticked. PER WORLD.
+#
+# Sent is not the same as alive. Chunks inside the view distance but outside
+# this one are drawn by the client and frozen on the server: no mob AI, no crop
+# growth, no redstone, no hoppers. Lowering this is usually the cheapest real
+# saving available, because players rarely notice that a farm three hundred
+# blocks behind them has paused.
+#
+# Values above view-distance are meaningless -- a chunk cannot be ticked for a
+# player who is not being sent it -- and are capped to it.
+#
+# UNIFIED (map section 3.3), for the same reason and in the same way as
+# view-distance above.
+simulation-distance = 10
+
+# How often, in ticks, modified chunks are written back to disk. PER WORLD.
+#
+# Every chunk a player has changed sits dirty in memory until this fires. Long
+# intervals mean fewer, larger disk bursts and more work lost if the process
+# dies; short ones mean a steady trickle of I/O. 6000 ticks is five minutes.
+# Set to 0 to disable periodic saving entirely, which is only sane if something
+# else is calling save-all.
+#
+# UNIFIED (map section 3.6). "How often is everything saved" was three keys in
+# three files: ticks-per.autosave in bukkit.yml (server-wide, chunks and
+# worlds), chunks.auto-save-interval in paper-world (per world, where a
+# negative value meant "fall back to the bukkit one"), and player-auto-save.rate
+# in paper-global. That last one is a different thing -- player data, not
+# chunks -- and stays in server.toml under [server.saving]. This key is the
+# chunk half, the bukkit and paper values collapsed into one; the fallback
+# sentinel is gone, so a world wanting a different period states it outright in
+# worlds.toml.
+auto-save-interval = 6000
+
+# The most chunks the periodic save above will write in a single tick. PER
+# WORLD. This is what stops an auto-save from becoming a visible freeze: the
+# save is spread across ticks rather than done at once, at the cost of taking
+# longer to finish.
+max-auto-save-chunks-per-tick = 24
+
+# How long a chunk stays loaded after the last player stops needing it, in
+# ticks. PER WORLD.
+#
+# Unloading is not free -- it writes to disk, and reloading reads back -- so a
+# player walking a boundary back and forth can thrash it. This delay makes the
+# server wait before believing the chunk is really unwanted. 200 ticks is ten
+# seconds.
+delay-chunk-unloads-by = 200
+
+# Force every chunk's stored "inhabited time" to this value instead of letting
+# it accumulate. PER WORLD.
+#
+# Inhabited time is how long players have spent in a chunk, and vanilla uses it
+# to make loot in heavily-used areas better and local difficulty higher. Pinning
+# it makes those outcomes identical everywhere, which some servers want for
+# fairness. -1 leaves vanilla behaviour alone.
+fixed-chunk-inhabited-time = -1
+
+# Whether a full save also flushes each region file to the operating system.
+# PER WORLD. Off, the writes sit in the OS page cache and the save returns
+# sooner; on, the save does not return until the data is really down, which is
+# slower but survives the machine losing power rather than only the process
+# dying.
+flush-regions-on-save = false
+
+# How often, in ticks, the server sweeps for chunks that are loaded but no
+# longer wanted by anybody. This is the collector of last resort behind
+# delay-chunk-unloads-by; too long and memory creeps up on a busy server, too
+# short and the sweep costs more than it reclaims.
+chunk-gc-period-in-ticks = 600
+
+# How many region files are kept open at once.
+#
+# A region file holds a 32x32 block of chunks on disk. Keeping one open avoids
+# reopening and reseeking it on the next access, at the cost of a file handle
+# and some memory each. Raise it on a server with many worlds or heavy
+# spread-out traffic; the minimum the server accepts is 4.
+region-file-cache-size = 256
+
+# The compression applied to region files on disk.
+#
+# "deflate" is what Minecraft has always written and what every external tool
+# expects; "lz4" trades a noticeably larger world folder for markedly cheaper
+# compression and decompression, which shows up as smoother chunk loading on a
+# CPU-bound server; "none" writes raw and is mostly useful for benchmarking.
+#
+# Ordering hazard worth knowing about: this value is consumed very early in
+# start-up, before the rest of the configuration is read (map section 5.6). It
+# cannot be changed at runtime and a reload will not move it.
+region-file-compression = "deflate"
+
+# Whether chunks held by a tick-frozen world are still allowed to unload. PER
+# WORLD. Only relevant while /tick freeze is in effect.
+unload-frozen-chunks = false
+
+# Whether the server should send a player only as many chunks as their client
+# has actually asked for, when their setting is lower than view-distance above.
+# Almost always worth leaving on: it is pure saving, and the player sees
+# exactly what they configured either way.
+auto-config-send-distance = true
+
+# Per-player rate limits on chunk traffic, so that one person flying a
+# recently-generated frontier at elytra speed cannot starve everybody else.
+#
+# The send rate is bandwidth, in chunks per second. The load rate covers
+# reading chunks off disk, and because a generation always begins with a load
+# to check whether the chunk already exists, it caps generation too. The
+# generate rate limits only the expensive case, terrain that has never existed.
+# Set any of them to -1 to remove that limit.
+player-max-chunk-send-rate = 75.0
+player-max-chunk-load-rate = 100.0
+player-max-chunk-generate-rate = -1.0
+
+# How many chunk loads and generations one player may have in flight at once.
+# These bound latency rather than throughput: the rates above say how fast,
+# these say how deep the queue is allowed to get. 0 means the server sizes it
+# per player on its own, -1 removes the limit.
+player-max-concurrent-chunk-loads = 0
+player-max-concurrent-chunk-generates = 0
+
+# Threads for the chunk subsystem: worker threads do generation and the
+# parallel parts of loading, I/O threads do the reading and writing of region
+# files. -1 lets the server size both from the machine it is running on, which
+# is the right answer unless you are sharing the box with something else and
+# want to leave it room.
+chunk-system-worker-threads = -1
+chunk-system-io-threads = -1
+
+# ----------------------------------------------------------------------------
+#  Chunks -- adaptive view distance
 # ----------------------------------------------------------------------------
 [chunks.adaptive-view-distance]
 
@@ -63,3 +226,385 @@ detect-auto-clickers = true
 # Log every change, with the reason. Useful when tuning the numbers above.
 debug = false
 
+# ----------------------------------------------------------------------------
+#  Entities -- what is awake, and who is told about it
+# ----------------------------------------------------------------------------
+[performance.entities]
+
+# How far a mob is broadcast to clients, as a percentage of its normal range.
+#
+# This scales every tracking range below at once and is the blunt-instrument
+# version of them: 50 halves the distance at which players start receiving
+# movement for anything, which halves the packets. The accepted range is 10 to
+# 1000 and values outside it are clamped.
+entity-broadcast-range-percentage = 100
+
+# ----------------------------------------------------------------------------
+#  Activation range: how close a player must be for an entity to think.
+#
+#  Outside its range an entity still exists, still takes damage and is still
+#  sent to clients, but its AI does not run: it does not path, hunt, breed or
+#  move on its own. This is the largest saving available on a server with many
+#  mobs, and the one players are most likely to notice, because a farm just
+#  outside the range stops producing.
+#
+#  Measured in blocks. Every key in this section is PER WORLD; the usual reason
+#  to override is a Nether or an End whose mob budget should differ from the
+#  overworld's.
+# ----------------------------------------------------------------------------
+[performance.entities.activation-range]
+animals = 32
+monsters = 32
+raiders = 64
+misc = 16
+water = 16
+villagers = 32
+flying-monsters = 32
+
+# Whether an inactive villager is still ticked at a reduced rate rather than
+# stopped outright, and whether one being attacked or fleeing is woken
+# regardless of distance. Both exist because a completely frozen village looks
+# broken: trades never restock and a raid appears to be ignored.
+tick-inactive-villagers = true
+villagers-active-for-panic = true
+
+# Whether spectators count as players for the purpose of everything above. Off,
+# a spectator flying through a frozen area wakes it up, which is usually what a
+# moderator inspecting a farm wants and occasionally not.
+ignore-spectators = false
+
+# A villager that has just worked stays awake for a moment afterwards, so that
+# a workstation interaction finishes instead of being cut in half. The first
+# number is how long after the work the immunity begins, the second how long it
+# lasts. Both in ticks.
+villagers-work-immunity-after = 100
+villagers-work-immunity-for = 20
+
+# ----------------------------------------------------------------------------
+#  Waking inactive entities in batches.
+#
+#  Freezing entities forever is not safe: a mob that never ticks never
+#  repaths, so it can sit stuck in a wall until a player walks up to it. So the
+#  server wakes a few of each kind every so often, in a rotation. Each group is
+#  three numbers: how many to wake per tick, how often a round comes round
+#  (ticks), and how long each woken entity stays awake (ticks).
+#
+#  Raising the counts costs CPU in direct proportion; lowering them to zero
+#  disables the rotation for that group and brings back the stuck-mob problem
+#  it exists to prevent. All PER WORLD.
+# ----------------------------------------------------------------------------
+[performance.entities.activation-range.wake-up-inactive]
+animals-max-per-tick = 4
+animals-every = 1200
+animals-for = 100
+monsters-max-per-tick = 8
+monsters-every = 400
+monsters-for = 100
+villagers-max-per-tick = 4
+villagers-every = 600
+villagers-for = 100
+flying-monsters-max-per-tick = 8
+flying-monsters-every = 200
+flying-monsters-for = 100
+
+# ----------------------------------------------------------------------------
+#  Tracking range: how far away an entity is sent to a client at all.
+#
+#  This is bandwidth rather than CPU. Inside the range a player receives every
+#  movement, rotation and equipment change for that entity; outside it they are
+#  told it does not exist. Cutting these ranges is the most direct way to
+#  reduce outbound traffic on a crowded server, and the cost is that things pop
+#  into existence closer in.
+#
+#  Players is deliberately the largest, because an opponent appearing at 60
+#  blocks in a PvP fight is unplayable. Display covers text and item displays,
+#  which are usually built to be read from far off. Other is everything with no
+#  category of its own: projectiles, boats, minecarts.
+#
+#  Measured in blocks. All PER WORLD.
+# ----------------------------------------------------------------------------
+[performance.entities.tracking-range]
+players = 128
+animals = 96
+monsters = 96
+misc = 96
+display = 128
+other = 64
+
+# ----------------------------------------------------------------------------
+#  Vertical tracking range.
+#
+#  The ranges above are horizontal only, so on a server where players are
+#  stacked -- a skyblock, a deep mining world -- somebody at bedrock is still
+#  sent everything happening at build height directly overhead. Turning this on
+#  adds a separate vertical limit and cuts that off.
+#
+#  "default" means "use the horizontal range for this category", which is the
+#  behaviour with the feature off. All PER WORLD.
+# ----------------------------------------------------------------------------
+[performance.entities.tracking-range-y]
+enabled = false
+player = "default"
+animal = "default"
+monster = "default"
+misc = "default"
+display = "default"
+other = "default"
+
+# ----------------------------------------------------------------------------
+#  Merging dropped items and experience.
+#
+#  Two stacks within this many blocks of each other are combined into one
+#  entity. A single mob farm can otherwise produce thousands of separate item
+#  entities, each of which is ticked, tracked and saved. Raising the radius is
+#  a large saving and a visible change: items visibly slide together, and a
+#  player who dropped one stack next to another gets them back as one.
+#
+#  Experience merging is off, expressed as -1, because merged orbs change how
+#  much experience a player collects per orb picked up. Both PER WORLD.
+# ----------------------------------------------------------------------------
+[performance.entities.merge-radius]
+item = 0.5
+exp = -1.0
+
+# ----------------------------------------------------------------------------
+#  Collisions.
+#
+#  Entity-on-entity collision is quadratic in the worst case: a hundred mobs
+#  pushed into one block is ten thousand pair checks per tick. Cramming
+#  machines exist precisely to build that situation on purpose, which is why
+#  there is a hard cap here and not only the vanilla cramming rule.
+# ----------------------------------------------------------------------------
+[performance.entities.collisions]
+
+# Whether players push each other at all. GLOBAL, not per world -- it is a
+# property of the scoreboard team machinery the client is told about once, not
+# something the server can vary as a player walks through a portal.
+#
+# Turning it off is the standard choice for a spawn hub or a minigame lobby:
+# nobody can be shoved off a ledge, and a crowd of players costs nothing to
+# resolve.
+#
+# UNIFIED-ADJACENT (map section 3.9). There were two keys with nearly the same
+# name in two files, and they are NOT synonyms. This one, from paper-global,
+# decides whether player-on-player collision happens anywhere on the server.
+# The next one down, from paper-world, decides whether players are the only
+# thing that collides in one particular world. Neither replaces the other, so
+# both survive the merge; they sit next to each other here so the difference is
+# impossible to miss, which is the whole reason section 3.9 exists.
+enable-player-collisions = true
+
+# Whether, in this world, players collide with each other but nothing else
+# collides with anything. PER WORLD.
+#
+# This is the per-world half of the pair described above. With it on, mobs pass
+# through each other and through players freely, which removes almost all
+# collision cost while leaving player-versus-player shoving intact -- assuming
+# enable-player-collisions above has not switched that off too.
+only-players-collide = false
+
+# Whether boats, minecarts and other vehicles collide. PER WORLD. Off, they
+# pass through each other; the usual reason to turn it off is a busy rail
+# network where carts otherwise pile up.
+allow-vehicle-collisions = true
+
+# The most entities that may push any one entity in a tick. PER WORLD.
+#
+# Once this many pushes have been applied the rest are ignored, so a pile of
+# five hundred mobs costs the same as a pile of eight. Setting it to 0 disables
+# entity pushing altogether.
+max-entity-collisions = 8
+
+# Whether the vanilla cramming death applies to players as well as to mobs.
+# PER WORLD. Off, because being crushed by a crowd of teammates is rarely the
+# intended outcome.
+allow-player-cramming-damage = false
+
+# Whether climbing an entity can be used to dodge the cramming rule. PER WORLD.
+# This is a vanilla quirk, left in place unless asked for, because fixing it
+# changes how some existing farms behave.
+fix-climbing-bypassing-cramming-rule = false
+
+# Whether entities that collide hard -- boats, shulkers -- have their full
+# position sent every tick rather than a delta. GLOBAL. Costs bandwidth and
+# buys accuracy; it exists because delta updates let clients disagree with the
+# server about exactly where a boat is, which players feel as rubber banding.
+send-full-pos-for-hard-colliding-entities = true
+
+# ----------------------------------------------------------------------------
+#  Spawning -- how many mobs exist, and how hard the server looks for room
+# ----------------------------------------------------------------------------
+[performance.spawning]
+
+# How far from a player, in chunks, natural spawning is attempted. PER WORLD.
+#
+# Lowering it concentrates spawns closer to players, which means fewer mobs
+# alive for the same felt density, and is the usual first step when the mob
+# budget is being spent on things nobody can see. It also, unavoidably, makes
+# distant mob farms produce less.
+mob-spawn-range = 8
+
+# Whether mobs from a spawner get no AI at all. PER WORLD.
+#
+# A nerfed mob does not path, does not attack and does not move on its own; it
+# still spawns, still drops loot and can still be pushed by water. On a server
+# whose economy runs on spawner grinders this is an enormous saving. It also
+# visibly breaks any farm that relies on mobs walking somewhere, so it is off.
+nerf-spawner-mobs = false
+
+# Whether the mob cap is counted per player instead of once for the whole
+# world. PER WORLD.
+#
+# Counted per world, one player standing in a huge farm fills the cap and
+# everybody else stops seeing mobs -- the classic complaint that "there are no
+# monsters in my cave". Counted per player, everyone gets their own budget,
+# which is fairer and costs more, because the total number of live mobs then
+# scales with the player count instead of being fixed.
+per-player-mob-spawns = true
+
+# ----------------------------------------------------------------------------
+#  Mob caps, per spawning category.
+#
+#  The number is a per-player budget when per-player-mob-spawns is on, and a
+#  whole-world budget when it is off. Once a category is at its cap the server
+#  stops trying to spawn it, so these are both the memory budget and the CPU
+#  budget for mobs.
+#
+#  UNIFIED (map section 3.4). This decision was split between spawn-limits.* in
+#  bukkit.yml (server-wide, seven keys built from the spawn categories) and
+#  entities.spawning.spawn-limits in paper-world (per world), where the paper
+#  value won whenever it was >= 0 and -1 meant "defer to bukkit". That -1 was a
+#  sentinel, not a number, and it is gone: these are the values, and a world
+#  that wants different ones sets them in worlds.toml. All PER WORLD.
+#
+#  The defaults below are bukkit.yml's, because that is what the server
+#  actually used while paper's side sat at its -1 default.
+# ----------------------------------------------------------------------------
+[performance.spawning.spawn-limits]
+monsters = 70
+animals = 10
+water-animals = 5
+water-ambient = 20
+water-underground-creature = 5
+axolotls = 5
+ambient = 15
+
+# ----------------------------------------------------------------------------
+#  How often, in ticks, each category is offered a chance to spawn.
+#
+#  1 means every tick. Raising a number does not change the cap, only how
+#  quickly the world refills toward it: animals at 400 are attempted once every
+#  twenty seconds, which is why a cleared field repopulates slowly while a
+#  cleared cave refills at once.
+#
+#  Raising these is a cheap saving when a server is spending real time in spawn
+#  attempts that mostly fail -- a full monster cap costs a scan every single
+#  tick to discover it is still full.
+#
+#  UNIFIED (map section 3.4), the same story as the caps above: ticks-per.*-
+#  spawns in bukkit.yml (server-wide) against ticks-per-spawn in paper-world
+#  (per world, -1 meaning defer). One key each now, defaults taken from
+#  bukkit.yml. All PER WORLD.
+# ----------------------------------------------------------------------------
+[performance.spawning.ticks-per-spawn]
+monsters = 1
+animals = 400
+water-animals = 1
+water-ambient = 1
+water-underground-creature = 1
+axolotls = 1
+ambient = 1
+
+# ----------------------------------------------------------------------------
+#  Despawn distances, in blocks, per category.
+#
+#  Two distances each. Past "hard" a mob is removed immediately. Past "soft" it
+#  is removed at random, more often the further out it is; inside "soft" it is
+#  never removed for distance. Together they are what stops the world filling
+#  with mobs a player walked away from.
+#
+#  Pulling these in is the most effective mob-count reduction there is, because
+#  it acts on mobs that already exist rather than on the rate at which new ones
+#  appear. The cost is visible: a mob a player is chasing can vanish.
+#
+#  The category names are Minecraft's own, which is why they do not line up
+#  exactly with the bukkit names used by the caps above. All PER WORLD.
+# ----------------------------------------------------------------------------
+[performance.spawning.despawn-ranges]
+
+# The shape the distances describe. "ELLIPSOID" measures true distance, so the
+# region is a squashed sphere; "CUBOID" measures each axis separately, which
+# keeps mobs alive further out diagonally and matches how some older builds
+# were tuned.
+shape = "ELLIPSOID"
+
+monster-hard = 128
+monster-soft = 32
+creature-hard = 128
+creature-soft = 32
+ambient-hard = 128
+ambient-soft = 32
+axolotls-hard = 128
+axolotls-soft = 32
+underground-water-creature-hard = 128
+underground-water-creature-soft = 32
+water-creature-hard = 128
+water-creature-soft = 32
+water-ambient-hard = 64
+water-ambient-soft = 32
+misc-hard = 128
+misc-soft = 32
+
+# ----------------------------------------------------------------------------
+#  Ticking budgets
+# ----------------------------------------------------------------------------
+[performance.ticking]
+
+# The most milliseconds one tick may spend on entities, and on block entities,
+# before the rest are deferred to the next tick. Both PER WORLD.
+#
+# These are budgets, not deadlines: nothing is killed and nothing is logged,
+# the leftovers simply wait their turn. The visible effect of a budget being
+# hit is that hoppers and mobs run at a fraction of their normal speed while
+# the server is overloaded, instead of the whole tick running long.
+#
+# RENAMED, deliberately (map section 3.15). In the old files these were
+# max-tick-time.entity and max-tick-time.tile in spigot.yml, and there was also
+# a plain max-tick-time in server.properties. The names are nearly identical
+# and the meanings are unrelated: that other one is the watchdog's patience --
+# how long a single frozen tick may last before the watchdog decides the server
+# is dead and kills the process -- and it belongs with the other watchdog
+# settings, in server.toml under [server.watchdog]. Keeping near-identical
+# names would guarantee that somebody eventually edits the wrong one and either
+# disables their crash detection or starves their hoppers. So the two here say
+# budget and the watchdog one does not. The rename is the point, not decoration.
+entity-budget-millis = 50
+tile-entity-budget-millis = 50
+
+# ----------------------------------------------------------------------------
+#  Regions -- Folia's threading
+# ----------------------------------------------------------------------------
+[performance.regions]
+
+# How many threads tick regions.
+#
+# This is the setting that makes Folia what it is. The world is cut into
+# independent regions and each is ticked on whichever thread is free, so unlike
+# a vanilla or Paper server, adding cores adds capacity. -1 lets the server
+# size the pool from the machine it is running on, which is almost always
+# right; give a number only to leave room for something else on the same box.
+threads = -1
+
+# The size of a region, as a power of two in chunks: 4 means 16x16 chunks.
+#
+# Smaller regions split more finely, so more threads can be busy at once, but
+# every player crossing a boundary costs a merge or a split and boundaries come
+# up more often. Larger regions are cheaper to maintain and coarser to
+# parallelise. Change this only with a reason and a benchmark; the default is
+# what Folia is tuned and tested against.
+grid-exponent = 4
+
+# How the scheduler picks which region to tick next. "EDF" is earliest deadline
+# first, which keeps every region close to its own twenty ticks per second by
+# always serving whichever is nearest to falling behind.
+scheduler = "EDF"
