@@ -1,6 +1,17 @@
 --- a/paper-server/build.gradle.kts
 +++ b/paper-server/build.gradle.kts
-@@ -20,8 +_,21 @@
+@@ -13,6 +_,10 @@
+ 
+ val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
+ 
++base {
++    archivesName = "legacyfolia"
++}
++
+ dependencies {
+     mache("io.papermc:mache:26.2+build.1")
+     paperclip("io.papermc:paperclip:3.0.4")
+@@ -20,8 +_,26 @@
  
  paperweight {
      minecraftVersion = providers.gradleProperty("mcVersion")
@@ -17,6 +28,11 @@
 +    }
 +
 +    activeFork = fork
++
++    // The jar is named after the project, not after the fork it is registered as: the fork name
++    // is what paperweight calls the patch set, and renaming that would move every generated
++    // patch. This only changes what the three outputs are called.
++    bundlerJarName = "legacyfolia"
 +
 +
      updatingMinecraft {
@@ -94,7 +110,7 @@
  
  fill {
 -    project("paper")
-+    project("folia")
++    project("legacyfolia")
      versionFamily(paperweight.minecraftVersion.map { it.split(".", "-").takeWhile { part -> part.toIntOrNull() != null }.take(2).joinToString(".") })
      version(paperweight.minecraftVersion)
  
