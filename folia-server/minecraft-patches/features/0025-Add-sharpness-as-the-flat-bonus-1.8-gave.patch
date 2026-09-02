@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:01:11 -0500
+Subject: [PATCH] Add sharpness as the flat bonus 1.8 gave
+
+Sharpness V was a straight +6.25 there; the modern enchantment gives half a
+point per level plus half, so 3.0. The position is already right - every caller
+keeps the enchantment out of the term the critical multiplier touches, as 1.8
+did - so only the figure needed changing.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index e41ba5968dccdcd16e26ae8649a05650a6c358f3..317799a595bd6071f9d397cc4ceb654423eb19ba 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -3399,6 +3399,14 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+ 
+     @Override
+     protected float getEnchantedDamage(final Entity entity, final float dmg, final DamageSource damageSource) {
++        // LegacyFolia start - 1.8's sharpness is a flat 1.25 per level
++        // Every caller of this already keeps the bonus out of the term the critical multiplier
++        // touches, which is where 1.8 wanted it, so only the figure itself has to change.
++        final net.minecraft.world.item.ItemStack legacyWeapon = this.getWeaponItem();
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacySharpness(legacyWeapon)) {
++            return dmg + io.github.adrielorihuela.legacyfolia.combat.Combat.sharpnessBonus(legacyWeapon);
++        }
++        // LegacyFolia end - 1.8's sharpness is a flat 1.25 per level
+         return EnchantmentHelper.modifyDamage(this.level(), this.getWeaponItem(), entity, damageSource, dmg);
+     }
+ 
