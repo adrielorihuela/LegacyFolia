@@ -48,12 +48,18 @@
 jump-walk-exhaustion = 0.05
 jump-sprint-exhaustion = 0.2
 
-# Landing a hit on something.
+# Landing a hit on something, and regenerating half a heart from food. The
+# second is by far the largest single cost, and the reason it is healing after
+# a fight rather than the fight itself that empties the bar.
+#
+# These two overlap with combat.toml. The 1.8 combat module carries its own
+# attack-exhaustion and regen-exhaustion, because 1.8 charged 0.3 and 3.0 where
+# modern Minecraft charges 0.1 and 6.0, and restoring one without the other
+# gives a fight that feels like neither version. So while [combat] enabled is
+# true, that file decides these two costs and this pair is not consulted; turn
+# the module off and these apply. Everything else in this section applies
+# either way.
 combat-exhaustion = 0.1
-
-# Regenerating half a heart from food. By far the largest single cost, and the
-# reason it is healing after a fight rather than the fight itself that empties
-# the bar.
 regen-exhaustion = 6.0
 
 # Cost per block moved, by how you are moving. Swimming and sprinting have

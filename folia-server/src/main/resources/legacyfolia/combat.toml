@@ -143,6 +143,12 @@ saturated-fast-regen = false
 # The 1.8 exhaustion costs. Regenerating a heart is expensive, which is what
 # ties healing to the food bar; a sprinting jump costs four times a standing
 # one, which is why bunny-hopping across a map empties it.
+#
+# These two shadow gameplay.hunger.combat-exhaustion and
+# gameplay.hunger.regen-exhaustion, which are the modern values, 0.1 and 6.0.
+# While enabled above is true these win, because the point of the module is the
+# 1.8 numbers; with it off, the pair in gameplay.toml applies. Every other
+# hunger cost is decided in gameplay.toml whatever this file says.
 attack-exhaustion = 0.3
 regen-exhaustion = 3.0
 sprint-jump-exhaustion = 0.8
