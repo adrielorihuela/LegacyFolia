@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 07:58:08 -0500
+Subject: [PATCH] Reduce damage through 1.8's armour and protection
+
+1.8's armour curve is flat and linear and does not care how big the hit was,
+where the modern one lets a large hit punch through armour a small one cannot.
+Protection was rolled afresh on every hit rather than being the deterministic
+figure it is now, so the same enchanted set takes off anywhere between about
+half and four fifths. Both differences are large enough that leaving the modern
+formulas in place would undo most of what the rest of the module restores.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index eacb9df6491ede267e80c194806375edf9f7cb9d..87d80a1ff3ceab612e9f4f4b77d1bdaaef969e95 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -2387,6 +2387,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     protected float getDamageAfterArmorAbsorb(final DamageSource damageSource, float damage) {
+         if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
+             // this.hurtArmor(damageSource, damage); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for damage handling
++            // LegacyFolia start - 1.8's armour curve ignores the size of the hit
++            if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyArmor()) {
++                return io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.afterArmor(
++                    damage, this.getArmorValue(),
++                    io.github.adrielorihuela.legacyfolia.combat.Combat.config());
++            }
++            // LegacyFolia end - 1.8's armour curve ignores the size of the hit
+             damage = CombatRules.getDamageAfterAbsorb(
+                 this, damage, damageSource, this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
+             );
+@@ -2425,6 +2432,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             return damage;
+         }
+ 
++        // LegacyFolia start - 1.8 rolled protection afresh on every hit
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProtection()) {
++            final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombatConfig =
++                io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++            return io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.afterProtection(damage,
++                io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.rollProtection(
++                    io.github.adrielorihuela.legacyfolia.combat.Combat.protectionPoints(this),
++                    this.random::nextInt, legacyCombatConfig), legacyCombatConfig);
++        }
++        // LegacyFolia end - 1.8 rolled protection afresh on every hit
++
+         float enchantmentArmor;
+         if (this.level() instanceof ServerLevel serverLevel) {
+             enchantmentArmor = EnchantmentHelper.getDamageProtection(serverLevel, this, damageSource);
