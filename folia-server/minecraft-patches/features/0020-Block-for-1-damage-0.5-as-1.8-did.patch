@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 07:54:47 -0500
+Subject: [PATCH] Block for (1 + damage) * 0.5 as 1.8 did
+
+Blocking cannot be expressed as a multiplier: 1.8's formula depends on the
+damage, so a hit of seven blocks down to four rather than three and a half,
+and a hit of one is not reduced at all. Treating it as a plain halving made
+blocking look stronger than it was against big hits and weaker against small
+ones.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index a1c18b5af8ce896883ffd8cce5868ce2079d082d..eacb9df6491ede267e80c194806375edf9f7cb9d 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -1491,12 +1491,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             damage = Float.MAX_VALUE;
+         }
+ 
+-        // LegacyFolia start - a raised sword halves the hit, as in 1.8
++        // LegacyFolia start - a raised sword takes (1 + damage) * 0.5, as in 1.8
+         // Applied here rather than through the BLOCKS_ATTACKS component, because swords do not
+         // carry one and giving them a synthetic one would change what every other part of the
+-        // game believes a sword is.
+-        damage *= io.github.adrielorihuela.legacyfolia.combat.Combat.blockingMultiplier(this);
+-        // LegacyFolia end - a raised sword halves the hit
++        // game believes a sword is. This sits before the armour step because 1.8 ran blocking
++        // first, so the two compound.
++        damage = io.github.adrielorihuela.legacyfolia.combat.Combat.afterBlocking(this, damage);
++        // LegacyFolia end - a raised sword takes (1 + damage) * 0.5
+ 
+         EntityDamageEvent event; // CraftBukkit // Paper - move this into the actual invuln check....
+         boolean tookFullDamage = true;
