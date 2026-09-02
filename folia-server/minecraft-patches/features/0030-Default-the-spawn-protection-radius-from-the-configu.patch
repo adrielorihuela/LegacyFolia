@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:11:22 -0500
+Subject: [PATCH] Default the spawn protection radius from the configuration
+
+Vanilla's 16-block square around spawn is something to work around on any
+server with a claim or region plugin, and the usual first symptom is a new
+player unable to break the block in front of them. The setting has to be read
+before server.properties is built, so the configuration load moves up to sit
+before it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 1c987f400681de356bd239f410b3bffc408b2a7b..b0f52381f28adfebad990b2258610366343d679f 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -120,6 +120,14 @@ public class Main {
+             Thread.ofPlatform().daemon().name("DataFixers init thread").start(DataFixers::getDataFixer);
+             // Paper end - Perf: Init DataConverter asynchronously
+             Util.startTimerHackThread();
++            // LegacyFolia start - unified configuration
++            // Loaded here, before anything reads a setting: it overrides the settings inherited
++            // from Bukkit, Spigot and Paper. Loaded exactly once, because settings that migrate
++            // into it on first use need to know whether this run is the one that created it.
++            io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
++            io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
++            io.github.adrielorihuela.legacyfolia.combat.Combat.reload();
++            // LegacyFolia end - unified configuration
+             Path settingsFile = Paths.get("server.properties");
+             DedicatedServerSettings settings = new DedicatedServerSettings(options); // CraftBukkit - CLI argument support
+             settings.forceSave();
+@@ -130,14 +138,6 @@ public class Main {
+             }
+             // Paper end
+             RegionFileVersion.configure(settings.getProperties().regionFileComression);
+-            // LegacyFolia start - unified configuration
+-            // Loaded here, before anything reads a setting: it overrides the settings inherited
+-            // from Bukkit, Spigot and Paper. Loaded exactly once, because settings that migrate
+-            // into it on first use need to know whether this run is the one that created it.
+-            io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
+-            io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
+-            io.github.adrielorihuela.legacyfolia.combat.Combat.reload();
+-            // LegacyFolia end - unified configuration
+             Path eulaFile = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolvePath("eula.txt"); // LegacyFolia - the EULA is configuration too
+             Eula eula = new Eula(eulaFile);
+             // Paper start - load config files early for access below if needed
+diff --git a/net/minecraft/server/dedicated/DedicatedServerProperties.java b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+index 639a5400499266f83cf8b7c1251483cd8fb699a4..9c8d3fea753642c56388fa2a4f02c571c9f15344 100644
+--- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
++++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -87,7 +87,7 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+     public final String rconPassword = this.get("rcon.password", "");
+     public final boolean hardcore = this.get("hardcore", false);
+     public final boolean useNativeTransport = this.get("use-native-transport", true);
+-    public final Settings<DedicatedServerProperties>.MutableValue<Integer> spawnProtection = this.getMutable("spawn-protection", 16);
++    public final Settings<DedicatedServerProperties>.MutableValue<Integer> spawnProtection = this.getMutable("spawn-protection", io.github.adrielorihuela.legacyfolia.world.SpawnProtection.radius()); // LegacyFolia - default the radius from the unified configuration
+     public final Settings<DedicatedServerProperties>.MutableValue<LevelBasedPermissionSet> opPermissions = this.getMutable(
+         "op-permission-level", DedicatedServerProperties::deserializePermission, DedicatedServerProperties::serializePermission, LevelBasedPermissionSet.OWNER
+     );
