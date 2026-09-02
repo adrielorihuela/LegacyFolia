@@ -132,12 +132,18 @@ region-file-cache-size = 256
 # compression and decompression, which shows up as smoother chunk loading on a
 # CPU-bound server; "none" writes raw and is mostly useful for benchmarking.
 #
-# READ BEFORE THE REST OF THE CONFIGURATION. This one key is not like its
-# neighbours: RegionFileVersion.configure consumes it in Main, before the world
-# folders are opened and therefore before any of these files have been parsed,
+# READ BEFORE ANY WORLD EXISTS, AND NOT YET FROM THIS FILE. Two things about
+# this key are unlike its neighbours.
+#
+# It is consumed by RegionFileVersion.configure in Main, immediately after
+# server.properties is parsed and long before the first chunk is touched,
 # because a region file cannot be read at all until the server knows how it was
-# written. It cannot be changed at runtime and a reload will not move it, so a
-# change here takes effect on the next restart and not before.
+# written. Nothing re-reads it afterwards, so a change takes effect on the next
+# restart and never on a reload.
+#
+# And it still comes from server.properties. These files are loaded before that
+# point, so nothing stops this key being wired up -- but until it is, editing
+# it here does nothing. The value below is vanilla's, so today the two agree.
 #
 # It is here, among the chunk settings, rather than with the world storage
 # settings: what it costs is chunk I/O and disk, which is what the region file
