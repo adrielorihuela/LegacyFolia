@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:07:01 -0500
+Subject: [PATCH] Send every player to the world spawn when asked to
+
+A lobby wants arrivals in one place, and the usual way to get that is a plugin
+that teleports the player after they have already loaded in somewhere else.
+Ignoring the saved position at the point it is read avoids the visible jump.
+The position is only ignored, never removed, so turning the setting off puts
+everybody back where they logged out.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/network/config/PrepareSpawnTask.java b/net/minecraft/server/network/config/PrepareSpawnTask.java
+index 9fad06eda81b4c2c1889a9cfa7a6948e7ee01862..b9df82e1ed6c646e5af76a019d643eb6aa44a9a9 100644
+--- a/net/minecraft/server/network/config/PrepareSpawnTask.java
++++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
+@@ -83,8 +83,14 @@ public class PrepareSpawnTask implements ConfigurationTask {
+                     invalidPlayerWorld[0] = true;
+                 }
+             }
+-            ServerPlayer.SavedPosition loadedPosition = loadedData.<ServerPlayer.SavedPosition>flatMap(tag -> tag.read(ServerPlayer.SavedPosition.MAP_CODEC))
++            // LegacyFolia start - a lobby puts everybody at the world spawn
++            // The saved position is ignored rather than removed: it stays in the player's data, so
++            // turning the setting off again puts everybody back where they logged out.
++            ServerPlayer.SavedPosition loadedPosition = io.github.adrielorihuela.legacyfolia.world.Lobby.forceWorldSpawn()
++                ? ServerPlayer.SavedPosition.EMPTY
++                : loadedData.<ServerPlayer.SavedPosition>flatMap(tag -> tag.read(ServerPlayer.SavedPosition.MAP_CODEC))
+                 .orElse(ServerPlayer.SavedPosition.EMPTY);
++            // LegacyFolia end - a lobby puts everybody at the world spawn
+             LevelData.RespawnData respawnData = this.server.getWorldData().overworldData().getRespawnData();
+             if (resourceKey == null) { // only run the vanilla logic if we haven't found a world from the bukkit data
+                 // Below is the vanilla way of getting the dimension, this is for migration from vanilla servers
