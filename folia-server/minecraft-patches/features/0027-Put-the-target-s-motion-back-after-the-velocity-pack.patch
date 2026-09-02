@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:06:14 -0500
+Subject: [PATCH] Put the target's motion back after the velocity packet
+
+1.8 saved the target's motion before a hit, sent the client a velocity packet,
+and then wrote the saved motion straight back onto the server's own copy. The
+two disagree on purpose, and that deliberate desync is a good part of why 1.8
+knockback feels light where modern knockback feels heavy.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index b3df0d452c9f8ead116a42fa294096df91d51991..3b5d2be6e55d14982b67798a37d5ec892b30b0f0 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1091,6 +1091,14 @@ public abstract class Player extends Avatar implements ContainerUser {
+                             entity, this.getKnockback(entity, damageSource) + sprintBonus, oldMovement, damageSource, totalDamage, true
+                         );
+                         // LegacyFolia end - configurable sprint knockback
++                        // LegacyFolia start - 1.8 put the target's own motion back after the packet
++                        // The client has already been told to move; writing the pre-hit motion back
++                        // onto the server's copy leaves the two disagreeing on purpose, which is
++                        // what 1.8 knockback felt like.
++                        if (io.github.adrielorihuela.legacyfolia.combat.Combat.restoresVelocity()) {
++                            entity.setDeltaMovement(oldMovement);
++                        }
++                        // LegacyFolia end - 1.8 put the target's own motion back after the packet
+                         if (sweepAttack) {
+                             this.doSweepAttack(entity, baseDamage, damageSource, attackStrengthScale);
+                         }
