@@ -13,8 +13,8 @@
 #
 #  This file holds the rules of the game itself: how fast a player gets
 #  hungry, how fast wheat grows, what mobs do, what despawns and when. It is
-#  separate from world.toml, which answers a different question — which worlds
-#  exist and how they are generated — and from performance.toml, which is
+#  separate from world.toml, which answers a different question - which worlds
+#  exist and how they are generated - and from performance.toml, which is
 #  about what the server spends its time on rather than about what happens in
 #  the game.
 #
@@ -25,10 +25,11 @@
 #  Almost everything here is decided per world. A value set in this file is
 #  what every world uses; a world that wants its own answer overrides it in
 #  worlds.toml, and nothing else has to change. See that file for how the two
-#  fit together.
+#  fit together. Keys that are NOT per world are marked as server-wide where
+#  they appear, and there are only a handful of them.
 
 # ----------------------------------------------------------------------------
-#  Hunger — what each action costs
+#  Hunger - what each action costs
 # ----------------------------------------------------------------------------
 #  Every one of these is an exhaustion cost. Exhaustion is the hidden counter
 #  behind the food bar: it fills up as a player acts, and each time it fills
@@ -37,14 +38,38 @@
 #
 #  These are what a hardcore server tightens and what a build server usually
 #  turns off entirely.
+#
+#  Every key in this section is per world.
 [gameplay.hunger]
 
+# Jumping. A standing jump and a sprinting jump are charged separately, which
+# is why crossing a map by bunny-hopping empties the bar so much faster than
+# walking the same distance.
+jump-walk-exhaustion = 0.05
+jump-sprint-exhaustion = 0.2
+
+# Landing a hit on something.
+combat-exhaustion = 0.1
+
+# Regenerating half a heart from food. By far the largest single cost, and the
+# reason it is healing after a fight rather than the fight itself that empties
+# the bar.
+regen-exhaustion = 6.0
+
+# Cost per block moved, by how you are moving. Swimming and sprinting have
+# their own rate; other-multiplier covers walking, crawling, climbing and
+# everything else that is neither, and is 0 in vanilla - which is why ordinary
+# walking costs nothing at all until you jump.
+swim-multiplier = 0.01
+sprint-multiplier = 0.1
+other-multiplier = 0.0
+
 # ----------------------------------------------------------------------------
-#  Growth — how fast things that grow, grow
+#  Growth - how fast things that grow, grow
 # ----------------------------------------------------------------------------
 #  Each crop has its own rate, given as a percentage of the vanilla chance to
 #  advance a stage on any given random tick. 100 is vanilla, 200 is twice as
-#  fast, 0 stops that crop growing at all.
+#  fast.
 #
 #  Rates are per crop rather than global because they do not have the same
 #  starting point: sugar cane and bamboo already grow far faster than wheat,
@@ -53,34 +78,296 @@
 #
 #  The height limits for the plants that grow upwards live here too, since
 #  they answer the same question about the same blocks.
+#
+#  Every key in this section is per world.
 [gameplay.growth]
 
+# One percentage per crop, all 100 by default. A value of 0 is rejected and
+# put back to 100 with a warning in the log - to stop a crop growing entirely,
+# use the randomTickSpeed gamerule or a plugin instead.
+cactus-modifier = 100
+cane-modifier = 100
+melon-modifier = 100
+mushroom-modifier = 100
+pumpkin-modifier = 100
+sapling-modifier = 100
+beetroot-modifier = 100
+carrot-modifier = 100
+potato-modifier = 100
+torchflower-modifier = 100
+wheat-modifier = 100
+netherwart-modifier = 100
+vine-modifier = 100
+cocoa-modifier = 100
+bamboo-modifier = 100
+sweetberry-modifier = 100
+kelp-modifier = 100
+twistingvines-modifier = 100
+weepingvines-modifier = 100
+cavevines-modifier = 100
+glowberry-modifier = 100
+pitcherplant-modifier = 100
+
+# How tall the plants that stack upwards may get, counted in blocks above the
+# one they are planted on. Cactus and sugar cane both stop at 3 in vanilla.
+max-growth-height-cactus = 3
+max-growth-height-reeds = 3
+
+# Bamboo is given a range rather than a number: each stalk picks its own
+# maximum somewhere between the two when it starts growing, so a grove is not
+# flat on top. Setting them equal makes every stalk the same height.
+max-growth-height-bamboo-max = 16
+max-growth-height-bamboo-min = 11
+
 # ----------------------------------------------------------------------------
-#  Mobs — what they do once they exist
+#  Mobs - what they do once they exist
 # ----------------------------------------------------------------------------
-#  Behaviour only: whether zombies break doors, whether villagers can be
-#  cured, whether pigmen come through portals, which effects mobs may carry.
+#  Behaviour only: whether zombies break doors, whether pigmen come through
+#  portals, which effects mobs may carry.
 #
 #  How many mobs there are and how often the server looks for room to put more
 #  is a cost question, not a rules question, and lives in performance.toml
 #  under spawning.
+#
+#  Every key in this section is per world.
 [gameplay.mobs]
 
+# Whether zombies and the mobs like them hunt what they hunt. Turning the
+# first off is what makes a village survivable without walls; the second stops
+# turtle farms being destroyed by anything that wanders past.
+zombie-aggressive-towards-villager = true
+zombies-target-turtle-eggs = true
+
+# Zombified piglins spawning from a lit nether portal in the overworld. This
+# is the whole basis of gold farms; turning it off ends them.
+enable-zombie-pigmen-portal-spawns = true
+
+# Pigmen that arrived through a portal give no experience and drop no loot.
+# Stops those farms paying out without removing the spawns themselves, which
+# is the gentler of the two options above.
+nerf-pigmen-from-nether-portals = false
+
+# Baby zombies move at this fraction of the extra speed vanilla gives them.
+# 0.5 is vanilla; lowering it is the usual answer to how disproportionately
+# dangerous they are.
+baby-zombie-movement-modifier = 0.5
+
+# The chance a villager killed by a zombie rises again as a zombie villager
+# rather than simply dying. Left at "default", vanilla decides by difficulty:
+# never on easy, half the time on normal, always on hard. A number here
+# overrides that with one chance for every difficulty.
+zombie-villager-infection-chance = "default"
+
+# Mobs from a spawner are deliberately dulled - they do not path and give no
+# drops - which also stops them jumping. This lets them jump anyway, which
+# some farm designs need in order to move them along.
+spawner-nerfed-mobs-should-jump = false
+
+# Zombies and skeletons picking up any item they walk over, rather than only
+# under the conditions vanilla allows. Useful for farms that arm their mobs,
+# and a nuisance everywhere else.
+mobs-can-always-pick-up-loot-zombies = false
+mobs-can-always-pick-up-loot-skeletons = false
+
+# A cat sitting on a chest stops it opening. That is vanilla; disabling the
+# check removes the rule and, incidentally, the entity lookup done on every
+# chest opened.
+disable-chest-cat-detection = false
+
+# Piglins are angered by opening a chest, barrel or shulker box near them.
+piglins-guard-chests = true
+
+# Spiders climbing the world border as though it were a wall.
+allow-spider-world-border-climbing = true
+
+# A charged creeper leaves a lingering cloud of its effect where it exploded.
+# Turning this off removes the cloud, not the explosion.
+disable-creeper-lingering-effect = false
+
+# The ender dragon. The first makes every death drop an egg rather than only
+# the first; the second removes the dragon from a world that has one, which is
+# what you want after importing an end that should not have a boss in it.
+ender-dragons-death-always-places-dragon-egg = false
+should-remove-dragon = false
+
+# Phantoms. Insomnia begins after this many ticks without sleeping - 72000 is
+# three in-game days - and from then on the server tries to spawn one every so
+# often, somewhere between the two bounds in seconds.
+#
+# Restricting them to insomniacs and sparing creative players is Paper's
+# doing, not vanilla's, and both are on by default because the vanilla rule
+# punishes builders who simply never sleep.
+phantoms-do-not-spawn-on-creative-players = true
+phantoms-only-attack-insomniacs = true
+player-insomnia-start-ticks = 72000
+phantoms-spawn-attempt-min-seconds = 60
+phantoms-spawn-attempt-max-seconds = 119
+
+# Pillager patrols: whether they happen at all, the chance each attempt
+# succeeds, how many ticks between attempts, and the first day one may appear
+# on. Setting either per-player turns a single world-wide clock into one clock
+# per player, which is what a server with staggered join dates wants so that a
+# new player is not raided on their first evening.
+pillager-patrols-disable = false
+pillager-patrols-spawn-chance = 0.2
+pillager-patrols-spawn-delay-per-player = false
+pillager-patrols-spawn-delay-ticks = 12000
+pillager-patrols-start-per-player = false
+pillager-patrols-start-day = 5
+
+# A parrot on your shoulder falls off as soon as you move. Turning that off is
+# the most requested quality-of-life change in this section.
+parrots-are-unaffected-by-player-movement = false
+
+# Critical hits made by players. Off leaves them alone; on removes the
+# mechanic, which a server running its own combat rules may want so that
+# damage is decided in one place. Note that combat.toml has its own,
+# separate 1.8 critical hit rules.
+disable-player-crits = false
+
+# After a bee fails to leave its hive - the exit is blocked, or it is night -
+# wait a while before trying again rather than retrying every tick.
+cooldown-failed-beehive-releases = true
+
+# When a mob cannot reach the point of interest it is walking to, wait this
+# many ticks before looking for another one. A village full of stuck villagers
+# is the usual reason to raise it. "disabled" retries every tick.
+stuck-entity-poi-retry-delay = 200
+
+# Experience orbs near each other merge until they reach this value, so a
+# large drop becomes a few big orbs instead of hundreds of small ones. -1
+# means no ceiling, that is, merge as far as the game allows.
+experience-merge-max-value = -1
+
+# Merge dropped items only with items at the same height, so an item resting
+# on a slab does not visually snap down to one on the floor below it.
+only-merge-items-horizontally = false
+
+# Which mobs are immune to which effects. Spiders being immune to poison and
+# withers to wither is vanilla; all three are here so that a server that would
+# rather poison were a real answer to a spider farm can take the immunity
+# away.
+spiders-immune-to-poison-effect = true
+immune-to-wither-effect-wither = true
+immune-to-wither-effect-wither-skeleton = true
+
 # ----------------------------------------------------------------------------
-#  Environment — weather, water, fire, ice and the passage of time
+#  Environment - weather, water, fire, ice and the passage of time
 # ----------------------------------------------------------------------------
 #  The world acting on itself, with no player involved: how fast fire spreads,
 #  whether ice melts under a torch, how often lightning strikes, how long a
-#  fish takes to bite, how quickly nether portals cool down.
+#  fish takes to bite, how quickly nether portals are searched for.
 #
 #  Several of these are the settings people reach for when a server feels
 #  either too punishing or too static, and they are the ones most likely to
-#  differ between the overworld and the Nether — which is exactly what the
+#  differ between the overworld and the Nether - which is exactly what the
 #  per-world override in worlds.toml is for.
+#
+#  Every key in this section is per world.
 [gameplay.environment]
 
+# Weather. Disabling thunder stops thunderstorms in this world entirely;
+# thunder-chance is the one-in-N chance per tick of a strike during one, so a
+# larger number means fewer strikes and 100000 is vanilla.
+disable-thunder = false
+thunder-chance = 100000
+
+# Ice forming and snow falling. Off is vanilla; on freezes this world's
+# surface as it stands, which is the usual answer for a build server tired of
+# snow layers appearing on its roofs.
+disable-ice-and-snow = false
+
+# Frosted ice - the trail left behind by Frost Walker - melting. The delay is
+# in ticks and each block picks its own value inside the range, so a path does
+# not vanish all at once.
+frosted-ice-enabled = true
+frosted-ice-delay-min = 20
+frosted-ice-delay-max = 40
+
+# Explosions. The optimisation trades a little accuracy in the ray casting for
+# speed. Disabling knockback stops explosions moving players and entities at
+# all, which is what a server that wants creepers to hurt but not to launch
+# somebody off a bridge reaches for.
+optimize-explosions = false
+disable-explosion-knockback = false
+
+# One flat layer of bedrock rather than the vanilla ragged few. Only affects
+# chunks generated after the change, so an existing world will have a seam.
+generate-flat-bedrock = false
+
+# Falling out of the world. The damage is dealt per tick spent below the line,
+# and the line is this many blocks under the world's minimum build height - so
+# -64.0 in a world with a floor at -64 means damage starts at y = -128. Set
+# the amount to "disabled" for a void that does not hurt.
+void-damage-amount = 4.0
+void-damage-min-build-height-offset = -64.0
+
+# The Nether has no void beneath it, so its roof is the way out of the map.
+# Setting a height here damages anything above that level, which closes the
+# route without a ceiling of barrier blocks. "disabled" is vanilla.
+nether-ceiling-void-damage-height = "disabled"
+
+# How many ticks pass between a fire block's attempts to spread. Raising it
+# slows fire down without turning it off, which is what the doFireTick
+# gamerule does rather more bluntly.
+fire-tick-delay = 30
+
+# How quickly water placed over lava flows, in ticks. 5 is vanilla; lowering
+# it speeds up the stone and cobblestone generators built on that interaction.
+water-over-lava-flow-speed = 5
+
+# Nether portals. The search radius is how far from the arrival point the game
+# looks for an existing portal before building a new one; the create radius is
+# how far it may look for room to build.
+#
+# Vanilla scales the search by the dimension ratio, so 128 blocks in the
+# overworld is 16 blocks in the Nether. Turning that scaling off applies the
+# same number in both, which is rarely what you want but is what older servers
+# did, and portal linking behaves noticeably differently as a result.
+portal-search-radius = 128
+portal-create-radius = 16
+portal-search-vanilla-dimension-scaling = true
+
+# How many fluid and block updates may be queued for one tick before the rest
+# are dropped. Reaching either means something has gone badly wrong - a
+# runaway water update, a redstone loop - and the cap is what stops it taking
+# the server down with it.
+max-fluid-ticks = 65536
+max-block-ticks = 65536
+
+# Whether /locate and treasure maps may point past the world border. Off keeps
+# every answer inside it, which matters on a bordered server where a map
+# leading outside is a map leading nowhere.
+locate-structures-outside-world-border = false
+
+# Treasure maps. Generating one scans the world for an undiscovered structure,
+# which on a large map is expensive and, once there is none left within reach,
+# very expensive indeed; turning them off makes the trade or the loot slot
+# come up empty instead. The find-already-discovered pair lets a map point at
+# a structure somebody has already found rather than searching on for a fresh
+# one, which is the cheaper compromise.
+treasure-maps-enabled = true
+treasure-maps-find-already-discovered-villager-trade = false
+treasure-maps-find-already-discovered-loot-tables = "default"
+
+# How long a fish takes to bite, in ticks, before the lure enchantment is
+# applied. 100 to 600 is vanilla, that is, five to thirty seconds.
+fishing-time-range-minimum = 100
+fishing-time-range-maximum = 600
+
+# How often, in ticks, the server runs each of these checks on a block that
+# asked for one. 1 means every tick, which is vanilla; raising a number
+# spreads the work out and makes the thing it governs happen correspondingly
+# more slowly. Farmland wetting and drying is the pair worth raising first on
+# a server with large farms.
+tick-rates-grass-spread = 1
+tick-rates-container-update = 1
+tick-rates-mob-spawner = 1
+tick-rates-wet-farmland = 1
+tick-rates-dry-farmland = 1
+
 # ----------------------------------------------------------------------------
-#  Items — what is dropped, what is picked up, and what disappears
+#  Items - what is dropped, what is picked up, and what disappears
 # ----------------------------------------------------------------------------
 #  Despawn timers for dropped items, arrows and tridents; how loot chests
 #  refill; how much a hopper moves and how often; how much TNT may prime in a
@@ -89,10 +376,93 @@
 #  The despawn rates are the ones to reach for first: they decide how long a
 #  player has to come back for what they died holding, and are the difference
 #  between a forgiving server and an unforgiving one.
+#
+#  Every key in this section is per world.
 [gameplay.items]
 
+# How long a dropped item lives, in ticks. 6000 is five minutes, and it is the
+# number to change if you want players to be able to walk back to a death pile
+# in a distant world. Arrows and tridents are counted separately; a trident
+# with no setting of its own follows the arrow rate.
+item-despawn-rate = 6000
+arrow-despawn-rate = 1200
+trident-despawn-rate = 1200
+
+# Arrows that no player is ever going to pick up - one fired by a skeleton, or
+# by a player in creative - can go sooner without anybody minding. Left at
+# "default" both follow the arrow rate above; a number here overrides it for
+# that case alone.
+non-player-arrow-despawn-rate = "default"
+creative-arrow-despawn-rate = "default"
+
+# How long an arrow stuck in a block stays immune to being destroyed, in
+# ticks. "disabled" restores the vanilla behaviour of never expiring.
+max-arrow-despawn-invulnerability = 200
+
+# A separate despawn time for named items. Turn it on and every entry below
+# uses its own rate instead of the world's; the entry that ships clears
+# cobblestone after fifteen seconds, which is what keeps a mining world from
+# silting up with it.
+alt-item-despawn-rate-enabled = false
+alt-item-despawn-rate-items = { "minecraft:cobblestone" = 300 }
+
+# Loot chests refilling. Off, a chest is looted once and stays empty forever,
+# which is vanilla. On, it fills again after a random wait between the two
+# bounds, up to max-refills times - -1 meaning without limit.
+#
+# The player restriction is separate, and it is what stops one player emptying
+# the same chest on a loop: with it on, that player still sees the chest as
+# looted after it has refilled for everybody else, either permanently or for
+# the time given. Resetting the seed on fill means the new contents are
+# genuinely new rather than the same roll over again.
+lootables-auto-replenish = false
+lootables-restrict-player-reloot = true
+lootables-restrict-player-reloot-time = "disabled"
+lootables-reset-seed-on-fill = true
+lootables-max-refills = -1
+lootables-refresh-min = "12h"
+lootables-refresh-max = "2d"
+
+# A shulker box broken by anything other than a player keeps its loot table
+# rather than spilling a generated roll on the floor, so the contents are
+# still rolled fresh when a player finally opens it.
+lootables-retain-unlooted-shulker-box-loot-table-on-non-player-break = true
+
+# Hoppers. Transfer is the delay in ticks between pushing items out, check the
+# delay between looking for items to pull in, and amount how many items move
+# each time. Raising the two delays is the cheapest way to cut the cost of a
+# large sorting system; raising the amount makes hoppers faster in a way
+# vanilla never allowed, so change that one knowingly.
+hopper-ticks-per-transfer = 8
+hopper-ticks-per-check = 1
+hopper-amount = 1
+
+# Whether a hopper may pull a chunk into memory to reach the container it
+# points at. Off is both vanilla and considerably cheaper.
+hopper-can-load-chunks = false
+
+# A hopper whose target is full stops trying instead of testing every tick.
+# Pure saving, with no visible change.
+hopper-cooldown-when-full = true
+
+# Fire InventoryMoveItemEvent for every hopper transfer. On a server with
+# plugins listening to it this is the single most expensive hopper setting;
+# disabling it makes those plugins stop seeing hopper movement at all, so
+# check what you have installed before touching it.
+hopper-disable-move-event = false
+
+# Let a hopper see through a solid block into the container above it. Vanilla
+# does not allow this, so enabling it is a behaviour change that existing
+# builds will notice.
+hopper-ignore-occluding-blocks = false
+
+# How many TNT entities may be primed in a single tick before the rest are
+# skipped. A cannon or a chain reaction is what reaches this; the cap is the
+# difference between a large explosion and a stalled region.
+max-tnt-per-tick = 100
+
 # ----------------------------------------------------------------------------
-#  Redstone — which implementation runs, and in what order
+#  Redstone - which implementation runs, and in what order
 # ----------------------------------------------------------------------------
 #  The choice of redstone engine, and the order block updates are applied in.
 #
@@ -103,8 +473,43 @@
 #  knob to try on a live server.
 [gameplay.redstone]
 
+# Which redstone engine runs. Per world.
+#
+#   vanilla           - what the game ships with, quirks and all
+#   alternate_current - a rewrite that is dramatically faster on large builds
+#                       and removes locationality
+#   eigencraft        - the older alternative, kept for compatibility
+#
+# Only alternate_current reads the update order below.
+redstone-implementation = "vanilla"
+
+# The order alternate_current visits neighbours in. Per world. One of
+# horizontal_first_outward, horizontal_first_inward, vertical_first_outward or
+# vertical_first_inward. It decides which of two wires updated in the same
+# tick wins, so a machine built against one order may not work under another.
+alternate-current-update-order = "horizontal_first_outward"
+
+# Block update suppression, four blocks at a time. These four are server-wide
+# rather than per world.
+#
+# Each of these blocks sends an update to its neighbours for reasons that
+# stopped mattering years ago - a noteblock tells the block below it, a
+# tripwire tells its hook - and machines have been built both on the update
+# and on its absence. Disabling one removes that update: a real saving in a
+# farm that has thousands of them, and the end of anything that was listening.
+disable-noteblock-updates = false
+disable-tripwire-updates = false
+disable-chorus-plant-updates = false
+disable-mushroom-block-updates = false
+
+# Recalculate mob pathfinding when a block nearby changes. Per world. On is
+# correct, and is what makes a mob notice the door you just placed; off is a
+# genuine saving in a world full of moving redstone, at the price of mobs
+# walking into walls until something else makes them path again.
+update-pathfinding-on-block-update = true
+
 # ----------------------------------------------------------------------------
-#  Exploits — what players are allowed to get away with
+#  Exploits - what players are allowed to get away with
 # ----------------------------------------------------------------------------
 #  Three separate things that all answer to the same question.
 #
@@ -121,8 +526,172 @@
 #  it is supported.
 [gameplay.exploits]
 
+# ---- Fixes. Per world. -----------------------------------------------------
+#
+# Each of these turns off a vanilla bug. They default to off because the bugs
+# are old enough that farms have been built on them; turn one on when you
+# would rather have the correct behaviour than the farm.
+
+# Items dropped against a wall merging with items on the other side of it.
+fix-items-merging-through-walls = false
+
+# An ender pearl thrown into an unloaded chunk. Vanilla loses track of it; the
+# fix stops the teleport being usable to reach ungenerated terrain.
+disable-unloaded-chunk-enderpearl-exploit = false
+
+# Primed TNT drifting on flowing water, which is precisely what lets a
+# water-based cannon aim.
+prevent-tnt-from-moving-in-water = false
+
+# Loot that rolls more items than a stack can hold is split across stacks
+# rather than being quietly cut down to one. On by default: this is the one
+# item in the group that is a straightforward correctness fix with no farm
+# standing behind it.
+split-overstacked-loot = true
+
+# Height caps for falling blocks and for TNT entities, in blocks. Anything
+# that falls further than this is removed, which is the blunt instrument
+# against tall sand and TNT duplication stacks. "disabled" is vanilla.
+falling-block-height-nerf = "disabled"
+tnt-entity-height-nerf = "disabled"
+
+# ---- Anti-xray. Per world. -------------------------------------------------
+#
+# Hides ores from clients that should not be able to see them. The cost is
+# paid on every chunk sent, in CPU on the server and in bandwidth to the
+# player, and it rises steeply with max-block-height - so raise that only as
+# far as your players actually mine.
+
+# Off by default. It is a real cost, and a server with a trusted playerbase
+# does not need to pay it.
+anti-xray-enabled = false
+
+# 1 hides the listed blocks behind the replacement blocks; 2 obfuscates, by
+# scattering fake ores through the stone, which fools more clients but sends
+# more data; 3 does the same one layer at a time.
+anti-xray-engine-mode = 1
+
+# Nothing above this y level is touched, since there is nothing worth hiding
+# up there and every block examined costs. 64 covers ordinary caving.
+anti-xray-max-block-height = 64
+
+# How many blocks around one a player has broken are revealed along with it.
+# Too small a radius and players see the hidden blocks flicker as they mine.
+anti-xray-update-radius = 2
+
+# Treat lava as opaque, so ore beside it is hidden too. Off by default,
+# because a player with fire resistance can see through lava regardless.
+anti-xray-lava-obscures = false
+
+# Only hide from players lacking the bypass permission, which lets staff mine
+# without the fake blocks in the way. Costs a permission check per player per
+# chunk.
+anti-xray-use-permission = false
+
+# What is hidden, and what it is replaced with. The replacements should be
+# blocks that plausibly belong where the hidden ones are, which is why the
+# list is stone, deepslate and planks rather than a single value.
+anti-xray-hidden-blocks = [
+    "minecraft:copper_ore", "minecraft:deepslate_copper_ore", "minecraft:raw_copper_block",
+    "minecraft:gold_ore", "minecraft:deepslate_gold_ore",
+    "minecraft:iron_ore", "minecraft:deepslate_iron_ore", "minecraft:raw_iron_block",
+    "minecraft:coal_ore", "minecraft:deepslate_coal_ore",
+    "minecraft:lapis_ore", "minecraft:deepslate_lapis_ore",
+    "minecraft:mossy_cobblestone", "minecraft:obsidian", "minecraft:chest",
+    "minecraft:diamond_ore", "minecraft:deepslate_diamond_ore",
+    "minecraft:redstone_ore", "minecraft:deepslate_redstone_ore",
+    "minecraft:clay",
+    "minecraft:emerald_ore", "minecraft:deepslate_emerald_ore",
+    "minecraft:ender_chest",
+]
+anti-xray-replacement-blocks = ["minecraft:stone", "minecraft:oak_planks", "minecraft:deepslate"]
+
+# ---- Item obfuscation. Server-wide. ----------------------------------------
+#
+# Strips from the item data sent to a client the parts it has no business
+# knowing: how many are in a stack it cannot see, where a lodestone compass
+# points, how worn somebody else's elytra is. It defeats the client mods that
+# read those, at the price of breaking resource packs that draw an item
+# differently depending on them.
+enable-item-obfuscation = false
+obfuscate-item-count = true
+
+# Components deliberately left alone, and extra ones to strip. The lodestone
+# tracker is left alone because a compass with it removed points nowhere and
+# the client draws it spinning.
+item-obfuscation-dont-obfuscate = ["minecraft:lodestone_tracker"]
+item-obfuscation-also-obfuscate = []
+
+# ---- Unsupported settings. -------------------------------------------------
+#
+# Nothing below here is supported and none of it is safe. Each one exists
+# because some server genuinely wants the behaviour, usually a duplication bug
+# its community has built an economy on. Read the comment before turning one
+# on, and expect no help if it goes wrong.
+
+# The following eight are server-wide rather than per world.
+
+# Sand and other duplication through end portals.
+allow-unsafe-end-portal-teleportation = false
+
+# Tripwire duplication, by no longer checking that the hook is where the
+# client claims it is.
+skip-tripwire-hook-placement-validation = false
+
+# Breaking bedrock, end portal frames and the other blocks that are meant to
+# be permanent. On a survival server this is usually the end of the End.
+allow-permanent-block-break-exploits = false
+
+# TNT duplication - and with it carpet and rail duplication, since they are
+# the same bug seen from different angles.
+allow-piston-duplication = false
+
+# Headless pistons, the state a piston is left in when its head is destroyed
+# separately from its body. Several block-moving machines are built on it.
+allow-headless-pistons = false
+
+# Skip the vanilla damage tick when a shield blocked the hit, so that blocking
+# no longer makes the target briefly immune to everything else.
+skip-vanilla-damage-tick-when-shield-blocked = false
+
+# Check that usernames look like usernames before letting them in. On by
+# default and worth leaving on; turning it off is for proxies that hand out
+# names the vanilla rules would reject.
+perform-username-validation = true
+
+# Resend a player their equipment after actions that may have desynchronised
+# it. On by default; turning it off saves those packets and trusts the client
+# to have kept up.
+update-equipment-on-player-actions = true
+
+# Components exempt from the oversized-item sanitiser. Adding one re-opens the
+# exploit that sanitiser closes, and is only ever needed for a resource pack
+# that reads the component. The values that make sense here are
+# minecraft:container, minecraft:charged_projectiles and
+# minecraft:bundle_contents.
+oversized-item-component-sanitizer = []
+
+# The following four are per world.
+
+# End crystals made invulnerable by a crafted client packet. The fix is on by
+# default, and this is one of the few entries in this group that is safe to
+# leave exactly as it is.
+fix-invulnerable-end-crystal-exploit = true
+
+# Stop ticking a world that has nobody in it. Saves the entire cost of that
+# world and stops everything inside it: no crop growth, no furnaces, no farms.
+# Whatever a player left running is frozen until somebody comes back.
+disable-world-ticking-when-empty = false
+
+# Whether chunks and block entities tick at all. These are as blunt as they
+# sound - turning either off leaves a world that renders and does nothing -
+# and they exist for worlds that are pure scenery, such as a lobby or a
+# museum.
+ticking-chunks = true
+ticking-block-entities = true
+
 # ----------------------------------------------------------------------------
-#  Sounds — how far the events everybody hears carry
+#  Sounds - how far the events everybody hears carry
 # ----------------------------------------------------------------------------
 #  The dragon dying, a wither being summoned and an end portal being made are
 #  broadcast to every player in the world rather than to those nearby, which
@@ -131,4 +700,10 @@
 #  A radius here replaces that broadcast with a normal, positional sound: 0
 #  keeps the vanilla behaviour of telling everybody, anything higher limits it
 #  to players within that many blocks.
+#
+#  Every key in this section is per world.
 [gameplay.sounds]
+
+dragon-death-sound-radius = 0
+wither-spawn-sound-radius = 0
+end-portal-sound-radius = 0
