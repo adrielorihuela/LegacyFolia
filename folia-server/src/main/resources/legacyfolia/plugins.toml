@@ -70,3 +70,203 @@ luckperms = false
 # The GITHUB_TOKEN environment variable overrides it.
 github-token-file = "github.token"
 
+
+# ----------------------------------------------------------------------------
+#  The plugin API
+# ----------------------------------------------------------------------------
+#  How plugins are found, loaded and permitted. None of it is per world: a
+#  plugin is loaded once for the whole server.
+[plugins.api]
+
+# The folder inside plugins/ that updated jars are picked up from, at the next
+# start only.
+#
+# This is the mechanism a plugin's own updater uses: it cannot replace a jar
+# that is open, so it writes the new one here and the server moves it into
+# place before anything is loaded. It has nothing to do with
+# [plugins.auto-update] above, which downloads directly.
+update-folder = "update"
+
+# The file holding permissions declared by the server rather than by a plugin,
+# for granting a permission that no plugin defines.
+#
+# Careful: this path is resolved against the working directory, not against
+# config/, which is how it has always behaved and what every guide on the
+# internet assumes.
+permissions-file = "permissions.yml"
+
+# Read that file before plugins load rather than after.
+#
+# Before is what you want: a permission plugin that builds its tree at load
+# time then sees the server's own permissions and can inherit from them. After
+# means they appear too late to be inherited, which is the historical
+# behaviour and the reason this switch exists at all.
+load-permissions-yml-before-plugins = true
+
+# Refuse to load any plugin declaring an api-version older than this, as
+# "1.13", or "none" for no minimum.
+#
+# Every api-version below 1.13 puts the plugin through the block and item
+# renaming of the Flattening, which is slow and imperfect. Setting a minimum
+# turns "this plugin is from 2016 and behaves oddly" into a clear refusal at
+# start-up.
+minimum-api = "none"
+
+# Record how long each plugin spends in each event and expose it to spark.
+#
+# It costs a timestamp per handler per event, which is measurable on a busy
+# server, so it is off unless you are actually looking for the plugin that is
+# costing you a tick.
+plugin-profiling = false
+
+# Cache the palette lookup that turns an RGB colour into the nearest map
+# colour.
+#
+# Only map-drawing plugins ever touch this path, but for them it is a lot of
+# lookups per image, and the cache is small. Turning it off is a memory trade
+# nobody needs to make.
+use-map-color-cache = true
+
+# ----------------------------------------------------------------------------
+#  Scoreboards
+# ----------------------------------------------------------------------------
+[plugins.api.scoreboards]
+
+# Tick scoreboards that only a plugin ever reads.
+#
+# The vanilla scoreboard tracks criteria like health and deaths and updates
+# them constantly. A scoreboard a plugin created for its own display does not
+# need any of that work done for it, so by default it is skipped. Turn this on
+# only for a plugin that genuinely relies on server-side criteria updating in
+# a board it made.
+track-plugin-scoreboards = false
+
+# Keep teams that have no members left when the scoreboard is saved.
+#
+# Off would discard them, which loses the team's colour, prefix and collision
+# rules the moment the last player leaves it: fine for temporary teams, and
+# quietly destructive for a plugin that defines its teams once at start-up.
+save-empty-scoreboard-teams = true
+
+# ----------------------------------------------------------------------------
+#  Item validation
+# ----------------------------------------------------------------------------
+#  Ceilings on how much text a client may put into an item before the packet
+#  is rejected. They exist because a book or a name is arbitrary text that
+#  every other player who sees the item has to receive, so an oversized one is
+#  a way to make the server send megabytes to everybody nearby.
+#
+#  They are in this file rather than with the exploit switches because a
+#  plugin writing generated lore is the thing most likely to hit them.
+[plugins.api.item-validation]
+
+# Characters allowed in a display name and in one line of lore.
+display-name = 8192
+lore-line = 8192
+
+# Whether selectors inside a written book are resolved when it is opened.
+#
+# Off. Resolving them means the server evaluates a selector supplied by
+# whoever wrote the book, once per reader, which is a cost and a surprise in
+# equal measure.
+resolve-selectors-in-books = false
+
+# Written books, per field.
+[plugins.api.item-validation.book]
+title = 8192
+author = 8192
+page = 16384
+
+# The whole-book ceiling, which is the one that actually matters: the limits
+# above are per field, and a book is up to a hundred pages of them.
+#
+# page-max is the largest a single page may be, or the string "disabled" for
+# no such limit; total-multiplier scales the sum allowed across every page, so
+# that a book cannot be a hundred maximum-size pages at once.
+[plugins.api.item-validation.book-size]
+page-max = 2560
+total-multiplier = 0.98
+
+# ----------------------------------------------------------------------------
+#  Commands
+# ----------------------------------------------------------------------------
+#  How commands are logged, completed and renamed. Not "which commands exist":
+#  that is decided by plugins and by permissions.
+[plugins.commands]
+
+# Write every command a player runs to the console log.
+#
+# This is the server's audit trail. Turning it off costs you the ability to
+# find out afterwards who ran the thing that broke the world, which is
+# normally the first question asked.
+log = true
+
+# How far tab completion is allowed to go, as the shortest argument the client
+# may ask about.
+#
+# 0 completes anything, including an empty argument. A positive number means
+# the client must have typed at least that many characters first, which turns
+# the cheapest possible spam, a bare tab repeated, into nothing. -1 refuses
+# server-side completion entirely, leaving the client with only what it
+# already knows.
+tab-complete = 0
+
+# Send commands to clients under their namespaced form as well
+# ("minecraft:give" beside "give").
+#
+# The namespaced form is what disambiguates a plugin command from a vanilla
+# one of the same name. Turning it off shortens the command tree sent at login
+# on a server with many plugins, at the price of that disambiguation.
+send-namespaced = true
+
+# Keep command block output out of the console.
+#
+# A command block in a loop can produce thousands of lines a second, which is
+# how a console log becomes useless. Turn this on when a build starts drowning
+# the log; leave it off while debugging one.
+silent-commandblock-console = false
+
+# Vanilla commands whose arguments are rewritten before they run, so that a
+# command block calling them goes through the server's own handling rather
+# than straight to vanilla.
+#
+# The four listed are the ones whose arguments name blocks, entities or raw
+# JSON, which are exactly the ones a plugin needs to see. Every command listed
+# here pays that extra handling, so the list is deliberately short.
+replace-commands = ["setblock", "summon", "testforblock", "tellraw"]
+
+# When a plugin's tab completer returns nothing at all, offer online player
+# names.
+#
+# Almost always what the player wanted, and it is why an old plugin with no
+# completer still completes names. It does hand the online player list to
+# anybody who can run the command, so a server hiding its player list may want
+# this off.
+suggest-player-names-when-null-tab-completions = true
+
+# Vanilla commands that command blocks may run even when the block's own
+# permission check would refuse, or ["*"] for all of them.
+#
+# The check exists because a command block runs with the authority of whoever
+# placed it, long after they have gone. An empty list is the safe state, and
+# "*" is the state that says command blocks are as trusted as an operator.
+command-block-overrides = []
+
+# Let a permission plugin have the last word on vanilla commands.
+#
+# Off means vanilla checks its own op level first, so an operator can run
+# /give whatever a permission plugin says. On makes vanilla commands obey the
+# permission plugin like every other command, which is what a server with
+# graded staff ranks actually wants, and which will take commands away from
+# people who had them if the plugin has no rule granting them.
+ignore-vanilla-permissions = false
+
+# Command aliases. Each entry is a name and the list of commands it expands
+# to, with $1 standing for the first argument, $2 the second, and $1- for the
+# rest of the line from the first onward.
+#
+# An alias may expand to several commands, which run in order as the player.
+# It cannot grant a permission the player lacks: each expanded command is
+# checked as if they had typed it themselves.
+[plugins.commands.aliases]
+icanhasbukkit = ["version $1-"]
