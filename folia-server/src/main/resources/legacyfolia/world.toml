@@ -151,18 +151,9 @@ below-zero-generation-in-existing-chunks = true
 # worlds at the new location and leave the old ones untouched.
 world-container = "."
 
-# The compression used inside region files: "deflate", "lzma" or "none".
-#
-# Deflate is what vanilla writes and what every other tool expects to read.
-# LZMA makes smaller files at a noticeably higher CPU cost per chunk write, and
-# "none" trades a lot of disk for a little CPU. The server reads all three
-# whatever this says, so changing it converts chunks gradually as they are
-# rewritten rather than all at once - but a world written with anything other
-# than deflate is no longer readable by vanilla or by most map tools.
-#
-# Careful: this is consumed before the rest of the configuration is loaded,
-# because region files must be readable before the first chunk is touched.
-region-file-compression = "deflate"
+# The compression applied to region files lives in performance.toml, under
+# [chunks], next to the region file cache and the chunk I/O threads it shares
+# its cost with. It is not repeated here.
 
 # Wait for the operating system to confirm each chunk write before carrying on.
 #
