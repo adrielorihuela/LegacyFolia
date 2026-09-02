@@ -29,3 +29,15 @@
 # message instead, and you set eula=true in eula.txt yourself.
 eula-prompt-timeout-seconds = 120
 
+# The radius, in blocks, of the area around the world spawn that only
+# operators may build in or break. 0 turns it off.
+#
+# Vanilla defaults this to 16, a 33x33 square around spawn. On a server with
+# any kind of claim or region plugin - which is most of them - that square is
+# something to work around rather than something that helps, and the usual
+# first symptom is a new player unable to break the first block they walk up
+# to. So it is off here.
+#
+# Set it back to 16 for vanilla's behaviour. This is the same protection the
+# server has always enforced; only its default is different.
+spawn-protection-radius = 0

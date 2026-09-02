@@ -36,3 +36,39 @@ nether = true
 # never exists.
 end = true
 
+# ----------------------------------------------------------------------------
+#  World — how players arrive in it and where they may build
+# ----------------------------------------------------------------------------
+[world]
+
+# Put every joining player at the world spawn, as if it were their first join.
+#
+# Useful for a lobby, where there is one place people are meant to arrive at.
+# With this off the server puts a returning player back exactly where they
+# logged out, which on a lobby means reappearing halfway up a build or in a
+# corner the map never meant to start anyone in.
+#
+# The spawn radius is respected, so arrivals are spread out the same way a
+# first join is.
+#
+# Nothing is deleted. The position saved for the player is simply not read
+# when deciding where to put them - inventory, ender chest, experience,
+# health, advancements and statistics are all kept as they are. Turning this
+# back off restores the normal behaviour on the very next join, because that
+# saved position was never touched.
+always-spawn-at-world-spawn = false
+
+# Stop players building on top of the Nether roof.
+#
+# The Nether is really 256 blocks tall; its logical height of 128 only limits
+# where portals may lead. That means the bedrock roof at y=127 is reachable
+# and the flat expanse above it is buildable, which turns it into a fast
+# travel plane above the whole dimension.
+#
+# On, blocks may not be placed above y=127 in the Nether. Nothing else
+# changes: the dimension keeps its real height, so chunks, generation and
+# heightmaps are untouched, and no other world is affected.
+#
+# Turning this off allows building up there again immediately. Blocks already
+# placed above the roof are left exactly where they are either way.
+disable-nether-roof = false
