@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 07:59:31 -0500
+Subject: [PATCH] Spend food the way 1.8 did
+
+Attacking, jumping and regenerating all cost different amounts now than they
+did, and the food bar is what ties healing to eating. Restoring the healing
+track without restoring what drains it would leave a player healing far more
+cheaply than they ever could on 1.8.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 58f0bf2debea72d3d977c78e9d9da16ae004e8fc..e41ba5968dccdcd16e26ae8649a05650a6c358f3 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -2571,9 +2571,9 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         super.jumpFromGround();
+         this.awardStat(Stats.JUMP);
+         if (this.isSprinting()) {
+-            this.causeFoodExhaustion(this.level().spigotConfig.jumpSprintExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
++            this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.jumpExhaustion(true, this.level().spigotConfig.jumpSprintExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's jump cost
+         } else {
+-            this.causeFoodExhaustion(this.level().spigotConfig.jumpWalkExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
++            this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.jumpExhaustion(false, this.level().spigotConfig.jumpWalkExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's jump cost
+         }
+     }
+ 
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index b27b353a3c56b809f629b9f72bcdb8bbcc4ed3f7..8035a72a47f29c8cd347ac090268cdceb9b84419 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1090,7 +1090,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+                         this.setLastHurtMob(entity);
+                         this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);
+                         this.damageStatsAndHearts(entity, oldLivingEntityHealth);
+-                        this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
++                        this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.attackExhaustion(this.level().spigotConfig.combatExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's attack cost
+                     } else {
+                         this.playServerSideSound(SoundEvents.PLAYER_ATTACK_NODAMAGE);
+                     }
+@@ -1392,7 +1392,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+         this.setLastHurtMob(target);
+         this.itemAttackInteraction(target, weaponItem, damageSource, wasHurt);
+         this.damageStatsAndHearts(target, oldLivingEntityHealth);
+-        this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
++        this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.attackExhaustion(this.level().spigotConfig.combatExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's attack cost
+         return true;
+     }
+ 
