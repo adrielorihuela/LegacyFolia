@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:11:16 -0500
+Subject: [PATCH] Keep the Nether roof out of reach when asked to
+
+The bedrock ceiling is not a floor, and a server that does not want players
+living above it has had to police the space with a plugin. The limit is a build
+limit only: getMaxY still returns the world's real height, because the chunk
+system, world generation and the heightmaps all read it and lowering it would
+break all three. Placement by hand goes through the packet handler; dispensers
+and pistons go through BlockItem, so both are covered.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 5f673a2aa6689acded070a9806f6cb8d9920b46e..0bbde5776f6a3e1459e56bb423a17854e04e7003 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2182,7 +2182,7 @@ public class ServerGamePacketListenerImpl
+                     if (Math.abs(distance.x()) < 1.0000001 && Math.abs(distance.y()) < 1.0000001 && Math.abs(distance.z()) < 1.0000001) {
+                         Direction direction = blockHit.getDirection();
+                         this.player.resetLastActionTime();
+-                        int maxY = level.getMaxY();
++                        int maxY = level.getBuildMaxY(); // LegacyFolia - the Nether roof can be closed off
+                         int minY = level.getMinY();
+                         if (pos.getY() > maxY) {
+                             this.player.sendBuildLimitMessage(true, maxY);
+diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
+index b94c4f0a6908a37d8a07dba6ff3ece7193aca1b5..b1085d28aa3488d82f5e8f6d0a9de049c149022d 100644
+--- a/net/minecraft/world/item/BlockItem.java
++++ b/net/minecraft/world/item/BlockItem.java
+@@ -162,6 +162,13 @@ public class BlockItem extends Item {
+         Player player = context.getPlayer();
+         // CraftBukkit start
+         Level world = context.getLevel(); // Paper - Cancel hit for vanished players
++        // LegacyFolia start - the Nether roof can be closed off
++        // The packet handler covers a player placing by hand; this covers everything that places
++        // a block without one, which is how the roof is reached in practice.
++        if (context.getClickedPos().getY() > world.getBuildMaxY()) {
++            return false;
++        }
++        // LegacyFolia end - the Nether roof can be closed off
+         boolean canBuild = (!this.mustSurvive() || stateForPlacement.canSurvive(world, context.getClickedPos()))
+             && world.checkEntityCollision(stateForPlacement, player, CollisionContext.placementContext(player), context.getClickedPos(), true); // Paper - Cancel hit for vanished players
+         org.bukkit.entity.Player bukkitPlayer = (context.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) context.getPlayer().getBukkitEntity() : null;
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index a0eb1f608a99301e0197ab1d1a6fbbb0a0be4ce0..aef36e7ec877a4ba156fa11ed22f5afc0dde83e1 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -755,6 +755,24 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         return this.maxY;
+     }
+ 
++    // LegacyFolia start - a build limit that is not the world's height
++    /**
++     * The highest block a player, dispenser or piston may place at.
++     *
++     * <p>Everywhere else this is {@link #getMaxY()}. In the Nether, with the roof turned off, it
++     * is the top of the logical height instead, which is where the bedrock ceiling is. It is kept
++     * apart from {@code getMaxY()} deliberately: the chunk system, world generation and the
++     * heightmaps all read that, and lowering it would break all three.</p>
++     *
++     * @return the highest placeable Y
++     */
++    public int getBuildMaxY() {
++        return io.github.adrielorihuela.legacyfolia.world.NetherRoof.buildMaxY(this.dimension(),
++            this.getMinY(), this.getMaxY(), this.dimensionType().logicalHeight(),
++            io.github.adrielorihuela.legacyfolia.world.NetherRoof.disabled());
++    }
++    // LegacyFolia end - a build limit that is not the world's height
++
+     @Override
+     public int getSectionsCount() {
+         return this.sectionsCount;
