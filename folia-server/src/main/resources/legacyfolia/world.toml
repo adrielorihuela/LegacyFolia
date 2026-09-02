@@ -12,7 +12,7 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-#  Dimensions — which worlds the server creates at all
+#  Dimensions - which worlds the server creates at all
 # ----------------------------------------------------------------------------
 #  Turning a dimension off means it is never created: no world folder, no
 #  chunks in memory, no entities ticking, no region threads spent on it. On a
@@ -23,7 +23,7 @@
 #  it just stops loading it. Turning it back on picks up where it left off.
 [dimensions]
 
-# The main world. Cannot be turned off — the server has nowhere to put players
+# The main world. Cannot be turned off - the server has nowhere to put players
 # without it, so setting this to false is refused and logged at start-up.
 overworld = true
 
@@ -37,7 +37,7 @@ nether = true
 end = true
 
 # ----------------------------------------------------------------------------
-#  World — how players arrive in it and where they may build
+#  World - how players arrive in it and where they may build
 # ----------------------------------------------------------------------------
 [world]
 
@@ -72,3 +72,119 @@ always-spawn-at-world-spawn = false
 # Turning this off allows building up there again immediately. Blocks already
 # placed above the roof are left exactly where they are either way.
 disable-nether-roof = false
+
+# ----------------------------------------------------------------------------
+#  Generation - what a world is made of, the first time it is made
+# ----------------------------------------------------------------------------
+#  Almost everything here is read when a world is created and then written into
+#  that world's own data. Changing it afterwards does not regenerate anything:
+#  the existing chunks stay as they are, and only chunks generated from that
+#  point on would follow a new setting, which is how you get a visible seam in
+#  the terrain. Treat this section as the settings for a new save.
+[world.generation]
+
+# The seed the world is generated from. Empty picks a random one and records it
+# in the world data, so an empty value here does not mean the world changes
+# each start.
+#
+# A value that parses as a number is used as that number; anything else is
+# hashed to one, which is why "12345" and "hello" are both valid. Only the main
+# world reads this; the Nether and the End derive theirs from it.
+level-seed = ""
+
+# The generator: minecraft:normal, minecraft:flat, minecraft:large_biomes,
+# minecraft:amplified, minecraft:single_biome_surface, or an id a datapack
+# provides. Bare vanilla names without the namespace still work.
+level-type = "minecraft:normal"
+
+# Extra JSON for the generator above, and the only way to configure a flat
+# world's layers from here. Empty means the preset's own defaults; it is
+# ignored entirely by generators that take no settings.
+generator-settings = ""
+
+# Generate villages, temples, strongholds, ocean monuments, mineshafts and the
+# rest. Off leaves the terrain and its ores intact but strips every structure,
+# including the strongholds that hold the end portals, which makes the End
+# unreachable without commands.
+generate-structures = true
+
+# The radius, in blocks, of the world border a new world starts with. The
+# maximum is 29999984, which is where vanilla's own coordinate handling stops
+# being reliable; larger values are clamped down to it.
+#
+# This is only the starting border. /worldborder and any plugin that moves the
+# border override it, and the border a world already has is stored in its own
+# data rather than read from here.
+max-world-size = 29999984
+
+# Extend chunks generated before 1.18 down into the new negative height when
+# they are next loaded.
+#
+# Chunks written by an older version stop at y=0. On, the server generates the
+# deepslate and the deepslate ores below them, so old and new terrain line up.
+# Off, those chunks keep a flat bedrock floor at y=0 and there is a visible wall
+# wherever old meets new.
+#
+# This is a one-way conversion, done once per chunk as it is loaded, so turning
+# it off later does not undo the chunks already extended. A world that has
+# never been opened by an older version has nothing to convert and is not
+# affected either way.
+#
+# There used to be two of these with the same name: a global one that Spigot
+# read from world-settings.default despite it not being a default, and a real
+# per-world one. Both were consulted at the same place in the code, whichever
+# happened to be reachable. It is one setting here, for every world.
+below-zero-generation-in-existing-chunks = true
+
+# ----------------------------------------------------------------------------
+#  Storage - where worlds live on disk, and how they are written
+# ----------------------------------------------------------------------------
+[world.storage]
+
+# The folder world directories are created and looked for in, relative to the
+# server directory. "." is beside the jar, which is where every world already
+# is; a value like "worlds" is what a panel usually wants.
+#
+# This is resolved very early, before most of the server exists, and it is
+# overridden entirely by the --universe command line option when that is given.
+# Moving it does not move the folders: the server will create fresh empty
+# worlds at the new location and leave the old ones untouched.
+world-container = "."
+
+# The compression used inside region files: "deflate", "lzma" or "none".
+#
+# Deflate is what vanilla writes and what every other tool expects to read.
+# LZMA makes smaller files at a noticeably higher CPU cost per chunk write, and
+# "none" trades a lot of disk for a little CPU. The server reads all three
+# whatever this says, so changing it converts chunks gradually as they are
+# rewritten rather than all at once - but a world written with anything other
+# than deflate is no longer readable by vanilla or by most map tools.
+#
+# Careful: this is consumed before the rest of the configuration is loaded,
+# because region files must be readable before the first chunk is touched.
+region-file-compression = "deflate"
+
+# Wait for the operating system to confirm each chunk write before carrying on.
+#
+# On is safe against a power cut at the price of stalling on every save, and it
+# is what vanilla does. Note that on this server it is an AND, not a switch:
+# the Paper.enable-sync-chunk-writes system property must also be set, so
+# leaving this on does not by itself slow anything down. That was deliberate
+# upstream, and it means the effective default is off unless you pass the flag.
+sync-chunk-writes = true
+
+# ----------------------------------------------------------------------------
+#  Generators - handing a world's terrain to a plugin
+# ----------------------------------------------------------------------------
+#  One entry per world, naming the plugin that generates it, in the form the
+#  plugin documents: "PluginName" on its own, or "PluginName:argument" when the
+#  plugin offers more than one generator.
+#
+#  The plugin must be loaded before the world is: a generator named here whose
+#  plugin is missing, or is not set to load at startup, is an error at start-up
+#  and the world is created with normal terrain instead - which is not something
+#  you can undo by fixing the plugin afterwards.
+#
+#  Empty by default: every world generates with the settings above.
+[world.generators]
+# world = "MyGeneratorPlugin:archipelago"
