@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Wed, 2 Sep 2026 08:00:01 -0500
+Subject: [PATCH] Route instant potions through the combat settings
+
+Healing and harming still use the shifts 1.8 used, so nothing changes by
+default. Reading the bases from the configuration puts them beside the rest of
+the combat knobs, where a server that wants harming to hit differently can find
+them.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/effect/HealOrHarmMobEffect.java b/net/minecraft/world/effect/HealOrHarmMobEffect.java
+index f5e89c81a4aae3cbbe85e0ebb0ac1adfc51f0de3..7b4c8a7eb2233e0d5291a3bee4c288facfc4576a 100644
+--- a/net/minecraft/world/effect/HealOrHarmMobEffect.java
++++ b/net/minecraft/world/effect/HealOrHarmMobEffect.java
+@@ -16,9 +16,9 @@ class HealOrHarmMobEffect extends InstantaneousMobEffect {
+     @Override
+     public boolean applyEffectTick(final ServerLevel level, final LivingEntity mob, final int amplification) {
+         if (this.isHarm == mob.isInvertedHealAndHarm()) {
+-            mob.heal(Math.max(4 << amplification, 0), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
++            mob.heal(Math.max(io.github.adrielorihuela.legacyfolia.combat.Combat.instantHeal(amplification, 1.0D), 0), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit // LegacyFolia - configurable instant potions
+         } else {
+-            mob.hurtServer(level, mob.damageSources().magic(), 6 << amplification);
++            mob.hurtServer(level, mob.damageSources().magic(), io.github.adrielorihuela.legacyfolia.combat.Combat.instantDamage(amplification, 1.0D)); // LegacyFolia - configurable instant potions
+         }
+ 
+         return true;
+@@ -35,10 +35,10 @@ class HealOrHarmMobEffect extends InstantaneousMobEffect {
+     ) {
+         if (!new io.papermc.paper.event.entity.EntityEffectTickEvent(mob.getBukkitLivingEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftToBukkit(this), amplification).callEvent()) { return; } // Paper - Add EntityEffectTickEvent
+         if (this.isHarm == mob.isInvertedHealAndHarm()) {
+-            int amount = (int)(scale * (4 << amplification) + 0.5);
++            int amount = io.github.adrielorihuela.legacyfolia.combat.Combat.instantHeal(amplification, scale); // LegacyFolia - configurable instant potions
+             mob.heal(amount, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
+         } else {
+-            int amount = (int)(scale * (6 << amplification) + 0.5);
++            int amount = io.github.adrielorihuela.legacyfolia.combat.Combat.instantDamage(amplification, scale); // LegacyFolia - configurable instant potions
+             if (source == null) {
+                 mob.hurtServer(serverLevel, mob.damageSources().magic(), amount);
+             } else {
