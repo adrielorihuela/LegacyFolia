@@ -58,20 +58,25 @@
 #  How to write an override
 #  ---------------------------------------------------------------------------
 #  Name the setting by its full path: the same path it has inside the file it
-#  normally lives in, every section included, but WITHOUT the file name. A
-#  setting written in performance.toml as
+#  normally lives in, every section included, but WITHOUT the file name. The
+#  path therefore starts at a section header, which is not always the file's
+#  own name -- performance.toml holds both [chunks] and [performance.*], and a
+#  view distance override is written "chunks.view-distance", not
+#  "performance.chunks.view-distance". Copy the header as it is written.
 #
-#    [performance.entities.entity-activation-range]
+#  A setting written in performance.toml as
+#
+#    [performance.entities.activation-range]
 #    animals = 32
 #
-#  has the path performance.entities.entity-activation-range.animals, and is
+#  has the path performance.entities.activation-range.animals, and is
 #  overridden here in either of these two ways, which mean exactly the same
 #  thing:
 #
 #    [worlds.world_nether]
-#    "performance.entities.entity-activation-range.animals" = 16
+#    "performance.entities.activation-range.animals" = 16
 #
-#    [worlds.world_nether.performance.entities.entity-activation-range]
+#    [worlds.world_nether.performance.entities.activation-range]
 #    animals = 16
 #
 #  The first form needs the quotes. Without them TOML would read the dots as
@@ -144,8 +149,8 @@
 #
 # [worlds.world_nether]
 # "chunks.view-distance" = 10
-# "performance.entities.entity-activation-range.animals" = 32
-# "performance.entities.entity-activation-range.monsters" = 32
+# "performance.entities.activation-range.animals" = 32
+# "performance.entities.activation-range.monsters" = 32
 # "gameplay.environment.thunder-chance" = 100000
 
 # The End, where the same settings want the opposite answer.
@@ -156,12 +161,12 @@
 #
 # [worlds.world_the_end]
 # "chunks.view-distance" = 10
-# "performance.entities.entity-activation-range.monsters" = 32
+# "performance.entities.activation-range.monsters" = 32
 
 # The nested form, for a world that differs on several settings from the same
 # section. Identical in effect to writing four quoted paths.
 #
-# [worlds.world.performance.entities.entity-activation-range]
+# [worlds.world.performance.entities.activation-range]
 # animals = 32
 # monsters = 32
 # raiders = 64
