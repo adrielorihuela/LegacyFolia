@@ -55,6 +55,14 @@ knockback-vertical-limit = 0.4
 sprint-knockback = true
 sprint-knockback-strength = 0.5
 
+# After sending the target their velocity packet, put the server's copy of
+# their motion back to what it was before the hit.
+#
+# This looks like a bug and is not: 1.8 saved the target's motion, told the
+# client to move, and then restored the server-side value, so the two disagree
+# on purpose. That disagreement is a real part of how 1.8 knockback felt.
+restore-velocity-after-knockback = true
+
 # Critical hits: falling, not on the ground, not on a ladder, not in water, not
 # blinded and not riding anything, for 1.5x damage.
 legacy-criticals = true
@@ -68,6 +76,90 @@ invulnerability-ticks = 20
 # immune to an axe, which is not how 1.8 played.
 damage-overriding = true
 
+# Sword damage. In 1.8 a sword's attack damage modifier was 4 plus its tier
+# bonus; modern swords are built on a base of 3 with exactly the same tier
+# bonuses (wood 0, stone 1, iron 2, diamond 3, gold 0). Every sword therefore
+# hit for one point more, so a diamond sword's modifier is 7 rather than 6.
+legacy-sword-damage = true
+sword-base-damage = 4.0
+
+# Sharpness as a flat 1.25 per level, added after the critical multiplier.
+#
+# Two differences in one. The number: Sharpness V was a straight +6.25 in 1.8,
+# where the modern enchantment gives 0.5 per level plus 0.5, so 3.0. And the
+# position: 1.8 multiplied the weapon damage by 1.5 for a critical and only
+# then added the enchantment, so a critical never amplified sharpness. Modern
+# combat folds it in before the multiplier.
+legacy-sharpness = true
+sharpness-per-level = 1.25
+
+# Fire aspect ignites the target for one second, before the hit is resolved.
+#
+# 1.8 set the target alight and then dealt the damage, so a hit that was fully
+# blocked, or that landed inside the invulnerability window and did nothing,
+# still set them on fire. Modern combat ignites after the damage is confirmed
+# and burns for four seconds per level rather than one flat second.
+fire-aspect-before-damage = true
+fire-aspect-seconds = 1
+
+# Armour reduces damage by a flat (25 - points) / 25.
+#
+# This is the largest single difference in the list. 1.8's curve is linear,
+# tops out at 80% with twenty points, and completely ignores how big the hit
+# was. Modern armour subtracts a term derived from the damage and the armour's
+# toughness from the effective armour, so a big hit punches through armour that
+# a small hit does not. Turning this on makes full diamond enormously better
+# against a stream of weak hits and relatively worse against one huge one.
+legacy-armor = true
+armor-damage-divisor = 25.0
+armor-points-cap = 20
+
+# Protection, as the random per-hit roll it actually was.
+#
+# Each piece is worth ceil((6 + level^2) / 3 * 0.75) points — 2, 3, 4 or 6 for
+# levels one to four. The total is capped at 25, and then 1.8 rolled
+# ((points + 1) >> 1) + random((points >> 1) + 1), capped at 20, on every
+# single hit. A full set of Protection IV is 24 points, which rolls between 12
+# and 20, so the same armour takes between 48% and 80% off depending on luck.
+# Modern protection is a flat, deterministic number with no roll at all.
+legacy-protection = true
+protection-factor = 0.75
+protection-points-cap = 25
+protection-roll-cap = 20
+
+# Health regeneration on 1.8's single slow track.
+#
+# One heart every 80 ticks while food is 18 or more, costing 3 exhaustion.
+# Modern food kept that track and added a second, far faster one that spends
+# saturation to heal every 10 ticks while the food bar is full. That fast track
+# did not exist in 1.8, and it is the reason a modern player who has just eaten
+# heals back through a fight in a way a 1.8 player never could. Leave
+# saturated-fast-regen off to remove it.
+legacy-regeneration = true
+regen-interval-ticks = 80
+regen-food-threshold = 18
+saturated-fast-regen = false
+
+# The 1.8 exhaustion costs. Regenerating a heart is expensive, which is what
+# ties healing to the food bar; a sprinting jump costs four times a standing
+# one, which is why bunny-hopping across a map empties it.
+attack-exhaustion = 0.3
+regen-exhaustion = 3.0
+sprint-jump-exhaustion = 0.8
+jump-exhaustion = 0.2
+
+# Instant health and harming as shifts rather than multiplies.
+#
+# Harming does 6 << amplifier and healing restores 4 << amplifier, so level two
+# is exactly double level one. A splash weakens with distance as
+# 1 - distance / 4 and reaches nothing at four blocks, which still leaves half
+# strength at two. Harming doing half again what healing restores is what made
+# splash potions a weapon in 1.8 rather than a curiosity.
+legacy-instant-potions = true
+instant-damage-base = 6
+instant-heal-base = 4
+splash-radius = 4.0
+
 # Right-clicking with a sword blocks, halving incoming damage.
 #
 # Note that this is a reimplementation rather than a restoration: swords have
@@ -75,6 +167,12 @@ damage-overriding = true
 # server and signalled to the client. Players connecting through ViaVersion
 # from a 1.8 client see the blocking animation; modern clients get the damage
 # reduction without it.
+#
+# The formula is (1 + damage) * 0.5, not damage * 0.5: a hit of 7 blocks down
+# to 4.0 rather than 3.5, and a hit of 1 is not reduced at all. The setting
+# below is the 0.5 factor in that expression. 1.8 also applied blocking BEFORE
+# armour — the order was hard hat, blocking, armour, resistance, protection,
+# absorption — so blocking and armour compound rather than being alternatives.
 sword-blocking = true
 sword-blocking-reduction = 0.5
 
