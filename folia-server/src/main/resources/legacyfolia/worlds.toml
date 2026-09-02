@@ -14,15 +14,22 @@
 #  This file is the exception to the grouping. Every other file answers "what
 #  does this setting do"; this one answers "and which world does it apply to".
 #
-#  More than half of the server's settings are decided per world. The Nether
-#  is not the overworld: it wants a shorter view distance, different mob
-#  limits and no weather at all. Written as one global value each, those
-#  settings would force the same answer on every world, and a server that
-#  tunes its Nether separately would quietly lose that tuning.
+#  It therefore holds no inventory of its own. There is no list of settings
+#  below, because the settings are already listed, once, in the files that
+#  own them. What is below is the rule for making any of them differ in one
+#  world.
+#
+#  More than half of the server's settings are decided per world: 277 of them,
+#  which is what spigot.yml's world-settings and Paper's paper-world-defaults
+#  between them used to cover. The Nether is not the overworld: it wants a
+#  shorter view distance, different mob limits and no weather at all. Written
+#  as one global value each, those settings would force the same answer on
+#  every world, and a server that tunes its Nether separately would quietly
+#  lose that tuning.
 #
 #  So: a setting in gameplay.toml, performance.toml or world.toml is what
 #  every world uses, and a world that disagrees says so here. Nothing is
-#  duplicated — a world only names the settings it wants to differ on.
+#  duplicated. A world only names the settings it wants to differ on.
 #
 #  ---------------------------------------------------------------------------
 #  How a value is chosen
@@ -36,33 +43,76 @@
 #
 #  Steps 1 and 2 are what Spigot called world-settings.<world> and
 #  world-settings.default, and what Paper split across <world>/paper-world.yml
-#  and paper-world-defaults.yml. It is one chain here rather than four.
+#  and paper-world-defaults.yml. Two servers, two file layouts, four places to
+#  look, one behaviour. It is one chain here rather than four, and the order is
+#  the order both of them already used, so a value that resolved one way before
+#  resolves the same way now.
+#
+#  The chain is worked out once per world, the first time that world asks for
+#  a setting, and the answer is kept. That is not an optimisation detail you
+#  can ignore: it is why editing this file does nothing until the
+#  configuration is reloaded, at which point every world is worked out again
+#  from scratch.
 #
 #  ---------------------------------------------------------------------------
 #  How to write an override
 #  ---------------------------------------------------------------------------
-#  Name the setting by its full path — the same path it has in the file it
-#  normally lives in, section included. Both of these mean the same thing, so
-#  use whichever reads better for how much you are overriding:
+#  Name the setting by its full path: the same path it has inside the file it
+#  normally lives in, every section included, but WITHOUT the file name. A
+#  setting written in performance.toml as
+#
+#    [performance.entities.entity-activation-range]
+#    animals = 32
+#
+#  has the path performance.entities.entity-activation-range.animals, and is
+#  overridden here in either of these two ways, which mean exactly the same
+#  thing:
 #
 #    [worlds.world_nether]
-#    "gameplay.environment.thunder-chance" = 0
+#    "performance.entities.entity-activation-range.animals" = 16
 #
-#    [worlds.world_nether.gameplay.environment]
-#    thunder-chance = 0
+#    [worlds.world_nether.performance.entities.entity-activation-range]
+#    animals = 16
+#
+#  The first form needs the quotes. Without them TOML would read the dots as
+#  four nested tables, which is the second form written badly; with them the
+#  whole thing is one key naming one path. Use the first when a world differs
+#  on two or three scattered settings, and the second when it differs on
+#  several settings that live together.
 #
 #  The section name is the world's folder name, which is what the server calls
 #  it: world, world_nether, world_the_end, or whatever a plugin created. A
-#  name with anything other than letters, digits, underscores or dashes in it
+#  name containing anything other than letters, digits, underscores or dashes
 #  has to be quoted: [worlds."my world"].
 #
 #  A world with no section here is not a mistake and is not a special case: it
-#  simply uses [worlds.default] and the global files, which is what a world
-#  with an empty section would get anyway.
+#  uses [worlds.default] over the global files, which is exactly what a world
+#  with an empty section would get.
 #
-#  Overriding a setting that is not decided per world does nothing. Only
-#  gameplay.toml, performance.toml and world.toml are consulted per world; a
-#  port or a proxy secret belongs to the server, not to one of its worlds.
+#  One name is reserved. A world literally called "default" cannot have a
+#  section of its own, because that name belongs to the layer that applies to
+#  every world. Spigot had the same limitation for the same reason.
+#
+#  ---------------------------------------------------------------------------
+#  What cannot be overridden here
+#  ---------------------------------------------------------------------------
+#  Only gameplay.toml, performance.toml and world.toml are consulted per
+#  world. Naming a path from any other file does nothing at all: it is not an
+#  error, it is simply never read, because nothing in those files is asked for
+#  in the context of a world.
+#
+#  That is not an arbitrary list. It follows from what the setting is attached
+#  to. An activation range is a property of the entities in a place, so every
+#  world can hold its own. A listening port is a property of the server
+#  process: there is one socket, opened once, before any world exists, and
+#  "port 25566 in the Nether" describes nothing that could happen. The same
+#  goes for the proxy forwarding secret, which is checked during the handshake
+#  that decides who a player is, long before they have a world to be in, and
+#  for anything else in network.toml, server.toml or plugins.toml.
+#
+#  The test is a question about time and ownership: does this setting still
+#  mean something if you ask it while standing in a particular world? If it
+#  does not, it belongs to the server, and the server keeps it.
 
 # ----------------------------------------------------------------------------
 #  Every world
@@ -76,3 +126,49 @@
 #  It earns its place when the global default is one a plugin or another part
 #  of the server depends on and only your worlds should differ.
 [worlds.default]
+
+# ----------------------------------------------------------------------------
+#  Worked examples
+# ----------------------------------------------------------------------------
+#  All commented out. They are here to be read, and to be copied when one of
+#  them happens to be what you wanted. Every value shown is the value that
+#  setting actually has by default, so uncommenting a line as written changes
+#  nothing until you edit the number.
+
+# The Nether, tuned as a place players pass through rather than live in.
+#
+# A shorter view distance because sight lines are short underground anyway, so
+# the chunks are loaded and sent for nothing. A shorter activation range for
+# the same reason. And no thunder, which in the Nether means no thunder sound
+# and no charged creepers in a dimension with no sky.
+#
+# [worlds.world_nether]
+# "chunks.view-distance" = 10
+# "performance.entities.entity-activation-range.animals" = 32
+# "performance.entities.entity-activation-range.monsters" = 32
+# "gameplay.environment.thunder-chance" = 100000
+
+# The End, where the same settings want the opposite answer.
+#
+# The dragon fight spans more than a view distance, and an activation range
+# short enough to be sensible in the Nether is short enough here to freeze the
+# endermen a player is walking towards.
+#
+# [worlds.world_the_end]
+# "chunks.view-distance" = 10
+# "performance.entities.entity-activation-range.monsters" = 32
+
+# The nested form, for a world that differs on several settings from the same
+# section. Identical in effect to writing four quoted paths.
+#
+# [worlds.world.performance.entities.entity-activation-range]
+# animals = 32
+# monsters = 32
+# raiders = 64
+# misc = 16
+
+# A world whose name has to be quoted, and which drops one item-related
+# setting only.
+#
+# [worlds."minigame lobby"]
+# "gameplay.items.item-despawn-rate" = 6000
