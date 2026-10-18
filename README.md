@@ -166,6 +166,8 @@ Applies the patches and builds the jar into `folia-server/build/libs/`. On Windo
 Adds the upstream remote if it is missing, fetches, merges, and re-applies the patches. Safe on a
 fresh clone from any machine. See **[docs/UPDATING.md](docs/UPDATING.md)**.
 
+Project status, what is finished and what comes next: **[docs/PROGRESS.md](docs/PROGRESS.md)**.
+
 Merges stay cheap by design: almost all of this fork is ordinary source in
 `folia-server/src/main/java`, and the patches into Minecraft are a handful of lines each that call
 into it.

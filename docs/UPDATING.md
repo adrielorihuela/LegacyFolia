@@ -80,3 +80,6 @@ When Folia opens a branch for the next version:
 The combat mechanics deserve a second look on any version bump, since they are the part that
 depends most on how upstream's own combat code is shaped. `reference/fetch-1.8.8-source.sh` rebuilds
 the 1.8.8 sources to compare against.
+
+> Folia's default branch is now `ver/26.3.x`. The scripts still follow `ver/26.2.x` until the
+> move to 26.3 is done and verified; see [PROGRESS.md](PROGRESS.md) section 7 for the plan.
