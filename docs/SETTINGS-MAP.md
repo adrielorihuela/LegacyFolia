@@ -22,7 +22,7 @@ objetos, nunca su existencia ni sus tipos.
 | Archivo heredado | Fuente de verdad | Nº de ajustes | Notas |
 |---|---|---:|---|
 | `config/server.properties` | `folia-server/src/minecraft/java/net/minecraft/server/dedicated/DedicatedServerProperties.java` | **71** | 2 son heredados muertos (`announce-player-achievements` L82, `resource-pack-hash` L158) → **69 vivos**. 14 de ellos son `MutableValue` (escribibles en caliente, §5.2) |
-| `config/bukkit.yml` | `paper-server/src/main/resources/configurations/bukkit.yml` | **28** en la plantilla | + 3 claves no plantilladas que el código sí lee: `settings.world-container` (`folia-server/src/minecraft/java/net/minecraft/server/Main.java:207`), `settings.compatibility` (`CraftServer.java:522`), `worlds.<mundo>.generator` (`CraftServer.java:1783,1819`) |
+| `config/bukkit.yml` | `paper-server/src/main/resources/configurations/bukkit.yml` | **28** en la plantilla | + 3 claves no plantilladas que el código sí lee: `settings.world-container` (`folia-server/src/minecraft/java/net/minecraft/server/Main.java:205`), `settings.compatibility` (`paper-server/src/main/java/org/bukkit/craftbukkit/CraftServer.java:522`, **código muerto**, §2.6), `worlds.<mundo>.generator` (`CraftServer.java:1782,1818`) |
 | `config/spigot.yml` (global) | `paper-server/src/main/java/org/spigotmc/SpigotConfig.java` | **36** | +`config-version` (L71-72), que es metadato, no ajuste |
 | `config/spigot.yml` (por mundo) | `paper-server/src/main/java/org/spigotmc/SpigotWorldConfig.java` | **104** | de las cuales 22 son `growth.<Cultivo>Modifier` y 22 son `seed-<estructura>` |
 | `config/commands.yml` | `paper-server/src/main/resources/configurations/commands.yml` | **3** | `command-block-overrides`, `ignore-vanilla-permissions`, `aliases` |
@@ -116,8 +116,8 @@ Los nombres de `spawn-limits`/`ticks-per` se construyen en
 
 | Sección | Nº | Sección | Nº |
 |---|---:|---|---:|
-| `entities.spawning` (+ 7 subsecciones) | 36 | `environment` (+ frosted-ice, treasure-maps) | 25 |
-| `entities.behavior` (+ pillager-patrols…) | 35 | `chunks` | 7 |
+| `entities.spawning` (+ 7 subsecciones) | 36 | `environment` (+ frosted-ice, treasure-maps) | 22 |
+| `entities.behavior` (+ pillager-patrols…) | 24 | `chunks` | 7 |
 | `entities.tracking-range-y` | 7 | `tick-rates` | 7 |
 | `entities.*` (mob-effects, armor-stands, markers, sniffer) | 9 | `collisions` | 5 |
 | `lootables` | 8 | `hopper` | 3 |
@@ -139,11 +139,22 @@ El criterio es el que ya rige `ServerConfig` (`.../legacyfolia/config/ServerConf
 | `[server]` | `motd`, `max-players`, `difficulty`, `gamemode`, `force-gamemode`, `hardcore`, `level-name`, `pause-when-empty-seconds`, `player-idle-timeout`, `eula-prompt-timeout-seconds` (ya existe) | server.properties + TOML actual |
 | `[server.status]` | `enable-status`, `hide-online-players`, `status-heartbeat-interval`, `settings.sample-count` (spigot), `settings.player-shuffle` (spigot) | server.properties + spigot.yml |
 | `[server.console]` | `console.enable-brigadier-highlighting`, `console.enable-brigadier-completions`, `console.has-all-permissions`, `broadcast-console-to-ops`, `broadcast-rcon-to-ops`, `settings.debug`, `debug`, `settings.warn-on-overload`, `settings.deprecated-verbose` | paper-global + server.properties + spigot + bukkit |
-| `[server.access]` | `online-mode`, `white-list`, `enforce-whitelist`, `enforce-secure-profile`, `op-permission-level`, `function-permission-level`, `log-ips`, `allow-flight`, `spawn-protection` | server.properties |
+| `[server.access]` | `online-mode`, `white-list`, `enforce-whitelist`, `enforce-secure-profile`, `op-permission-level`, `function-permission-level`, `log-ips`, `allow-flight` | server.properties |
+
+**`spawn-protection` no aparece aquí a propósito.** Lo posee ya el TOML como
+`server.spawn-protection-radius` (§3.7, `.../legacyfolia/world/SpawnProtection.java:26-29`).
+Listarlo también en `[server.access]` recrearía exactamente el duplicado que §3.7 manda cerrar.
+
 | `[server.messages]` | los 6 de `messages.*` de spigot + `messages.kick.*` y `messages.no-permission` de paper-global + `settings.shutdown-message` de bukkit | spigot + paper-global + bukkit |
 | `[server.resource-pack]` | `resource-pack{,-id,-sha1,-prompt}`, `require-resource-pack` | server.properties |
 | `[server.watchdog]` | `settings.timeout-time`, `settings.restart-on-crash`, `settings.restart-script`, `watchdog.early-warning-every`, `watchdog.early-warning-delay` | spigot + paper-global |
-| `[server.saving]` | `players.disable-saving`, `stats.disable-saving`, `stats.forced-stats`, `advancements.disable-saving`, `advancements.disabled`, `player-auto-save.rate`, `ticks-per.autosave` | spigot + paper-global + bukkit |
+| `[server.saving]` | `players.disable-saving`, `stats.disable-saving`, `stats.forced-stats`, `advancements.disable-saving`, `advancements.disabled` — los cinco son de **`SpigotConfig`**, no de paper-global — y `player-auto-save.rate` | spigot + paper-global |
+Aquí va **sólo el guardado de jugadores**. `ticks-per.autosave` (bukkit) y
+`chunks.auto-save-interval` (paper-mundo) son el autoguardado de **chunks** y van a `[chunks]`.
+La versión anterior de esta tabla ponía `ticks-per.autosave` aquí y se contradecía con §3.6;
+manda §3.6, porque la periodicidad de guardado de chunks es un coste de E/S por mundo y la de
+jugadores no lo es.
+
 | `[server.data-packs]` | `initial-enabled-packs`, `initial-disabled-packs`, `text-filtering-config`, `text-filtering-version` | server.properties |
 
 ### 2.2 `world.toml` — qué mundos existen y cómo se generan
@@ -194,7 +205,7 @@ Absorbe además `settings.attribute.*.max` de spigot (4) y `misc.use-alternative
 
 `[plugins.auto-update]` ya existe. Absorbe:
 `settings.update-folder`, `settings.permissions-file`, `settings.minimum-api`,
-`settings.plugin-profiling`, `settings.compatibility`, `settings.use-map-color-cache`,
+`settings.plugin-profiling`, `settings.use-map-color-cache`,
 `misc.load-permissions-yml-before-plugins`, `scoreboards.track-plugin-scoreboards`,
 `scoreboards.save-empty-scoreboard-teams`, `item-validation.*`,
 `commands.suggest-player-names-when-null-tab-completions`, y los 3 de `commands.yml`
@@ -202,6 +213,14 @@ Absorbe además `settings.attribute.*.max` de spigot (4) y `misc.use-alternative
 más `commands.{log,tab-complete,send-namespaced,silent-commandblock-console,replace-commands}` de
 spigot. Sugerencia: renombrar la sección a `[plugins]` con subsecciones
 `[plugins.auto-update]`, `[plugins.commands]`, `[plugins.api]`.
+
+**`settings.compatibility` NO se migra: es código muerto.** `CraftServer.loadCompatibilities()`
+empieza con `if (true) return;`
+(`paper-server/src/main/java/org/bukkit/craftbukkit/CraftServer.java:520-521`, marcado
+"Paper - Big nope"), así que la clave se lee de un archivo que nadie consulta y
+`activeCompatibilities` queda siempre vacío. Migrarla habría creado un ajuste que no hace nada,
+que es peor que no tenerlo: un operador lo cambia, no ve efecto, y concluye que la configuración
+unificada está rota.
 
 ### 2.7 Dos archivos nuevos
 
@@ -213,8 +232,8 @@ spigot. Sugerencia: renombrar la sección a `[plugins]` con subsecciones
 |---|---|---|
 | `[gameplay.hunger]` | los 7 `hunger.*` | spigot-mundo |
 | `[gameplay.growth]` | los 22 `growth.<Cultivo>Modifier` + `max-growth-height.*` | spigot-mundo + paper-mundo |
-| `[gameplay.mobs]` | `entities.behavior.*` (35), `entities.mob-effects.*`, `zombie-aggressive-towards-villager`, `enable-zombie-pigmen-portal-spawns` | paper-mundo + spigot-mundo |
-| `[gameplay.environment]` | `environment.*` (25), `thunder-chance`, `fishing-time-range`, `tick-rates` de cultivos | paper-mundo + spigot-mundo |
+| `[gameplay.mobs]` | `entities.behavior.*` (24), `entities.mob-effects.*`, `zombie-aggressive-towards-villager`, `enable-zombie-pigmen-portal-spawns` | paper-mundo + spigot-mundo |
+| `[gameplay.environment]` | `environment.*` (22), `thunder-chance`, `fishing-time-range`, `tick-rates` de cultivos | paper-mundo + spigot-mundo |
 | `[gameplay.items]` | `item-despawn-rate`, `arrow-despawn-rate`, `trident-despawn-rate`, `alt-item-despawn-rate`, `lootables.*` (8), `hopper.*`, `hopper-amount`, `max-tnt-per-tick` | §3.5 |
 | `[gameplay.redstone]` | `misc.redstone-implementation`, `misc.alternate-current-update-order`, `block-updates.*` | paper |
 | `[gameplay.exploits]` | `unsupported-settings.*` global (9) y por mundo (4), `fixes.*` (6), `anticheat.anti-xray.*` (8), `anticheat.obfuscation.items.*` (4) | paper |
@@ -228,10 +247,10 @@ spigot. Sugerencia: renombrar la sección a `[plugins]` con subsecciones
 
 ```toml
 [worlds.default]            # equivale a world-settings.default y a paper-world-defaults.yml
-"performance.entities.entity-activation-range.animals" = 32
+"performance.entities.activation-range.animals" = 32
 
 [worlds."world_nether"]     # equivale a world-settings.<mundo> y a <mundo>/paper-world.yml
-"performance.entities.entity-activation-range.animals" = 16
+"performance.entities.activation-range.animals" = 16
 ```
 
 Regla: **toda clave de `[gameplay.*]` y de `[performance.*]` marcada "por mundo" admite override en
@@ -272,18 +291,27 @@ Orden real de arranque, comprobable línea a línea:
 
 | Orden | Punto | Archivo:línea | Qué queda poblado |
 |---:|---|---|---|
-| 1 | `new DedicatedServerSettings(options)` + `forceSave()` | `folia-server/src/minecraft/java/net/minecraft/server/Main.java:124-125`; ruta en `DedicatedServerSettings.java:12` | `DedicatedServerProperties` (y **reescribe** `server.properties`) |
-| 2 | `RegionFileVersion.configure(...regionFileComression)` | `Main.java:132` | compresión de regiones, **antes** que el TOML |
-| 3 | `ServerConfig.load()` | `Main.java:137` | los seis TOML |
-| 4 | `PaperConfigurations.loadLegacyConfigFile(bukkit/spigot)` | `Main.java:144-146` | dos `YamlConfiguration` sueltas |
-| 5 | `SpigotConfig.disabledAdvancements` | `Main.java:195` | parche temprano de SPIGOT-5885 |
-| 6 | `settings.world-container` | `Main.java:207` | `universePath` |
-| 7 | `SpigotConfig.init(spigot.yml)` | `folia-server/src/minecraft/java/net/minecraft/server/dedicated/DedicatedServer.java:234`; también `SpigotCommand.java:40` y `CraftServer.java:1021` | **`SpigotConfig.*` estáticos + `SpigotConfig.config`** |
-| 8 | `initializeGlobalConfiguration` / `initializeWorldDefaultsConfiguration` | `DedicatedServer.java:238-239` | **`GlobalConfiguration.get()`** y defaults de mundo |
-| 9 | `WatchdogThread.doStart(SpigotConfig.timeoutTime, ...)` | `DedicatedServer.java:249` | watchdog |
-| 10 | `createWorldConfig(...)` por mundo | `folia-server/src/minecraft/java/net/minecraft/server/level/ServerLevel.java:597` | **`level.paperConfig()`** y `SpigotWorldConfig` |
-| 11 | `CraftServer` ctor: lee bukkit.yml y commands.yml | `paper-server/src/main/java/org/bukkit/craftbukkit/CraftServer.java:428-522` | `this.configuration`, `this.commandsConfiguration`, `spawnCategoryLimit`, `warningState`, `minimumAPI`, `autosavePeriod` |
-| 12 | `CraftServer.reload()` | `CraftServer.java:1001-1056` + `paperConfigurations.reloadConfigs` (`PaperConfigurations.java:332-337`, `ReloadCommand.java:30`) | **repite 7, 8, 11 en caliente** |
+| 1 | `ServerConfig.load()` | `folia-server/src/minecraft/java/net/minecraft/server/Main.java:127` | **los ocho TOML**, antes que nada más |
+| 2 | `AdaptiveDistance.reload()`, `Combat.reload()` | `Main.java:128-129` | los dos módulos del fork que ya leen TOML |
+| 3 | `new DedicatedServerSettings(options)` + `forceSave()` | `Main.java:132-133`; ruta en `DedicatedServerSettings.java:12` | `DedicatedServerProperties` (y **reescribe** `server.properties`) |
+| 4 | `RegionFileVersion.configure(...regionFileComression)` | `Main.java:140` | compresión de regiones, desde `server.properties` |
+| 5 | `PaperConfigurations.loadLegacyConfigFile(bukkit/spigot)` | `Main.java:144-145` | dos `YamlConfiguration` sueltas |
+| 6 | `SpigotConfig.disabledAdvancements` | `Main.java:196` | parche temprano de SPIGOT-5885 |
+| 7 | `settings.world-container` | `Main.java:205` | `universePath` |
+| 8 | `SpigotConfig.init(spigot.yml)` | `folia-server/src/minecraft/java/net/minecraft/server/dedicated/DedicatedServer.java:234`; también `paper-server/src/main/java/org/spigotmc/SpigotCommand.java:40` y `CraftServer.java:1007` | **`SpigotConfig.*` estáticos + `SpigotConfig.config`** |
+| 9 | `initializeGlobalConfiguration` / `initializeWorldDefaultsConfiguration` | `DedicatedServer.java:238-239` | **`GlobalConfiguration.get()`** y defaults de mundo |
+| 10 | `WatchdogThread.doStart(SpigotConfig.timeoutTime, ...)` | `DedicatedServer.java:248` | watchdog |
+| 11 | `createWorldConfig(...)` por mundo | `folia-server/src/minecraft/java/net/minecraft/server/level/ServerLevel.java:597` | **`level.paperConfig()`** y `SpigotWorldConfig` |
+| 12 | `CraftServer` ctor: lee bukkit.yml y commands.yml | `paper-server/src/main/java/org/bukkit/craftbukkit/CraftServer.java:428-472` | `this.configuration`, `this.commandsConfiguration`, `spawnCategoryLimit`, `warningState`, `minimumAPI`, `autosavePeriod` |
+| 13 | `CraftServer.reload()` | `CraftServer.java:985-1050` + `paperConfigurations.reloadConfigs` (`PaperConfigurations.java:332-337`, `ReloadCommand.java:30`) | **repite 8, 9, 12 en caliente** |
+
+**Corrección respecto de la versión anterior de esta tabla.** Decía que `ServerConfig.load()` ocurría
+en el paso 3, después de `DedicatedServerSettings` y después de `RegionFileVersion.configure`. Ya no
+es así: `Main.java` carga los TOML **primero**, en la línea 127, precisamente para que nada lea un
+ajuste antes de que el archivo que lo posee exista. Esto elimina el peligro que §5.6 describía y
+cambia el orden de todas las filas siguientes. Las rutas con nombre de archivo suelto llevan ahora
+su directorio: las clases de `org.spigotmc` viven en `paper-server/src/main/java/org/spigotmc/`,
+no bajo `folia-server/src/minecraft/`.
 
 ### 4.1 Objeto a poblar por grupo
 
@@ -324,8 +352,14 @@ los rompe:
   `accepts-transfers`, `gamemode`, `op-permission-level`) se cambian con comandos vanilla
   (`/difficulty`, `/whitelist on`) **y se persisten a disco**. `ServerConfig.set` ya sabe escribir
   (`ServerConfig.java:160-166`); hay que enlazarlo, o esos comandos empezarán a mentir.
-- **`SpigotConfig.set` + `save`**: `SpigotConfig.java:72,145,147,166-167,192,256-259,273-274`.
-  Especialmente L192, que **desactiva** `settings.bungeecord` sola.
+- **`SpigotConfig.set` + `save`**: `SpigotConfig.java:72,145,147,166-167,192,250-262,273-274`.
+  Dos casos concretos:
+  - L192 **desactiva** `settings.bungeecord` sola cuando detecta configuración incoherente.
+  - `commands.enable-spam-exclusions` (L250-262) **no existe en la plantilla**. Si falta,
+    `spamExclusions()` la deduce de `commands.spam-exclusions` — `false` si la lista sigue siendo
+    el `["/skill"]` de fábrica, `true` si el operador la tocó — y la **escribe** al arrancar.
+    Es decir: la primera ejecución de un servidor nuevo ya escribe una clave que nadie puso.
+    Cualquier lado TOML tiene que reproducir esa deducción, no sólo el valor.
 - **`Bukkit.spigot().getConfig()`** (`CraftServer.java:2778`): devuelve un objeto que un plugin puede
   mutar. Nada garantiza que no lo haga.
 
@@ -364,9 +398,19 @@ editar. `ServerConfig.load()` hoy se llama **una sola vez** a propósito (`Main.
 lógica de `wasCreated`): hará falta separar "cargar" de "recargar".
 
 ### 5.6 Orden de lectura
-`RegionFileVersion.configure` (`Main.java:132`) consume `region-file-compression` **antes** de
-`ServerConfig.load()` (L137). Cualquier ajuste que se mueva al TOML y se lea antes de esa línea leerá
-el default. Es exactamente el fallo silencioso que la fase 0 debe imposibilitar.
+Ya **no** es cierto que `RegionFileVersion.configure` (`Main.java:140`) se ejecute antes que
+`ServerConfig.load()`: la carga de los TOML es la línea 127 y es lo primero que ocurre (§4). El
+riesgo residual es otro y sigue siendo real:
+
+- `region-file-compression` se toma de `settings.getProperties()`, es decir de `server.properties`,
+  no del TOML. La clave existe en `performance.toml` bajo `[chunks]` y **hoy no hace nada**; el
+  comentario del archivo lo dice. Enlazarla es trabajo de la fase 2.
+- Se consume una sola vez y nada la vuelve a leer, así que ninguna recarga la mueve. Cualquier
+  ajuste con esta forma tiene que decirlo en su comentario, porque el fallo — editar, recargar, no
+  ver cambio — es silencioso.
+- La regla general que sustituye a la anterior: un ajuste puede migrarse al TOML si su primer lector
+  está **por debajo** de `Main.java:127`. Para todo lo que corre por encima de esa línea (poco:
+  arranque de la JVM, hilos de DataConverter) no hay TOML posible.
 
 ---
 
@@ -385,7 +429,7 @@ archivo heredado se borra hasta la fase 7.
 | **4. Escribibles en caliente** | Los `MutableValue` de `server.properties` y las claves que `SpigotConfig` reescribe (§5.2) | Medio-alto | Requiere la fase 0 completa; un `/whitelist on` que no persista es un incidente de moderación |
 | **5. Por mundo** | `worlds.toml`; los 104 de `spigot.yml` y los 173 de `paper-world-defaults.yml` | **Alto** | El bloque más grande y el único que puede cambiar el comportamiento de un mundo concreto sin tocar su archivo. Va después de todo lo demás |
 | **6. Fallbacks cruzados** | `view-distance`/`simulation-distance` (§5.4), despawn de flechas, límites de spawn, `rcon.ip` | Alto | Sólo tiene sentido cuando ambos lados del fallback ya viven en el TOML |
-| **7. Retirada** | Dejar de escribir los YAML, o degradarlos a artefactos regenerados de sólo lectura (§5.3); mover `region-file-compression` por delante de `ServerConfig.load()` o mover la carga por delante de él (`Main.java:132-137`) | Alto | Es el único paso irreversible para los plugins que leen por ruta. Requiere una decisión explícita sobre §5.3 |
+| **7. Retirada** | Dejar de escribir los YAML, o degradarlos a artefactos regenerados de sólo lectura (§5.3); enlazar `region-file-compression` al TOML (la carga ya va primero, `Main.java:127`; hoy la clave se sigue leyendo de `server.properties`, §5.6) | Alto | Es el único paso irreversible para los plugins que leen por ruta. Requiere una decisión explícita sobre §5.3 |
 
 **Se puede hacer ya, con riesgo casi nulo:** fases 0, 1 y 2, y dentro de la 3 las filas 3.7
 (protección del spawn, donde el TOML ya es dueño) y 3.8 (secreto de Velocity, ya migrado).
@@ -394,3 +438,68 @@ archivo heredado se borra hasta la fase 7.
 (retirada de los YAML). Migrar una clave por mundo antes de que exista `forWorld` produce
 exactamente el fallo que este plan existe para evitar: un mundo que pierde su ajuste y nadie se
 entera hasta que los mobs dejan de aparecer.
+
+---
+
+## 7. Tipos que no son escalares
+
+Los TOML se escribieron con el valor que el código usa hoy, pero varios de esos valores no son un
+número o un booleano simple. El código de enganche (fases 1 a 6) tiene que aceptar estas formas;
+un lector que asuma `int` falla con la primera de ellas.
+
+| Forma en el TOML | Tipo real | Ejemplos | Qué tiene que hacer el lector |
+|---|---|---|---|
+| `"disabled"` o un entero | `IntOr.Disabled` | `spam-limiter.incoming-packet-threshold` (300), `item-validation.book-size.page-max` (2560), `max-arrow-despawn-invulnerability` | aceptar cadena **o** entero; `"disabled"` es un valor legal, no un error |
+| `"default"` o un entero | `IntOr.Default` | `misc.compression-level` | igual; `"default"` significa "lo que decida el servidor" |
+| `"default"`, `true` o `false` | `BooleanOrDefault` | `treasure-maps-find-already-discovered-loot-tables` | tres estados, no dos |
+| `"12h"`, `"2d"`, `"disabled"` | `Duration` / `DurationOrDisabled` | `despawn-time`, `lootables.refresh-*` | parsear con el mismo serializador de Paper, no a mano |
+| entero `1`, `2` o `3` | enum `EngineMode` serializado como número | `anti-xray-engine-mode` | convertir 1→HIDE, 2→OBFUSCATE, 3→OBFUSCATE_LAYER |
+| entero `4`, `2` | `LevelBasedPermissionSet` | `op-permission-level` (OWNER), `function-permission-level` (GAMEMASTER) | `deserializePermission`; no pasar el entero tal cual |
+| clave de traducción | `Component.translatable` | `kick.authentication-servers-down`, `kick.flying-player`, `kick.flying-vehicle` | ver decisión pendiente 9.1 |
+| `[]` | `Set` envuelto | `unsupported-settings.oversized-item-component-sanitizer` | una lista, no un booleano |
+| `""` | ausente | `rcon.ip` | **no** pasar `""` como dirección explícita: con cadena vacía RCON tiene que seguir heredando `[network].ip` |
+
+Defaults acoplados que el TOML aplana y el enganche tiene que respetar: `trident-despawn-rate`
+vale lo que valga `arrow-despawn-rate` (`SpigotWorldConfig` L295); el 1200 escrito sólo es
+correcto mientras el otro no cambie. `sync-chunk-writes` es el AND de la clave y de la propiedad de
+sistema `Paper.enable-sync-chunk-writes`.
+
+## 8. Claves omitidas a propósito
+
+No están en ningún TOML, y no es un descuido. Ninguna tenía un default que se pudiera escribir sin
+inventarlo, o exponerla habría sido engañar al operador.
+
+| Clave | Por qué no está |
+|---|---|
+| `entities.behavior.door-breaking-difficulty` | mapa `EntityType -> List<Difficulty>` calculado en runtime desde `Zombie/Vindicator.DOOR_BREAKING_PREDICATE` |
+| `anticheat.obfuscation.items.model-overrides` | indexado por el `Identifier` de un modelo de ítem, no por una clave estable |
+| `tick-rates.sensor`, `tick-rates.behavior` | tabla bidimensional (`Table<EntityType, String, Integer>`), sin forma plana |
+| `entity-per-chunk-save-limit`, `despawn-time` | mapas por tipo de entidad, todos `-1`/disabled por defecto |
+| `packet-limiter.overrides` | indexado por **clase** de paquete |
+| `packet-limiter.kick-message` | `Component.translatable`, a la espera de 9.1 |
+| `management-server-secret`, `management-server-tls-keystore-password` | secretos; el primero además es aleatorio en cada arranque |
+| `chunks.prevent-moving-into-unloaded-chunks` | Folia lo fuerza a `true` en `@PostProcess` (`WorldConfiguration.java:528-531`) |
+| `settings.compatibility` | código muerto: `CraftServer.loadCompatibilities()` empieza con `if (true) return;` |
+
+Pendiente de asignar: `messages.use-display-name-in-quit-message` (GlobalConfiguration, `false`)
+existe en el código y ningún archivo lo recoge. Candidato natural: `[server.messages]`.
+
+## 9. Decisiones pendientes
+
+### 9.1 Cómo se escriben los mensajes traducibles
+Hoy los tres mensajes de expulsión que son `Component.translatable` se escribieron como su clave
+de traducción. Hace falta una regla para toda `[server.messages]`. **Recomendación:** texto
+MiniMessage en todos, y una clave de traducción sólo cuando el valor empieza por `translate:`.
+MiniMessage es lo que Paper ya usa para el resto de mensajes, permite colores, y el prefijo deja
+claro cuál de las dos formas es cada valor.
+
+### 9.2 `rcon.password` dentro del TOML o en un archivo aparte
+`rcon.password` quedó dentro de `network.toml`, mientras el secreto del servidor de gestión se manda
+a un archivo `.secret`, igual que `config/forwarding.secret`. Es el mismo tipo de dato con el
+criterio contrario. **Recomendación:** archivo aparte, `config/rcon.secret`, creado vacío y con
+RCON apagado mientras esté vacío. Así un TOML compartido en un foro para pedir ayuda nunca lleva
+una contraseña dentro.
+
+> Los números de línea citados en este documento corresponden a la base 26.2
+> (`paperRef c9e894d3`). Hay que revisarlos después de actualizar a 26.3.
+
