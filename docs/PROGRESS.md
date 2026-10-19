@@ -114,26 +114,42 @@ dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en
 
 ## 5. Qué falta, en orden
 
-1. **Fase de enganche** (la que cumple el requisito 1 de verdad). Plan detallado en
-   `SETTINGS-MAP.md` §4.1 y §6. Son cinco puntos de inyección; ningún objeto desaparece, solo cambia
-   de dónde lee:
-   - `DedicatedServerProperties`, construido desde los TOML antes de `new DedicatedServerSettings`.
-   - `SpigotConfig.config`, una `YamlConfiguration` en memoria, rellenada antes de `readConfig`
-     **sin escribir a disco**. `Bukkit.spigot().getConfig()` sigue funcionando.
-   - `GlobalConfiguration` de Paper, alimentando el `ConfigurationNode` en `PaperConfigurations`.
-   - Las dos `YamlConfiguration` de `CraftServer` (`bukkit.yml` y `commands.yml`), en memoria.
-   - `createWorldConfig` por mundo, con los valores de `forWorld()`.
+Las etapas van **en fila**: cada una empieza cuando la anterior termina y está subida.
 
-   Después: dejar de escribir los yml y borrarlos; el EULA como clave de configuración (hoy sigue
-   siendo `config/eula.txt`); las escrituras en caliente (`MutableValue`, `/whitelist on`). Esto va
-   en serie, con un solo agente.
-2. **`server.properties` opcional y sincronizado** en las dos direcciones. Necesita un escritor que
-   conserve los comentarios, porque `Properties.store()` los borra. Depende del punto 1.
-3. **Daño base de espadas 1.8** (opcional). Es el único de los nueve enganches del PvP que falta.
+1. **Fase de enganche.** Plan detallado en `SETTINGS-MAP.md` §4.1 y §6, y decisiones en §6 de este
+   documento. La etapa 1 (catálogo de claves y lectores de tipos) está hecha. Quedan:
+   - **Etapa 2: modo `server.properties`.** Calcular las diferencias respecto al default, conservar
+     los nombres vanilla, escribir y leer el archivo con su cabecera, y devolver los cambios a los TOML
+     al apagarlo. Antes, arreglar que `BundledTomlParseTestSuite` no se ejecute con
+     `LegacyFoliaTestSuite`.
+   - **Etapa 3: importador.** Leer vanilla, Spigot, Paper o Folia, incluido el `paper-world.yml` de
+     cada mundo, resolver las colisiones como el servidor original y hacer copia de los originales en
+     `config/legacy-backup/<fecha>/`.
+   - **Etapa 4: objetos en memoria.** `Properties` para `DedicatedServerProperties`, `YamlConfiguration`
+     para `SpigotConfig`, `bukkit.yml` y `commands.yml`, y `ConfigurationNode` para Paper global y
+     por mundo. Además la clave de RCON en `config/rcon.secret` y los mensajes MiniMessage.
+   - **Etapa 5: conexión al servidor**, en serie porque toca los árboles generados. Los cinco puntos de
+     inyección, el comando `/legacyfolia properties on|off|status`, las escrituras en caliente
+     (`/whitelist on`, `/difficulty`...), el lobby configurable (`world.lobby-spawn-world`), el EULA
+     como clave y el borrado de los yml.
+2. **Daño base de espadas 1.8** (opcional). Es el único de los nueve enganches del PvP que falta.
    Obliga a cargar la configuración antes de `Bootstrap.bootStrap()`, porque `Items` es un registro
    estático.
-4. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto.
-5. **`/init`** para generar `CLAUDE.md`, y un último commit.
+3. **Locator bar idéntica a vanilla y Paper.** Comparar línea a línea nuestra implementación
+   (`waypoint/RegionisedWaypoints`, parche 0014) con el código de vanilla
+   (`ServerWaypointManager`, `WaypointTransmitter` y el atributo `WAYPOINT_TRANSMIT_RANGE`) y con el de
+   Paper, y después corregirla hasta que se comporte **exactamente** igual. Error conocido: se ven
+   jugadores de otras dimensiones (overworld, Nether y End). Solo deben verse los de la dimensión
+   propia. Revisar también los cambios de dimensión, el agacharse, las cabezas, la invisibilidad, las
+   desconexiones y el rango.
+4. **PvP 1.8 idéntico al original.** Hacer la misma comparación entre nuestro combate (`combat/` y los
+   parches 0016, 0017 y 0020–0027) y el código fuente de 1.8.8 (`reference/fetch-1.8.8-source.sh`),
+   cubriendo todas las mecánicas y no solo las fórmulas: orden de los modificadores, knockback, bloqueo
+   con espada, críticos, invulnerabilidad, hambre, pociones y encantamientos. Después corregir hasta
+   que sea **exactamente** igual.
+5. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto. Los puntos 3 y 4 son
+   lo último que se hace antes.
+6. **`/init`** para generar `CLAUDE.md`, y un último commit.
 
 ## 6. Decisiones del usuario (decididas)
 
