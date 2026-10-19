@@ -466,10 +466,10 @@ un lector que asuma `int` falla con la primera de ellas.
 | `"12h"`, `"2d"`, `"disabled"` | `Duration` / `DurationOrDisabled` | `despawn-time`, `lootables.refresh-*` | parsear con el mismo serializador de Paper, no a mano |
 | entero `1`, `2` o `3` | enum `EngineMode` serializado como número | `anti-xray-engine-mode` | convertir 1→HIDE, 2→OBFUSCATE, 3→OBFUSCATE_LAYER |
 | entero `4`, `2` | `LevelBasedPermissionSet` | `op-permission-level` (OWNER), `function-permission-level` (GAMEMASTER) | `deserializePermission`; no pasar el entero tal cual |
-| clave de traducción | `Component.translatable` | `kick.authentication-servers-down`, `kick.flying-player`, `kick.flying-vehicle` | ver decisión pendiente 9.1 |
+| clave de traducción | `Component.translatable` | `kick.authentication-servers-down`, `kick.flying-player`, `kick.flying-vehicle` | MiniMessage; un valor que empieza por `translate:` es `Component.translatable` (9.1, decidido) |
 | `[]` | `Set` envuelto | `unsupported-settings.oversized-item-component-sanitizer` | una lista, no un booleano |
 | mapa indexado por registro | `Reference2LongMap<Holder<Feature>>` | `feature-seeds.features` (paper-mundo, sin TOML todavía) | desde 26.3 las claves son IDs del registro `worldgen/feature`, ya no de `configured_feature` (`WorldConfiguration.java:563` en `c927bd34`); un mapa del TOML tiene que resolverse contra ese registro |
-| `""` | ausente | `rcon.ip` | **no** pasar `""` como dirección explícita: con cadena vacía RCON tiene que seguir heredando `[network].ip` |
+| `""` | ausente | `rcon.ip` (el default es ahora `"127.0.0.1"`) | **no** pasar `""` como dirección explícita: con cadena vacía RCON tiene que seguir heredando `[network].ip` |
 
 Defaults acoplados que el TOML aplana y el enganche tiene que respetar: `trident-despawn-rate`
 vale lo que valga `arrow-despawn-rate` (`SpigotWorldConfig` L295); el 1200 escrito sólo es
@@ -496,7 +496,13 @@ inventarlo, o exponerla habría sido engañar al operador.
 Pendiente de asignar: `messages.use-display-name-in-quit-message` (GlobalConfiguration, `false`)
 existe en el código y ningún archivo lo recoge. Candidato natural: `[server.messages]`.
 
-## 9. Decisiones pendientes
+## 9. Decisiones (resueltas)
+
+> **Decididas el 2026-10-18** (`docs/PROGRESS.md` §6): 9.1 es MiniMessage con prefijo
+> `translate:`, ya aplicado a `[server.messages]`; 9.2 es `config/rcon.secret`, generado con 32
+> caracteres aleatorios en el primer arranque, con RCON encendido y escuchando en `127.0.0.1`
+> (`[network.rcon]` tiene ahora `password-file` en lugar de `password`). Se conserva abajo el
+> razonamiento original.
 
 ### 9.1 Cómo se escriben los mensajes traducibles
 Hoy los tres mensajes de expulsión que son `Component.translatable` se escribieron como su clave

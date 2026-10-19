@@ -58,6 +58,19 @@ end = true
 # saved position was never touched.
 always-spawn-at-world-spawn = false
 
+# Which world's spawn always-spawn-at-world-spawn sends a player to.
+#
+#   logout-world - the spawn of the world they logged out in, so somebody who
+#                  left from the Nether arrives at the Nether's spawn
+#   main-world   - the spawn of the main world (level-name in server.toml),
+#                  whichever world they left from, which is what a lobby with
+#                  several worlds wants
+#
+# Only read while always-spawn-at-world-spawn is on.
+#
+# NOT READ YET. Until the hook-up lands it behaves as logout-world.
+lobby-spawn-world = "logout-world"
+
 # Stop players building on top of the Nether roof.
 #
 # The Nether is really 256 blocks tall; its logical height of 128 only limits

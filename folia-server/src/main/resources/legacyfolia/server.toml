@@ -26,8 +26,40 @@
 # A server with no console attached - started by systemd, in a container, or
 # with --noconsole - is never asked, because there would be nobody there to
 # answer and the prompt would look like a hang. It stops with the usual
-# message instead, and you set eula=true in eula.txt yourself.
+# message instead, and you set eula below to true yourself.
 eula-prompt-timeout-seconds = 120
+
+# Whether you agree to the Minecraft EULA: https://aka.ms/MinecraftEULA
+#
+# The server will not start until this is true. It replaces eula.txt: an
+# existing eula.txt is read once, its answer copied here, and the file moved
+# to config/legacy-backup/. Answering ENTER at the prompt above writes true
+# here for you.
+#
+# NOT READ YET. Until the hook-up lands the server still asks eula.txt.
+eula = false
+
+# Keep a server.properties beside this configuration, for panels such as
+# Pterodactyl that read and write it.
+#
+# On, server.properties holds only the settings that differ from their
+# defaults, and what it says wins. Vanilla settings keep their usual names
+# there (motd, max-players, server-port); every other setting uses its full
+# path (gameplay.hunger.jump-walk-exhaustion), and a per-world one
+# worlds.<world>.<path>. Deleting a line puts that setting back to its
+# default; adding one applies it. An edit made to one of these TOML files is
+# moved into server.properties and the TOML goes back to its default, so the
+# TOML files always read as the reference. Both are compared at start-up and
+# on reload, never while running. Secrets are never written to it.
+#
+# Off, these TOML files are all there is: turning it off moves what
+# server.properties held into them and deletes the file.
+#
+# The console command /legacyfolia properties on|off|status changes this at
+# once and saves it here.
+#
+# NOT READ YET. Until the hook-up lands server.properties is read as before.
+use-server-properties = true
 
 # The radius, in blocks, of the area around the world spawn that only
 # operators may build in or break. 0 turns it off.
@@ -250,9 +282,11 @@ allow-flight = false
 # ----------------------------------------------------------------------------
 #  Messages - the text the server sends when it refuses or ends a connection
 # ----------------------------------------------------------------------------
-#  Legacy section signs colour these. A value that looks like a translation key
-#  (multiplayer.disconnect.flying) is sent as a key and the client renders it in
-#  its own language; replacing it with plain text makes it English for everyone.
+#  Every message is MiniMessage: <red>, <bold>, <gradient:...> and the rest,
+#  https://docs.advntr.dev/minimessage/format.html. A value starting with
+#  translate: is a translation key instead, sent as a key so that each client
+#  renders it in its own language; replacing it with plain text makes it
+#  English for everyone.
 [server.messages]
 
 # Shown to a player who is not on the whitelist while white-list is on.
@@ -278,7 +312,7 @@ shutdown = "Server closed"
 
 # Sent when a command is refused for lack of permission. This is the vanilla
 # fallback; most plugins send their own instead.
-no-permission = "I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error."
+no-permission = "<red>I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error."
 
 # Reconnecting sooner than the connection throttle in network.toml allows. The
 # threshold lives there, with the other rate limits; only the wording is here,
@@ -286,11 +320,11 @@ no-permission = "I'm sorry, but you do not have permission to perform this comma
 kick-connection-throttle = "Connection throttled! Please wait before reconnecting."
 
 # Mojang's authentication servers did not answer while online-mode is on.
-kick-authentication-servers-down = "multiplayer.disconnect.authservers_down"
+kick-authentication-servers-down = "translate:multiplayer.disconnect.authservers_down"
 
 # Flight detected while allow-flight is off, on foot and in a vehicle.
-kick-flying-player = "multiplayer.disconnect.flying"
-kick-flying-vehicle = "multiplayer.disconnect.flying"
+kick-flying-player = "translate:multiplayer.disconnect.flying"
+kick-flying-vehicle = "translate:multiplayer.disconnect.flying"
 
 # ----------------------------------------------------------------------------
 #  Resource pack - the pack the server offers or demands on join

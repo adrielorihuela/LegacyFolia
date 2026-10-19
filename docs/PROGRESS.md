@@ -181,6 +181,12 @@ aquí (mensajes traducibles, `rcon.password` y lobby en multimundo) y a las reco
 9. Los `bukkit.yml`, `spigot.yml` y `paper-*.yml` **desaparecen del disco**, pero los plugins siguen
    viendo los valores a través de objetos en memoria.
 
+Consecuencias ya aplicadas en la etapa 1 de la fase de enganche (las claves existen en los TOML y
+en el catálogo `config/catalog/`, pero ningún código las lee todavía): `server.eula`,
+`server.use-server-properties`, `world.lobby-spawn-world`, `[network.rcon]` con `enabled = true`,
+`ip = "127.0.0.1"` y `password-file = "rcon.secret"` en lugar de `password`, y los mensajes de
+`[server.messages]` en MiniMessage con `translate:`.
+
 **Verificaciones manuales pendientes:** el prompt del EULA en Linux con una TTY real; la locator bar
 con dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con cabeza puesta; y
 cómo se siente el PvP 1.8 comparado con un servidor 1.8 real.

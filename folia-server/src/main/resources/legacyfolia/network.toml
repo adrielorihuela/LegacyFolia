@@ -182,25 +182,34 @@ enabled = false
 #
 # RCON is a plaintext protocol with a single shared password and no rate
 # limit worth the name. It has full console authority: whoever gets in can run
-# any command. Treat the port as internal.
-enabled = false
+# any command. That is why it is on but bound to loopback by default (ip,
+# below): tools on this machine can reach it and nothing else can.
+#
+# NOT READ YET. Until the hook-up lands enable-rcon in server.properties
+# decides, as before.
+enabled = true
 
 # The port RCON listens on.
 port = 25575
 
-# The address RCON binds to. Empty means it follows [network].ip.
-#
-# This inheritance is the useful part: a server bound to every address will
-# also expose RCON on every address unless you say otherwise here. Setting
-# this to "127.0.0.1" keeps the game port public and the console private.
-ip = ""
+# The address RCON binds to. "127.0.0.1" keeps the game port public and the
+# console private. Empty means it follows [network].ip, which on a server
+# bound to every address exposes RCON on every address too.
+ip = "127.0.0.1"
 
-# The RCON password. An empty password means the listener refuses to start.
+# The file holding the RCON password, relative to config/ unless an absolute
+# path is given.
 #
-# This is a password in a configuration file, which is the reason RCON is off
-# by default. If you turn it on, treat this file as a secret: it is the one
-# key to the whole console.
-password = ""
+# The password lives in its own file for the same reason as the Velocity
+# secret above: configuration gets pasted into issues and screenshots. On
+# first start a random 32-character password is generated into it. Delete
+# the file and a new one is generated; write your own into it and yours is
+# used. The password is never written to the log, which only says where the
+# file is. It is never written to server.properties either.
+#
+# NOT READ YET. Until the hook-up lands rcon.password in server.properties
+# is used, as before.
+password-file = "rcon.secret"
 
 # ----------------------------------------------------------------------------
 #  Query
