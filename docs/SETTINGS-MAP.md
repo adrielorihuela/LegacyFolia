@@ -7,6 +7,12 @@ No es un ensayo: cada afirmación lleva la ruta donde se comprueba. Nada de lo q
 implementado todavía; hoy los TOML sólo **anulan** a los heredados
 (`docs/CONFIGURATION.md`, sección "It does not replace anything").
 
+> **Números de línea de 26.2.** El fork ya está en Minecraft 26.3 (Paper `c927bd34`), pero las
+> rutas con número de línea de este documento siguen siendo las de 26.2 (Paper `c9e894d3`) hasta
+> que se refresquen. Los nombres de clase y de campo siguen valiendo; las líneas pueden haberse
+> movido. Un default ya se sabe distinto: `white-list`, que 26.3 pone a `true` y el fork mantiene
+> en `false` (parche 0031).
+
 Invariante que gobierna todo el trabajo: **un plugin no debe poder distinguir este fork de Folia
 leyendo configuración**. Los plugins no leen archivos, leen objetos en memoria
 (`SpigotConfig.*`, `GlobalConfiguration.get()`, `Bukkit.spigot().getConfig()`,
