@@ -74,8 +74,9 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 129 en `LegacyFoliaTestSuite` (18 clases), sin fallos (verificado el 2026-10-18 sobre
-26.3, contando los XML de `build/test-results`).
+**Tests:** 150 en `LegacyFoliaTestSuite` (20 clases; 145 propios más las 5 suites vacías de upstream
+que Gradle también cuenta), sin fallos (verificado el 2026-10-18 sobre 26.3, contando los XML de
+`build/test-results`). Antes de la etapa 1 de la fase de enganche eran 129.
 
 **Importante:** los 430 ajustes **todavía no los lee el servidor**. Hoy los TOML se generan y se
 documentan, pero los valores efectivos siguen saliendo de `server.properties`, `bukkit.yml`,
@@ -100,7 +101,11 @@ documentan, pero los valores efectivos siguen saliendo de `server.properties`, `
 ## 4. Punto exacto de reanudación
 
 Al escribir esto (2026-10-18), `main` y el tag `v0.14.0` están publicados y `main` es la única rama.
-Lo siguiente es la fase de enganche (§5, punto 1).
+Estamos en la fase de enganche (§5, punto 1). **La etapa 1 está hecha:** las decisiones del usuario
+(§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
+claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
+su tipo, su default, su origen heredado y su nombre en `server.properties`) con los lectores tipados
+de `config/types/SettingReaders`. Tres agentes pueden trabajar ahora en paralelo contra esa API.
 
 La comprobación de arranque que quedó pendiente en `v0.13.0` está hecha, ya sobre 26.3: con
 `run/config/*.toml` borrados, `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo
