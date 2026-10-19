@@ -12,7 +12,7 @@ merge does not go cleanly.
 
 1. Adds the `upstream` remote if it is missing, so a fresh clone from any machine works without
    setting anything up first.
-2. Fetches `ver/26.2.x` from `PaperMC/Folia`.
+2. Fetches `ver/26.3.x` from `PaperMC/Folia`.
 3. Merges it.
 4. Re-applies the patches.
 
@@ -72,7 +72,7 @@ task only runs classes matching `**TestSuite`, and upstream's suites select only
 
 When Folia opens a branch for the next version:
 
-1. Change `UPSTREAM_BRANCH` in `update.sh` and `update.bat`.
+1. Change the branch in `update.sh` (`UPSTREAM_BRANCH`) and in `update.bat`.
 2. Change `mcVersion` and `apiVersion` in `gradle.properties`.
 3. Run `./update.sh` and expect to fix a few hooks by hand — a Minecraft version bump moves code
    that a point release does not.
@@ -80,6 +80,3 @@ When Folia opens a branch for the next version:
 The combat mechanics deserve a second look on any version bump, since they are the part that
 depends most on how upstream's own combat code is shaped. `reference/fetch-1.8.8-source.sh` rebuilds
 the 1.8.8 sources to compare against.
-
-> Folia's default branch is now `ver/26.3.x`. The scripts still follow `ver/26.2.x` until the
-> move to 26.3 is done and verified; see [PROGRESS.md](PROGRESS.md) section 7 for the plan.

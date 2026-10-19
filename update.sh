@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 UPSTREAM_URL="https://github.com/PaperMC/Folia.git"
-UPSTREAM_BRANCH="ver/26.2.x"
+UPSTREAM_BRANCH="ver/26.3.x"
 
 if ! git remote get-url upstream >/dev/null 2>&1; then
     echo "Adding the upstream remote..."
