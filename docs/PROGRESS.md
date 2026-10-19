@@ -130,13 +130,56 @@ dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en
 4. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto.
 5. **`/init`** para generar `CLAUDE.md`, y un último commit.
 
-## 6. Decisiones abiertas (del usuario)
+## 6. Decisiones del usuario (decididas)
 
-- **Cómo se escriben los mensajes traducibles** (`SETTINGS-MAP.md` §9.1). Recomendación: MiniMessage,
-  con el prefijo `translate:` para las claves de traducción.
-- **`rcon.password`**: inline o en `config/rcon.secret` (§9.2). Recomendación: archivo aparte.
-- **Lobby en multimundo:** hoy se reaparece en el spawn del mundo donde se salió. ¿Debería ser
-  siempre el del mundo principal?
+Son del usuario y son definitivas (2026-10-18). Sustituyen a las tres preguntas abiertas que había
+aquí (mensajes traducibles, `rcon.password` y lobby en multimundo) y a las recomendaciones de
+`SETTINGS-MAP.md` §9, que quedan resueltas así:
+
+1. **Whitelist DESACTIVADA por defecto.** Es una excepción a la regla de prioridad de upstream
+   (punto 2), porque 26.3 la activa. Ya está aplicado en el parche 0031.
+2. **Regla de upstream.** Si un cambio nuestro choca con 26.x, manda upstream y lo nuestro va
+   encima; si upstream hace lo mismo que nosotros, se usa lo suyo y se quita lo nuestro.
+3. **Lobby:** un ajuste configurable con dos modos. Volver al spawn del mundo donde se salió (lo
+   actual) o volver siempre al spawn del mundo principal.
+4. **RCON:** encendido por defecto. Escucha solo en `127.0.0.1` por defecto, configurable con `ip`
+   en `[network.rcon]`. La clave se genera en el primer arranque (32 caracteres, `SecureRandom`) en
+   `config/rcon.secret`; si se borra se regenera; si el usuario escribe una propia se respeta; nunca
+   se escribe en el log, que solo dice dónde está.
+5. **Mensajes al jugador:** todos en MiniMessage. Las claves de traducción se escriben con el
+   prefijo `translate:` (p. ej. `"translate:multiplayer.disconnect.flying"`).
+6. **Modo `server.properties`:**
+   - ENCENDIDO por defecto. Se cambia con `use-server-properties` en `[server]` de `server.toml`, o
+     con el comando de consola `/legacyfolia properties on|off|status` (consola y operadores de
+     nivel 4), que aplica el cambio al instante y guarda el interruptor.
+   - Encendido: `server.properties` contiene SOLO los ajustes que difieren del default, y manda. Los
+     TOML se mantienen completos con los valores por defecto, como referencia. Si se borra una línea
+     de `server.properties`, ese ajuste vuelve al default; si se añade una, se aplica. Si alguien
+     edita un TOML, el cambio se mueve a `server.properties` y el TOML vuelve al default. Se detecta
+     al arrancar y al recargar, no en caliente. Un servidor nuevo crea `server.properties` solo con
+     una cabecera explicativa.
+   - Apagado: los TOML mandan y no hay `server.properties`. Al apagar el modo, los cambios de
+     `server.properties` se pasan a los TOML y después se borra el archivo.
+   - Nombres de clave: los ajustes vanilla conservan su nombre de `server.properties` (`motd`,
+     `max-players`, `server-port`...), para que sigan funcionando paneles como Pterodactyl. El resto
+     usa su ruta completa (`gameplay.hunger.jump-walk-exhaustion`). Lo que es por mundo usa
+     `worlds.<mundo>.<ruta>`.
+   - Los comandos que cambian ajustes (`/whitelist on`, `/difficulty`...) funcionan siempre; solo
+     cambia dónde escriben: en `server.properties` con el modo encendido, en el TOML con el modo
+     apagado.
+   - Los secretos (`rcon.secret`, `forwarding.secret`, `github.token`) nunca van a
+     `server.properties`.
+7. **Migración:** si el jar arranca donde antes había vanilla, Spigot, Paper o Folia, lee todos los
+   archivos antiguos: `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml`,
+   `config/paper-global.yml`, `paper-world-defaults.yml`, el `paper-world.yml` de cada mundo,
+   `eula.txt`, whitelist, ops y bans, estén en la raíz o en `config/`. Lo importa a los TOML, y lo
+   que es por mundo a `worlds.toml`. Las colisiones se resuelven igual que el servidor original
+   (p. ej. `-1` en Paper significa que manda bukkit). Los originales se mueven a
+   `config/legacy-backup/<fecha>/`. Con el modo encendido, lo que no es default acaba en
+   `server.properties`.
+8. **EULA:** pasa a ser una clave de configuración y deja de existir `eula.txt`.
+9. Los `bukkit.yml`, `spigot.yml` y `paper-*.yml` **desaparecen del disco**, pero los plugins siguen
+   viendo los valores a través de objetos en memoria.
 
 **Verificaciones manuales pendientes:** el prompt del EULA en Linux con una TTY real; la locator bar
 con dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con cabeza puesta; y
