@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sun, 18 Oct 2026 19:21:57 -0500
+Subject: [PATCH] Keep the whitelist off on a new server
+
+26.3 changed the default of white-list in server.properties to true.
+This fork keeps it false: a fresh install is reachable until its owner
+turns the whitelist on. Only the default changes; a server.properties
+that already says true or false is read as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/dedicated/DedicatedServerProperties.java b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+index f04cb23bac59856fc04cabdaa98e5cd35f46c253..a3e033a3d2e244fded1cc8fcf1e99a4f9635dfca 100644
+--- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
++++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -123,7 +123,9 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+     public final DataPackConfig initialDataPackConfiguration;
+     public final Settings<DedicatedServerProperties>.MutableValue<Integer> playerIdleTimeout = this.getMutable("player-idle-timeout", 0);
+     public final Settings<DedicatedServerProperties>.MutableValue<Integer> statusHeartbeatInterval = this.getMutable("status-heartbeat-interval", 0);
+-    public final Settings<DedicatedServerProperties>.MutableValue<Boolean> whiteList = this.getMutable("white-list", true);
++    // LegacyFolia - a fork decision: 26.3 turns the whitelist on for a new server; this fork keeps
++    // it off, so a fresh install is open until its owner chooses otherwise.
++    public final Settings<DedicatedServerProperties>.MutableValue<Boolean> whiteList = this.getMutable("white-list", false); // LegacyFolia - off by default
+     public final boolean enforceSecureProfile = this.get("enforce-secure-profile", true);
+     public final boolean logIPs = this.get("log-ips", true);
+     public final Settings<DedicatedServerProperties>.MutableValue<Integer> pauseWhenEmptySeconds = this.getMutable("pause-when-empty-seconds", -1); // Paper - disable tick sleeping by default
