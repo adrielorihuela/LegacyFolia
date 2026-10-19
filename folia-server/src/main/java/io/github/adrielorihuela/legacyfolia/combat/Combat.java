@@ -71,11 +71,12 @@ public final class Combat {
      * window and the rule that a stronger hit still lands during it are both unchanged since 1.8,
      * and this only exists so a server can lengthen or shorten it.</p>
      *
+     * @param vanilla the game's own window, returned untouched when the combat settings are off
      * @return the number of ticks
      */
-    public static int invulnerableDuration() {
+    public static int invulnerableDuration(final int vanilla) {
         final CombatConfig current = config;
-        return current.enabled() ? current.invulnerabilityTicks() : 20;
+        return current.enabled() ? current.invulnerabilityTicks() : vanilla;
     }
 
     /**
