@@ -12,10 +12,10 @@ ones.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index a1c18b5af8ce896883ffd8cce5868ce2079d082d..eacb9df6491ede267e80c194806375edf9f7cb9d 100644
+index ed9bc7b9c6ff219336599b3f65b339a24037cc57..a6e33a622fa2025beb940803e7506e41a7cf57de 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -1491,12 +1491,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -1495,12 +1495,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              damage = Float.MAX_VALUE;
          }
  

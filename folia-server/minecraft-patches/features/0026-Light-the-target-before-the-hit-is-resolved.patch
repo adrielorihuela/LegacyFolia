@@ -11,10 +11,10 @@ burning, and that is a real part of how fire aspect was used.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 8035a72a47f29c8cd347ac090268cdceb9b84419..b3df0d452c9f8ead116a42fa294096df91d51991 100644
+index d4c6abf2592da0879330108ab35405ab5a0169e8..51f1340814c752041e20fb0154d924c6c401b775 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1069,6 +1069,15 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1068,6 +1068,15 @@ public abstract class Player extends Avatar implements ContainerUser {
                      }
  
                      Vec3 oldMovement = entity.getDeltaMovement();
@@ -30,7 +30,7 @@ index 8035a72a47f29c8cd347ac090268cdceb9b84419..b3df0d452c9f8ead116a42fa294096df
                      boolean wasHurt = entity.hurtOrSimulate(damageSource, totalDamage);
                      if (wasHurt) {
                          // LegacyFolia start - configurable sprint knockback (0.5 in 1.8, as here)
-@@ -1089,6 +1098,13 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1088,6 +1097,13 @@ public abstract class Player extends Avatar implements ContainerUser {
                          this.attackVisualEffects(entity, criticalAttack, sweepAttack, fullStrengthAttack, false, magicBoost);
                          this.setLastHurtMob(entity);
                          this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);

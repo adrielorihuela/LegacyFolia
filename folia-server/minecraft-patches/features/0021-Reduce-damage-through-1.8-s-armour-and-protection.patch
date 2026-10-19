@@ -13,10 +13,10 @@ formulas in place would undo most of what the rest of the module restores.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index eacb9df6491ede267e80c194806375edf9f7cb9d..87d80a1ff3ceab612e9f4f4b77d1bdaaef969e95 100644
+index a6e33a622fa2025beb940803e7506e41a7cf57de..aae77a422ea0f07bb80d8c9861d7041dd18eb75b 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -2387,6 +2387,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -2395,6 +2395,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      protected float getDamageAfterArmorAbsorb(final DamageSource damageSource, float damage) {
          if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damageSource, damage); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for damage handling
@@ -30,7 +30,7 @@ index eacb9df6491ede267e80c194806375edf9f7cb9d..87d80a1ff3ceab612e9f4f4b77d1bdaa
              damage = CombatRules.getDamageAfterAbsorb(
                  this, damage, damageSource, this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
              );
-@@ -2425,6 +2432,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -2433,6 +2440,17 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              return damage;
          }
  

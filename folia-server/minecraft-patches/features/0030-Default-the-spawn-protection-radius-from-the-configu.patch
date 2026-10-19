@@ -12,7 +12,7 @@ before it.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 1c987f400681de356bd239f410b3bffc408b2a7b..b0f52381f28adfebad990b2258610366343d679f 100644
+index e6ec8b73ccaf73649931d2f3d3afccbf40c3c82f..3059e7d902e577f1a2fc34e528ffdceac7bb0a06 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -120,6 +120,14 @@ public class Main {
@@ -46,7 +46,7 @@ index 1c987f400681de356bd239f410b3bffc408b2a7b..b0f52381f28adfebad990b2258610366
              Eula eula = new Eula(eulaFile);
              // Paper start - load config files early for access below if needed
 diff --git a/net/minecraft/server/dedicated/DedicatedServerProperties.java b/net/minecraft/server/dedicated/DedicatedServerProperties.java
-index 639a5400499266f83cf8b7c1251483cd8fb699a4..9c8d3fea753642c56388fa2a4f02c571c9f15344 100644
+index 458a1025d36655de7aa1bad9f2e7544626508be7..f04cb23bac59856fc04cabdaa98e5cd35f46c253 100644
 --- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
 +++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
 @@ -87,7 +87,7 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie

@@ -11,10 +11,10 @@ did - so only the figure needed changing.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index e41ba5968dccdcd16e26ae8649a05650a6c358f3..317799a595bd6071f9d397cc4ceb654423eb19ba 100644
+index 80e11e4baa3d00a4eb98ff28ac517cce08af84ca..0b89cfc3a3a66b2c649bd81f15f7cadcb2f4caec 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -3399,6 +3399,14 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -3457,6 +3457,14 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
  
      @Override
      protected float getEnchantedDamage(final Entity entity, final float dmg, final DamageSource damageSource) {

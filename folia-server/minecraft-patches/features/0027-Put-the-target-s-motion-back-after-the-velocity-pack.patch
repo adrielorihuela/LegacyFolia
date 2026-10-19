@@ -11,10 +11,10 @@ knockback feels light where modern knockback feels heavy.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index b3df0d452c9f8ead116a42fa294096df91d51991..3b5d2be6e55d14982b67798a37d5ec892b30b0f0 100644
+index 51f1340814c752041e20fb0154d924c6c401b775..f81e5b2d4d712cbc555d5f70815fb51bee6f028c 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1091,6 +1091,14 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1090,6 +1090,14 @@ public abstract class Player extends Avatar implements ContainerUser {
                              entity, this.getKnockback(entity, damageSource) + sprintBonus, oldMovement, damageSource, totalDamage, true
                          );
                          // LegacyFolia end - configurable sprint knockback

@@ -11,7 +11,7 @@ them.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/effect/HealOrHarmMobEffect.java b/net/minecraft/world/effect/HealOrHarmMobEffect.java
-index f5e89c81a4aae3cbbe85e0ebb0ac1adfc51f0de3..7b4c8a7eb2233e0d5291a3bee4c288facfc4576a 100644
+index 9afd06d4244672f2b9f830e163b0ce19387557f1..1dec1f53f2c9c0e8a75cf463f407ea9352e4ad92 100644
 --- a/net/minecraft/world/effect/HealOrHarmMobEffect.java
 +++ b/net/minecraft/world/effect/HealOrHarmMobEffect.java
 @@ -16,9 +16,9 @@ class HealOrHarmMobEffect extends InstantaneousMobEffect {
@@ -28,7 +28,7 @@ index f5e89c81a4aae3cbbe85e0ebb0ac1adfc51f0de3..7b4c8a7eb2233e0d5291a3bee4c288fa
          return true;
 @@ -35,10 +35,10 @@ class HealOrHarmMobEffect extends InstantaneousMobEffect {
      ) {
-         if (!new io.papermc.paper.event.entity.EntityEffectTickEvent(mob.getBukkitLivingEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftToBukkit(this), amplification).callEvent()) { return; } // Paper - Add EntityEffectTickEvent
+         if (!new io.papermc.paper.event.entity.EntityEffectTickEvent(mob.getBukkitEntity(), org.bukkit.craftbukkit.potion.CraftPotionEffectType.minecraftToBukkit(this), amplification).callEvent()) { return; } // Paper - Add EntityEffectTickEvent
          if (this.isHarm == mob.isInvertedHealAndHarm()) {
 -            int amount = (int)(scale * (4 << amplification) + 0.5);
 +            int amount = io.github.adrielorihuela.legacyfolia.combat.Combat.instantHeal(amplification, scale); // LegacyFolia - configurable instant potions

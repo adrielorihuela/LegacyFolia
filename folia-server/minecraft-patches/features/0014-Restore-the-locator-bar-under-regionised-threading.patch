@@ -12,10 +12,10 @@ region boundary.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/commands/Commands.java b/net/minecraft/commands/Commands.java
-index 4ddb5e7ce3529466c3930caa9aa6b18158e9a63d..47a9ff8503d76579c617402c603daed07db8084e 100644
+index 29134b7b3f216c7aabd848a1969ce6dedf516218..5474f208b26f7875925004ccaf9dcf8e756b631c 100644
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -261,7 +261,7 @@ public class Commands {
+@@ -265,7 +265,7 @@ public class Commands {
          TimeCommand.register(this.dispatcher, context);
          TitleCommand.register(this.dispatcher, context);
          //TriggerCommand.register(this.dispatcher); // Folia - region threading - TODO later
@@ -25,10 +25,10 @@ index 4ddb5e7ce3529466c3930caa9aa6b18158e9a63d..47a9ff8503d76579c617402c603daed0
          WorldBorderCommand.register(this.dispatcher);
          if (JvmProfiler.INSTANCE.isAvailable()) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index be15a671e0b39b455cd5983f4b90f8f3022a2ebc..3bd693c2d7b577bc9856b3a51a8c8b5d914baa38 100644
+index 8c26b7169276af1b3ea5418ddece3ed6e250d7ad..9a454a5f133864a8883b920063028c7cd4ab9502 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -3083,7 +3083,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -3059,7 +3059,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          } else if (rule == GameRules.LOCATOR_BAR) {
              // this.getAllLevels().forEach(level -> { // Paper - per-world game rules
                  ServerWaypointManager waypointManager = level.getWaypointManager();

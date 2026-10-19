@@ -9,7 +9,7 @@ directory is not where an operator wants to hunt for them.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index eeb0619c97f991a90127701b990251b092050777..01ea96f5c4d4dd52a15893ed45937749362d56d1 100644
+index 15f02ce0c92928af25e7f69368518fc9a32feaec..3f102c2ac509bdba07a60bcc6dfe9f1de14a8f36 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -138,7 +138,7 @@ public class Main {
@@ -22,10 +22,10 @@ index eeb0619c97f991a90127701b990251b092050777..01ea96f5c4d4dd52a15893ed45937749
              // Paper start - load config files early for access below if needed
              org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("bukkit-settings"));
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index c3506e1b1e05e206b35489fac322c8e37e6894e7..e18490e5df9e0278dcdcc9f59f2aa10f84ce6dde 100644
+index 578745267b88086d79f5a376e90d7771795298a2..82d7ef4b14db6165f216fe9104b416dfc0c2844f 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -103,10 +103,12 @@ import org.jspecify.annotations.Nullable;
+@@ -105,10 +105,12 @@ import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
  public abstract class PlayerList {

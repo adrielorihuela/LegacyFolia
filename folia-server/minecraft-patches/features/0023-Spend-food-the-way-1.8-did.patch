@@ -11,10 +11,10 @@ cheaply than they ever could on 1.8.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 58f0bf2debea72d3d977c78e9d9da16ae004e8fc..e41ba5968dccdcd16e26ae8649a05650a6c358f3 100644
+index 38554593bb95c7e9f521416535be14f2a3a74e05..80e11e4baa3d00a4eb98ff28ac517cce08af84ca 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -2571,9 +2571,9 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -2643,9 +2643,9 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
          super.jumpFromGround();
          this.awardStat(Stats.JUMP);
          if (this.isSprinting()) {
@@ -27,10 +27,10 @@ index 58f0bf2debea72d3d977c78e9d9da16ae004e8fc..e41ba5968dccdcd16e26ae8649a05650
      }
  
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index b27b353a3c56b809f629b9f72bcdb8bbcc4ed3f7..8035a72a47f29c8cd347ac090268cdceb9b84419 100644
+index baf3fd4aa1afff98a9dd5f8d1a14cf980e9743a7..d4c6abf2592da0879330108ab35405ab5a0169e8 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1090,7 +1090,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1089,7 +1089,7 @@ public abstract class Player extends Avatar implements ContainerUser {
                          this.setLastHurtMob(entity);
                          this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);
                          this.damageStatsAndHearts(entity, oldLivingEntityHealth);
@@ -39,7 +39,7 @@ index b27b353a3c56b809f629b9f72bcdb8bbcc4ed3f7..8035a72a47f29c8cd347ac090268cdce
                      } else {
                          this.playServerSideSound(SoundEvents.PLAYER_ATTACK_NODAMAGE);
                      }
-@@ -1392,7 +1392,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1391,7 +1391,7 @@ public abstract class Player extends Avatar implements ContainerUser {
          this.setLastHurtMob(target);
          this.itemAttackInteraction(target, weaponItem, damageSource, wasHurt);
          this.damageStatsAndHearts(target, oldLivingEntityHealth);

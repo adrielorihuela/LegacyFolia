@@ -13,10 +13,10 @@ and pistons go through BlockItem, so both are covered.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 5f673a2aa6689acded070a9806f6cb8d9920b46e..0bbde5776f6a3e1459e56bb423a17854e04e7003 100644
+index 1db4d8068dbae952c59008f9d86ec6007772534e..ecb1e1289b7e3c6da2c5eee465da38aa972329b7 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2182,7 +2182,7 @@ public class ServerGamePacketListenerImpl
+@@ -2241,7 +2241,7 @@ public class ServerGamePacketListenerImpl
                      if (Math.abs(distance.x()) < 1.0000001 && Math.abs(distance.y()) < 1.0000001 && Math.abs(distance.z()) < 1.0000001) {
                          Direction direction = blockHit.getDirection();
                          this.player.resetLastActionTime();
@@ -26,10 +26,10 @@ index 5f673a2aa6689acded070a9806f6cb8d9920b46e..0bbde5776f6a3e1459e56bb423a17854
                          if (pos.getY() > maxY) {
                              this.player.sendBuildLimitMessage(true, maxY);
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
-index b94c4f0a6908a37d8a07dba6ff3ece7193aca1b5..b1085d28aa3488d82f5e8f6d0a9de049c149022d 100644
+index 68f1e9483b93ef071877a4c99f4bd14e0d363145..860c5ebb6178ca31791aea174013ccc5b010649d 100644
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
-@@ -162,6 +162,13 @@ public class BlockItem extends Item {
+@@ -164,6 +164,13 @@ public class BlockItem extends Item {
          Player player = context.getPlayer();
          // CraftBukkit start
          Level world = context.getLevel(); // Paper - Cancel hit for vanished players
@@ -44,10 +44,10 @@ index b94c4f0a6908a37d8a07dba6ff3ece7193aca1b5..b1085d28aa3488d82f5e8f6d0a9de049
              && world.checkEntityCollision(stateForPlacement, player, CollisionContext.placementContext(player), context.getClickedPos(), true); // Paper - Cancel hit for vanished players
          org.bukkit.entity.Player bukkitPlayer = (context.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) context.getPlayer().getBukkitEntity() : null;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a0eb1f608a99301e0197ab1d1a6fbbb0a0be4ce0..aef36e7ec877a4ba156fa11ed22f5afc0dde83e1 100644
+index e53890d21c0f81a7b5de2cb7a8668193da9300e1..706338fd94cd491450c09ab8cc4dcb4639dff4fd 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -755,6 +755,24 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -753,6 +753,24 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return this.maxY;
      }
  

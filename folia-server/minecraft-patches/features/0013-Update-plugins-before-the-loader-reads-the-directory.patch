@@ -13,7 +13,7 @@ permissions, and a server that comes up without it comes up wide open.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index cd5551c0221ad2a7b5c7d452d8d91ffc9711c3ee..e70914d10934300ae57aaaaa8bbd5b471c7a9eca 100644
+index 762822ce2ccf98952dc92be4824c48fe6bc1bacb..a557ae45b2ee76eb0bcfe669f611a7f0a58d209c 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -293,6 +293,21 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
