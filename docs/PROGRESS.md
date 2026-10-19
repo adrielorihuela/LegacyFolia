@@ -3,8 +3,8 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-18 · **Último tag publicado:** `v0.12.0` · **Base:** Folia
-`ver/26.2.x` en `95c3f27` (2026-08-19), Minecraft 26.2, Paper `c9e894d3`.
+**Última actualización:** 2026-10-18 · **Último tag publicado:** `v0.14.0` · **Base:** Folia
+`ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
 
@@ -56,8 +56,10 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.10.0 | 08-27 | TOML por área (`server`, `world`, `network`, `performance`, `combat`, `plugins`). En la raíz solo queda el jar; whitelist, bans, ops, EULA y yml van a `config/`, y la caché a `cache/` |
 | v0.11.0 | 09-02 | PvP 1.8 completo: armadura, protección, regeneración, hambre, pociones, sharpness, fire aspect, velocidad. 26 ajustes |
 | v0.12.0 | 09-02 | Lobby (spawn en el spawn del mundo), techo del Nether, spawn protection 0, jars `legacyfolia-<versión>.jar` |
+| v0.13.0 | 10-18 | Los 430 ajustes heredados escritos en los ocho TOML, comentados; `worlds.toml` y `gameplay.toml` |
+| v0.14.0 | 10-18 | Minecraft 26.3 (Folia `ver/26.3.x`), con todos los parches del fork |
 
-**Hecho tras `v0.12.0`** (forma `v0.13.0`):
+**Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
   la sección global. Se calcula una vez por mundo y se invalida al recargar. Lo implementan
   `config/WorldConfig.java` y `config/WorldConfigCache.java`.
@@ -72,8 +74,8 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 124 en `LegacyFoliaTestSuite`, sin fallos (verificado el 2026-10-18, antes de la
-consolidación).
+**Tests:** 129 en `LegacyFoliaTestSuite` (18 clases), sin fallos (verificado el 2026-10-18 sobre
+26.3, contando los XML de `build/test-results`).
 
 **Importante:** los 430 ajustes **todavía no los lee el servidor**. Hoy los TOML se generan y se
 documentan, pero los valores efectivos siguen saliendo de `server.properties`, `bukkit.yml`,
@@ -97,25 +99,17 @@ documentan, pero los valores efectivos siguen saliendo de `server.properties`, `
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-18):
+Al escribir esto (2026-10-18), `main` y el tag `v0.14.0` están publicados y `main` es la única rama.
+Lo siguiente es la fase de enganche (§5, punto 1).
 
-- `main` local va **por delante de `origin/main`** con los 14 commits de `v0.13.0` (de `e44a4d0` a
-  `36a197e`, más el que añade este documento). Si aún no se ha hecho push, lo siguiente es:
-  ```bash
-  git push origin main
-  git tag -a v0.13.0 -m "Every inherited setting written into config/, commented, one home each"
-  git push origin v0.13.0
-  ```
-- **No se ha arrancado el servidor** con los TOML nuevos: `run/config/` no tiene todavía
-  `worlds.toml` ni `gameplay.toml`. Comprobación pendiente: borrar `run/config/*.toml`, ejecutar
-  `runDevServer` hasta `Done (`, confirmar que se generan los ocho y repetirlo con los archivos
-  presentes para probar el merge.
+La comprobación de arranque que quedó pendiente en `v0.13.0` está hecha, ya sobre 26.3: con
+`run/config/*.toml` borrados, `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo
+arranque con los archivos presentes no duplica ninguna clave, no cambia ningún archivo y conserva
+dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en `gameplay.toml`).
 
 ## 5. Qué falta, en orden
 
-1. **Cerrar `v0.13.0`:** push, tag y la comprobación de arranque de §4.
-2. **Actualizar upstream antes del enganche.** Ver §7.
-3. **Fase de enganche** (la que cumple el requisito 1 de verdad). Plan detallado en
+1. **Fase de enganche** (la que cumple el requisito 1 de verdad). Plan detallado en
    `SETTINGS-MAP.md` §4.1 y §6. Son cinco puntos de inyección; ningún objeto desaparece, solo cambia
    de dónde lee:
    - `DedicatedServerProperties`, construido desde los TOML antes de `new DedicatedServerSettings`.
@@ -128,13 +122,13 @@ Al escribir esto (2026-10-18):
    Después: dejar de escribir los yml y borrarlos; el EULA como clave de configuración (hoy sigue
    siendo `config/eula.txt`); las escrituras en caliente (`MutableValue`, `/whitelist on`). Esto va
    en serie, con un solo agente.
-4. **`server.properties` opcional y sincronizado** en las dos direcciones. Necesita un escritor que
-   conserve los comentarios, porque `Properties.store()` los borra. Depende del punto 3.
-5. **Daño base de espadas 1.8** (opcional). Es el único de los nueve enganches del PvP que falta.
+2. **`server.properties` opcional y sincronizado** en las dos direcciones. Necesita un escritor que
+   conserve los comentarios, porque `Properties.store()` los borra. Depende del punto 1.
+3. **Daño base de espadas 1.8** (opcional). Es el único de los nueve enganches del PvP que falta.
    Obliga a cargar la configuración antes de `Bootstrap.bootStrap()`, porque `Items` es un registro
    estático.
-6. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto.
-7. **`/init`** para generar `CLAUDE.md`, y un último commit.
+4. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto.
+5. **`/init`** para generar `CLAUDE.md`, y un último commit.
 
 ## 6. Decisiones abiertas (del usuario)
 
@@ -150,24 +144,45 @@ cómo se siente el PvP 1.8 comparado con un servidor 1.8 real.
 
 ## 7. Upstream
 
-Folia avanzó desde nuestra base:
-- `ver/26.2.x`: 5 actualizaciones de Paper y cambios de CI y README (punta `acf6733`).
-- `ver/26.3.x`, que ahora es la rama por defecto: **Minecraft 26.3** (`2a74dac`, 21 archivos, toca
-  `0001-Region-Threading-Base`, que es la base de todos nuestros parches), más `10488af` (portales y
-  `allow_entering_nether_using_portals`, que hay que revisar junto con `Dimensions`) y `cd92bab`
-  (`/effect clear`). Paper pasa de `c9e894d3` a `c927bd34` (140 commits).
+**Hecho (`v0.14.0`): LegacyFolia está en Minecraft 26.3.** Dos merges en `main`: primero
+`ver/26.2.x` (`acf6733`: dos actualizaciones de Paper y leafpile 1.2.0), después `ver/26.3.x`
+(`597e413`: `2a74dac` "Update to 26.3", `10488af`, `cd92bab`, otra actualización de Paper y CI).
+Paper pasa de `c9e894d3` a `c927bd34`; Gradle a 9.8.1 y paperweight a 2.0.0-beta.24. Java sigue
+siendo 25.
 
-**Orden decidido:** cerrar `v0.13.0`, actualizar y solo entonces empezar el enganche. Todo lo de
-`v0.13.0` vive en `src/main` y en recursos, así que no choca con upstream. El enganche, en cambio,
-crea parches justo sobre `Main`, `DedicatedServer`, `CraftServer`, `ServerLevel` y `SpigotConfig`.
-Hacerlo en 26.2 y luego subir obligaría a resolver los conflictos dos veces.
+Lo que se encontró:
+- **Numeración:** 26.3 no añade parches de upstream (siguen 0001–0011 en minecraft y 0001–0006 en
+  paper), así que los nuestros no se renumeraron. Se añade uno nuevo, el 0031.
+- **Conflictos de merge:** `README.md` (se queda el del fork), `gradle.properties` (nuestro `group`
+  con `mcVersion`, `apiVersion`, `channel` y `paperRef` de upstream), `build.gradle.kts.patch`
+  (las dependencias de upstream, leafpile como BOM, más nuestra línea de night-config) y
+  `.github/workflows/build.yml` (se toma el de upstream, que vuelve a los runners de GitHub). En
+  el merge de 26.2 se había dejado fuera el paso de CI a Namespace, porque ese runner no existe
+  para un fork; en 26.3 upstream lo deshizo, así que el CI vuelve a ser idéntico al suyo.
+- **Parches:** solo uno no aplicó, el 0017 (combate 1.8), porque 26.3 renombra `invulnerableTime`
+  a `damageCooldownTime` e inicializa `invulnerableDuration` con `DAMAGE_COOLDOWN_DURATION`. El
+  gancho parte ahora de esa constante (`Combat.invulnerableDuration(int)` la devuelve tal cual con
+  el combate desactivado). En `build.gradle.kts.patch` hubo que cambiar el contexto de mache a
+  `26.3+build.1`. El resto solo movió líneas; `ServerboundSwingPacket` pasó a llamarse
+  `ServerboundPunchPacket` (`handlePunch`), y el gancho de distancia adaptativa lo sigue sin cambios.
+- **`white-list`:** 26.3 cambia su default en `server.properties` de `false` a `true`. Por decisión
+  del fork sigue en `false`: el parche 0031 cambia solo ese default. Comprobado con un
+  `server.properties` generado desde cero.
+- **`10488af`** (portales y `allow_entering_nether_using_portals`): es una regla de juego que la
+  ruta asíncrona de portales de Folia no consultaba. No se solapa con `[dimensions]`: con una
+  dimensión desactivada el mundo no existe, `getLevel` devuelve `null` y
+  `netherPortalLogicAsync`/`endPortalLogicAsync` salen sin teletransportar antes de llegar a la
+  comprobación nueva. Los dos mecanismos se suman; no hubo que tocar nada.
+- **Arranque:** aparece un error nuevo de ViaVersion 5.11.0 ("Server version has not been loaded
+  yet"), que no soporta 26.3; hay 5.12.1. No es del servidor. Los errores de oshi (contadores de
+  Windows) ya salían en 26.2.
 
-Pasos de la actualización, en una rama propia hasta que esté verificada:
-1. Merge de `upstream/ver/26.2.x`, que es pequeño y sirve para probar el script `update`.
-2. Merge de `upstream/ver/26.3.x`. Luego `applyAllPatches`, resolver los conflictos de nuestros
-   parches (minecraft 0012–0030, paper 0007–0010) y `rebuildAllServerPatches`.
-3. Comparar los defaults de los 430 ajustes con las clases de configuración nuevas
-   (`GlobalConfiguration`, `WorldConfiguration`, `SpigotConfig`, `SpigotWorldConfig`,
-   `DedicatedServerProperties`) entre los dos `paperRef`, y actualizar los números de línea del mapa.
-4. Cambiar `update.sh`, `update.bat` y `UPDATING.md` a `ver/26.3.x`, y poner `mcVersion=26.3`.
-5. `compileJava`, la suite de tests, `applyAllPatches` desde cero y `runDevServer`. Tag `v0.14.0`.
+Pendiente de esta actualización, para la fase siguiente: comparar los defaults de los 430 ajustes
+con las clases de configuración de `c927bd34` y refrescar los números de línea de `SETTINGS-MAP.md`.
+Las versiones de 26.2 de `DedicatedServerProperties`, `Main`, `DedicatedServer`, `ServerLevel`,
+`GlobalConfiguration`, `WorldConfiguration`, `SpigotConfig` y `SpigotWorldConfig` se guardaron
+fuera del repo para esa comparación; en `DedicatedServerProperties` la única diferencia de default
+es `white-list`.
+
+**Orden decidido:** primero la actualización (hecha) y solo entonces el enganche, que crea parches
+justo sobre `Main`, `DedicatedServer`, `CraftServer`, `ServerLevel` y `SpigotConfig`.
