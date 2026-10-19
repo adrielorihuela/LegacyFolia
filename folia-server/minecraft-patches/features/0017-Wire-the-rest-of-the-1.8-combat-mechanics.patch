@@ -23,10 +23,10 @@ damage path rather than by inventing a component swords do not have.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index d2317ef82b88c16f09d58a3cdc82b00aacf2c9b8..5f673a2aa6689acded070a9806f6cb8d9920b46e 100644
+index fcf0111f51b16b1645a1c0adb6a9220ec2cefdf1..1db4d8068dbae952c59008f9d86ec6007772534e 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2014,6 +2014,16 @@ public class ServerGamePacketListenerImpl
+@@ -2072,6 +2072,16 @@ public class ServerGamePacketListenerImpl
                          return;
                      }
                  case SWAP_ITEM_WITH_OFFHAND:
@@ -44,21 +44,21 @@ index d2317ef82b88c16f09d58a3cdc82b00aacf2c9b8..5f673a2aa6689acded070a9806f6cb8d
                          ItemStack swap = this.player.getItemInHand(InteractionHand.OFF_HAND);
                          // CraftBukkit start - inspiration taken from DispenserRegistry (See SpigotCraft#394)
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 58d56c155aaed589c13e8244b320be235c500757..a1c18b5af8ce896883ffd8cce5868ce2079d082d 100644
+index b416aaca3c35a9b482d4ad9057f83a2e5d034ec2..ed9bc7b9c6ff219336599b3f65b339a24037cc57 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -304,7 +304,9 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
-     public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
+@@ -303,7 +303,9 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     public boolean bukkitPickUpLoot;
      public boolean silentDeath = true; // Paper - mark entity as dying silently for cancellable death event
      public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
--    public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
+-    public int invulnerableDuration = LivingEntity.DAMAGE_COOLDOWN_DURATION; // Paper - configurable invulnerable duration
 +    // LegacyFolia - the window is already 20 ticks as it was in 1.8, and a stronger hit already
 +    // lands during it for the difference; this only lets a server change the length.
-+    public int invulnerableDuration = io.github.adrielorihuela.legacyfolia.combat.Combat.invulnerableDuration(); // Paper - configurable invulnerable duration // LegacyFolia - configurable
++    public int invulnerableDuration = io.github.adrielorihuela.legacyfolia.combat.Combat.invulnerableDuration(LivingEntity.DAMAGE_COOLDOWN_DURATION); // Paper - configurable invulnerable duration // LegacyFolia - configurable
      // CraftBukkit end
      // Folia start - region threading
      @Override
-@@ -1489,6 +1491,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -1493,6 +1495,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              damage = Float.MAX_VALUE;
          }
  
@@ -71,8 +71,8 @@ index 58d56c155aaed589c13e8244b320be235c500757..a1c18b5af8ce896883ffd8cce5868ce2
 +
          EntityDamageEvent event; // CraftBukkit // Paper - move this into the actual invuln check....
          boolean tookFullDamage = true;
-         if (this.invulnerableTime > (float)this.invulnerableDuration / 2.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN)) { // CraftBukkit - restore use of maxNoDamageTicks
-@@ -4448,6 +4457,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         if (this.damageCooldownTime > (float)this.invulnerableDuration / 2.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN)) { // CraftBukkit - restore use of maxNoDamageTicks
+@@ -4453,6 +4462,15 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              return null;
          }
  
@@ -89,10 +89,10 @@ index 58d56c155aaed589c13e8244b320be235c500757..a1c18b5af8ce896883ffd8cce5868ce2
          if (blocksAttacks != null) {
              int elapsedTicks = this.useItem.getItem().getUseDuration(this.useItem, this) - this.useItemRemaining;
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index b3ef9dcc7cd3000eb0b557c351e185d81a08d751..b27b353a3c56b809f629b9f72bcdb8bbcc4ed3f7 100644
+index 1dcebf5d6bafa5abb503f8c80b371c0fedbe990e..baf3fd4aa1afff98a9dd5f8d1a14cf980e9743a7 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -1053,7 +1053,12 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1052,7 +1052,12 @@ public abstract class Player extends Avatar implements ContainerUser {
                      criticalAttack = criticalAttack && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
                      if (criticalAttack) {
                          damageSource = damageSource.critical(); // Paper - critical damage API
@@ -106,7 +106,7 @@ index b3ef9dcc7cd3000eb0b557c351e185d81a08d751..b27b353a3c56b809f629b9f72bcdb8bb
                      }
  
                      float totalDamage = baseDamage + magicBoost;
-@@ -1066,9 +1071,17 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1065,9 +1070,17 @@ public abstract class Player extends Avatar implements ContainerUser {
                      Vec3 oldMovement = entity.getDeltaMovement();
                      boolean wasHurt = entity.hurtOrSimulate(damageSource, totalDamage);
                      if (wasHurt) {
@@ -125,7 +125,7 @@ index b3ef9dcc7cd3000eb0b557c351e185d81a08d751..b27b353a3c56b809f629b9f72bcdb8bb
                          if (sweepAttack) {
                              this.doSweepAttack(entity, baseDamage, damageSource, attackStrengthScale);
                          }
-@@ -1113,6 +1126,18 @@ public abstract class Player extends Avatar implements ContainerUser {
+@@ -1112,6 +1125,18 @@ public abstract class Player extends Avatar implements ContainerUser {
      }
  
      private boolean canCriticalAttack(final Entity entity) {
@@ -145,10 +145,10 @@ index b3ef9dcc7cd3000eb0b557c351e185d81a08d751..b27b353a3c56b809f629b9f72bcdb8bb
              && !this.onGround()
              && !this.onClimbable()
 diff --git a/net/minecraft/world/item/Item.java b/net/minecraft/world/item/Item.java
-index a6a5800f8c13977cedafc0cce95aed3a05306230..7448c5b4c3c41af846609699db684c33a17acb70 100644
+index aef1a9cb52efc2f432f8015f5aef5a76fe1014d5..520df35ddebe81bac93c8a5334a9a141eaba7786 100644
 --- a/net/minecraft/world/item/Item.java
 +++ b/net/minecraft/world/item/Item.java
-@@ -188,6 +188,12 @@ public class Item implements ItemLike, FeatureElement {
+@@ -203,6 +203,12 @@ public class Item implements ItemLike, FeatureElement {
  
      public InteractionResult use(final Level level, final Player player, final InteractionHand hand) {
          ItemStack stack = player.getItemInHand(hand);
@@ -161,7 +161,7 @@ index a6a5800f8c13977cedafc0cce95aed3a05306230..7448c5b4c3c41af846609699db684c33
          Consumable consumable = stack.get(DataComponents.CONSUMABLE);
          if (consumable != null) {
              return consumable.startConsuming(player, stack, hand);
-@@ -308,6 +314,15 @@ public class Item implements ItemLike, FeatureElement {
+@@ -323,6 +329,15 @@ public class Item implements ItemLike, FeatureElement {
      }
  
      public int getUseDuration(final ItemStack itemStack, final LivingEntity user) {
