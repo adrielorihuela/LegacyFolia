@@ -83,6 +83,43 @@ public final class ServerConfig {
     private ServerConfig() {
     }
 
+    /**
+     * The eight files, in the order they are loaded.
+     *
+     * @return their names within {@code config/}
+     */
+    public static List<String> fileNames() {
+        return FILES;
+    }
+
+    /**
+     * The file that owns a dotted path, without needing the configuration to be loaded.
+     *
+     * @param path the dotted path, such as {@code chunks.view-distance}
+     * @return the file's name, such as {@code performance.toml}
+     * @throws IllegalArgumentException if no file owns the path's first segment
+     */
+    public static String fileNameFor(final String path) {
+        final int dot = path.indexOf('.');
+        final String section = dot == -1 ? path : path.substring(0, dot);
+        final String fileName = SECTIONS.get(section);
+        if (fileName == null) {
+            throw new IllegalArgumentException("no configuration file owns the section '" + section
+                + "'. Add it to ServerConfig.SECTIONS.");
+        }
+        return fileName;
+    }
+
+    /**
+     * Whether a file's settings may be overridden per world in {@code worlds.toml}.
+     *
+     * @param fileName the file's name
+     * @return whether {@link #forWorld(String)} consults it
+     */
+    public static boolean isPerWorldFile(final String fileName) {
+        return PER_WORLD_FILES.contains(fileName);
+    }
+
     /** Whether the configuration has been read, for code that runs on both sides of start-up. */
     public static boolean isLoaded() {
         return files != null;
@@ -150,14 +187,7 @@ public final class ServerConfig {
         if (loaded == null) {
             throw new IllegalStateException("the configuration has not been read yet");
         }
-        final int dot = path.indexOf('.');
-        final String section = dot == -1 ? path : path.substring(0, dot);
-        final String fileName = SECTIONS.get(section);
-        if (fileName == null) {
-            throw new IllegalArgumentException("no configuration file owns the section '" + section
-                + "'. Add it to ServerConfig.SECTIONS.");
-        }
-        return loaded.get(fileName);
+        return loaded.get(fileNameFor(path));
     }
 
     /**

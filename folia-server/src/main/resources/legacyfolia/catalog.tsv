@@ -1,0 +1,505 @@
+# LegacyFolia settings catalog: one row per key of the eight TOML files under
+# folia-server/src/main/resources/legacyfolia/ (worlds.toml holds overrides only, so it has none).
+#
+# Columns, tab separated; "-" means none:
+#   path        dotted TOML path, as ServerConfig and WorldConfig take it
+#   kind        SettingKind
+#   per-world   true when [worlds.<name>] may override it
+#   source      LegacySource of the key before this fork: SERVER_PROPERTIES, BUKKIT, SPIGOT,
+#               SPIGOT_WORLD, COMMANDS, PAPER_GLOBAL, PAPER_WORLD, EULA_TXT, or NONE (the fork's own)
+#   legacy-path exact path inside that file (spigot per-world keys under world-settings.default.,
+#               paper per-world keys as in paper-world-defaults.yml)
+#   also-from   further legacy locations of the same decision, source:path, separated by ;
+#   vanilla     name in server.properties when it is a vanilla key
+#   mutable     true when the running server writes it back (a vanilla MutableValue: /difficulty,
+#               /whitelist on and the like)
+#   secret      true when the key names a secret file; never written to server.properties
+#   values      allowed values of an ENUM, comma separated
+#   default     the TOML default, written as a TOML value
+#   notes       fallbacks, conversions, and anything a reader or the migration must know
+#
+# Keep it in the order of the TOML files. SettingsCatalogTest fails when a key is added to a TOML file
+# without a row here, or a row names a key that no file has, or the defaults disagree.
+path	kind	per-world	source	legacy-path	also-from	vanilla	mutable	secret	values	default	notes
+server.eula-prompt-timeout-seconds	INT	false	NONE	-	-	-	false	false	-	120	-
+server.eula	BOOLEAN	false	EULA_TXT	eula	-	-	false	false	-	false	replaces eula.txt (decision 8); migration copies its answer and moves the file
+server.use-server-properties	BOOLEAN	false	NONE	-	-	-	false	false	-	true	the server.properties mode switch (decision 6); never written to server.properties itself
+server.spawn-protection-radius	INT	false	SERVER_PROPERTIES	spawn-protection	-	spawn-protection	true	false	-	0	fork default 0; vanilla default 16
+server.level-name	STRING	false	SERVER_PROPERTIES	level-name	-	level-name	false	false	-	"world"	-
+server.motd	STRING	false	SERVER_PROPERTIES	motd	-	motd	true	false	-	"A Minecraft Server"	-
+server.max-players	INT	false	SERVER_PROPERTIES	max-players	-	max-players	true	false	-	20	-
+server.difficulty	ENUM	false	SERVER_PROPERTIES	difficulty	-	difficulty	true	false	peaceful,easy,normal,hard	"easy"	vanilla also accepts the numeric id 0-3
+server.gamemode	ENUM	false	SERVER_PROPERTIES	gamemode	-	gamemode	true	false	survival,creative,adventure,spectator	"survival"	vanilla also accepts the numeric id 0-3
+server.force-gamemode	BOOLEAN	false	SERVER_PROPERTIES	force-gamemode	-	force-gamemode	true	false	-	false	-
+server.hardcore	BOOLEAN	false	SERVER_PROPERTIES	hardcore	-	hardcore	false	false	-	false	-
+server.pause-when-empty-seconds	INT	false	SERVER_PROPERTIES	pause-when-empty-seconds	-	pause-when-empty-seconds	true	false	-	-1	vanilla default 60; Paper forces -1
+server.player-idle-timeout	INT	false	SERVER_PROPERTIES	player-idle-timeout	-	player-idle-timeout	true	false	-	0	-
+server.user-cache-size	INT	false	SPIGOT	settings.user-cache-size	-	-	false	false	-	1000	-
+server.save-user-cache-on-stop-only	BOOLEAN	false	SPIGOT	settings.save-user-cache-on-stop-only	-	-	false	false	-	false	-
+server.status.enable-status	BOOLEAN	false	SERVER_PROPERTIES	enable-status	-	enable-status	true	false	-	true	-
+server.status.hide-online-players	BOOLEAN	false	SERVER_PROPERTIES	hide-online-players	-	hide-online-players	true	false	-	false	-
+server.status.status-heartbeat-interval	INT	false	SERVER_PROPERTIES	status-heartbeat-interval	-	status-heartbeat-interval	true	false	-	0	-
+server.status.sample-count	INT	false	SPIGOT	settings.sample-count	-	-	false	false	-	12	negative values read as 0 (SpigotConfig)
+server.status.player-shuffle	INT	false	SPIGOT	settings.player-shuffle	-	-	false	false	-	0	-
+server.console.enable-brigadier-highlighting	BOOLEAN	false	PAPER_GLOBAL	console.enable-brigadier-highlighting	-	-	false	false	-	true	-
+server.console.enable-brigadier-completions	BOOLEAN	false	PAPER_GLOBAL	console.enable-brigadier-completions	-	-	false	false	-	true	-
+server.console.has-all-permissions	BOOLEAN	false	PAPER_GLOBAL	console.has-all-permissions	-	-	false	false	-	false	-
+server.console.broadcast-console-to-ops	BOOLEAN	false	SERVER_PROPERTIES	broadcast-console-to-ops	-	broadcast-console-to-ops	false	false	-	true	-
+server.console.broadcast-rcon-to-ops	BOOLEAN	false	SERVER_PROPERTIES	broadcast-rcon-to-ops	-	broadcast-rcon-to-ops	false	false	-	true	-
+server.console.debug	BOOLEAN	false	SERVER_PROPERTIES	debug	SPIGOT:settings.debug	debug	false	false	-	false	one key for two: server.properties debug and spigot settings.debug; migration takes true if either is true
+server.console.warn-on-overload	BOOLEAN	false	BUKKIT	settings.warn-on-overload	-	-	false	false	-	true	-
+server.console.deprecated-verbose	BOOLEAN_OR_DEFAULT	false	BUKKIT	settings.deprecated-verbose	-	-	false	false	-	"default"	bukkit reads it as Warning.WarningState: default -> DEFAULT, true -> ON, false -> OFF
+server.access.online-mode	BOOLEAN	false	SERVER_PROPERTIES	online-mode	-	online-mode	false	false	-	true	-
+server.access.white-list	BOOLEAN	false	SERVER_PROPERTIES	white-list	-	white-list	true	false	-	false	fork default false; vanilla 26.3 defaults true (patch 0031, decision 1); /whitelist on|off writes it
+server.access.enforce-whitelist	BOOLEAN	false	SERVER_PROPERTIES	enforce-whitelist	-	enforce-whitelist	true	false	-	false	-
+server.access.enforce-secure-profile	BOOLEAN	false	SERVER_PROPERTIES	enforce-secure-profile	-	enforce-secure-profile	false	false	-	true	-
+server.access.op-permission-level	PERMISSION_LEVEL	false	SERVER_PROPERTIES	op-permission-level	-	op-permission-level	true	false	-	4	LevelBasedPermissionSet via DedicatedServerProperties.deserializePermission; 4 = OWNER
+server.access.function-permission-level	PERMISSION_LEVEL	false	SERVER_PROPERTIES	function-permission-level	-	function-permission-level	false	false	-	2	LevelBasedPermissionSet; 2 = GAMEMASTER
+server.access.log-ips	BOOLEAN	false	SERVER_PROPERTIES	log-ips	-	log-ips	false	false	-	true	-
+server.access.allow-flight	BOOLEAN	false	SERVER_PROPERTIES	allow-flight	-	allow-flight	true	false	-	false	-
+server.messages.whitelist	MESSAGE	false	SPIGOT	messages.whitelist	-	-	false	false	-	"You are not whitelisted on this server!"	SpigotConfig keeps a String: render the MiniMessage and serialise it to legacy section codes
+server.messages.unknown-command	MESSAGE	false	SPIGOT	messages.unknown-command	-	-	false	false	-	"Unknown command. Type \"/help\" for help."	SpigotConfig keeps a String: render the MiniMessage and serialise it to legacy section codes
+server.messages.server-full	MESSAGE	false	SPIGOT	messages.server-full	-	-	false	false	-	"The server is full!"	SpigotConfig keeps a String: render the MiniMessage and serialise it to legacy section codes
+server.messages.outdated-client	MESSAGE	false	SPIGOT	messages.outdated-client	-	-	false	false	-	"Outdated client! Please use {0}"	SpigotConfig keeps a String: render the MiniMessage and serialise it to legacy section codes
+server.messages.outdated-server	MESSAGE	false	SPIGOT	messages.outdated-server	-	-	false	false	-	"Outdated server! I'm still on {0}"	SpigotConfig keeps a String: render the MiniMessage and serialise it to legacy section codes
+server.messages.restart	MESSAGE	false	SPIGOT	messages.restart	-	-	false	false	-	"Server is restarting"	SpigotConfig keeps a String: render the MiniMessage and serialise it to legacy section codes
+server.messages.shutdown	MESSAGE	false	BUKKIT	settings.shutdown-message	-	-	false	false	-	"Server closed"	bukkit keeps a String (Server#getShutdownMessage): serialise to legacy section codes
+server.messages.no-permission	MESSAGE	false	PAPER_GLOBAL	messages.no-permission	-	-	false	false	-	"<red>I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error."	Paper Component
+server.messages.kick-connection-throttle	MESSAGE	false	PAPER_GLOBAL	messages.kick.connection-throttle	-	-	false	false	-	"Connection throttled! Please wait before reconnecting."	Paper Component
+server.messages.kick-authentication-servers-down	MESSAGE	false	PAPER_GLOBAL	messages.kick.authentication-servers-down	-	-	false	false	-	"translate:multiplayer.disconnect.authservers_down"	Paper Component; translatable by default
+server.messages.kick-flying-player	MESSAGE	false	PAPER_GLOBAL	messages.kick.flying-player	-	-	false	false	-	"translate:multiplayer.disconnect.flying"	Paper Component; translatable by default
+server.messages.kick-flying-vehicle	MESSAGE	false	PAPER_GLOBAL	messages.kick.flying-vehicle	-	-	false	false	-	"translate:multiplayer.disconnect.flying"	Paper Component; translatable by default
+server.resource-pack.url	STRING	false	SERVER_PROPERTIES	resource-pack	-	resource-pack	false	false	-	""	-
+server.resource-pack.id	STRING	false	SERVER_PROPERTIES	resource-pack-id	-	resource-pack-id	false	false	-	""	-
+server.resource-pack.sha1	STRING	false	SERVER_PROPERTIES	resource-pack-sha1	SERVER_PROPERTIES:resource-pack-hash	resource-pack-sha1	false	false	-	""	resource-pack-hash is the deprecated name vanilla still falls back to; sha1 wins when both are set
+server.resource-pack.prompt	STRING	false	SERVER_PROPERTIES	resource-pack-prompt	-	resource-pack-prompt	false	false	-	""	-
+server.resource-pack.required	BOOLEAN	false	SERVER_PROPERTIES	require-resource-pack	-	require-resource-pack	false	false	-	false	-
+server.watchdog.timeout-seconds	INT	false	SPIGOT	settings.timeout-time	-	-	false	false	-	60	-
+server.watchdog.early-warning-delay-ms	INT	false	PAPER_GLOBAL	watchdog.early-warning-delay	-	-	false	false	-	10000	-
+server.watchdog.early-warning-interval-ms	INT	false	PAPER_GLOBAL	watchdog.early-warning-every	-	-	false	false	-	5000	-
+server.watchdog.restart-on-crash	BOOLEAN	false	SPIGOT	settings.restart-on-crash	-	-	false	false	-	true	-
+server.watchdog.restart-script	STRING	false	SPIGOT	settings.restart-script	-	-	false	false	-	"./start.sh"	-
+server.saving.player-save-interval-ticks	INT	false	PAPER_GLOBAL	player-auto-save.rate	-	-	false	false	-	6000	Paper default -1 means the chunk autosave interval (bukkit ticks-per.autosave); the TOML writes the resolved 6000. Migration: -1 -> value of ticks-per.autosave
+server.saving.disable-player-saving	BOOLEAN	false	SPIGOT	players.disable-saving	-	-	false	false	-	false	-
+server.saving.disable-stat-saving	BOOLEAN	false	SPIGOT	stats.disable-saving	-	-	false	false	-	false	-
+server.saving.forced-stats	TABLE	false	SPIGOT	stats.forced-stats	-	-	false	false	-	{}	map of namespaced stat id -> int
+server.saving.disable-advancement-saving	BOOLEAN	false	SPIGOT	advancements.disable-saving	-	-	false	false	-	false	-
+server.saving.disabled-advancements	STRING_LIST	false	SPIGOT	advancements.disabled	-	-	false	false	-	["minecraft:story/disabled"]	-
+server.data-packs.initial-enabled-packs	STRING_LIST	false	SERVER_PROPERTIES	initial-enabled-packs	-	initial-enabled-packs	false	false	-	["vanilla"]	server.properties holds it comma separated
+server.data-packs.initial-disabled-packs	STRING_LIST	false	SERVER_PROPERTIES	initial-disabled-packs	-	initial-disabled-packs	false	false	-	[]	server.properties holds it comma separated
+server.data-packs.text-filtering-config	STRING	false	SERVER_PROPERTIES	text-filtering-config	-	text-filtering-config	false	false	-	""	-
+server.data-packs.text-filtering-version	INT	false	SERVER_PROPERTIES	text-filtering-version	-	text-filtering-version	false	false	-	0	-
+dimensions.overworld	BOOLEAN	false	NONE	-	-	-	false	false	-	true	cannot be false; refused at start-up
+dimensions.nether	BOOLEAN	false	PAPER_GLOBAL	misc.enable-nether	-	-	false	false	-	true	consumed by Dimensions; getAllowNether answers from it
+dimensions.end	BOOLEAN	false	BUKKIT	settings.allow-end	-	-	false	false	-	true	consumed by Dimensions; getAllowEnd answers from it
+world.always-spawn-at-world-spawn	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+world.lobby-spawn-world	ENUM	false	NONE	-	-	-	false	false	logout-world,main-world	"logout-world"	decision 3; only read while always-spawn-at-world-spawn is true
+world.disable-nether-roof	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+world.generation.level-seed	STRING	false	SERVER_PROPERTIES	level-seed	-	level-seed	false	false	-	""	-
+world.generation.level-type	STRING	false	SERVER_PROPERTIES	level-type	-	level-type	false	false	-	"minecraft:normal"	-
+world.generation.generator-settings	STRING	false	SERVER_PROPERTIES	generator-settings	-	generator-settings	false	false	-	""	-
+world.generation.generate-structures	BOOLEAN	false	SERVER_PROPERTIES	generate-structures	-	generate-structures	false	false	-	true	-
+world.generation.max-world-size	INT	false	SERVER_PROPERTIES	max-world-size	-	max-world-size	false	false	-	29999984	-
+world.generation.below-zero-generation-in-existing-chunks	BOOLEAN	false	SPIGOT_WORLD	world-settings.default.below-zero-generation-in-existing-chunks	-	-	false	false	-	true	one key for two readers: SpigotConfig reads this exact path globally (SETTINGS-MAP 3.13) and SpigotWorldConfig per world. Collapsed to one global value
+world.storage.world-container	STRING	false	BUKKIT	settings.world-container	-	-	false	false	-	"."	read in Main before most of the server exists; --universe overrides it
+world.storage.sync-chunk-writes	BOOLEAN	false	SERVER_PROPERTIES	sync-chunk-writes	-	sync-chunk-writes	false	false	-	true	effective value is this AND the system property Paper.enable-sync-chunk-writes
+world.generators	TABLE	false	BUKKIT	worlds.<world>.generator	-	-	false	false	-	{}	one bukkit entry per world, worlds.<world>.generator, folded into one table keyed by world name
+network.ip	STRING	false	SERVER_PROPERTIES	server-ip	-	server-ip	false	false	-	""	-
+network.port	INT	false	SERVER_PROPERTIES	server-port	-	server-port	false	false	-	25565	-
+network.use-native-transport	BOOLEAN	false	SERVER_PROPERTIES	use-native-transport	-	use-native-transport	false	false	-	true	-
+network.compression-threshold	INT	false	SERVER_PROPERTIES	network-compression-threshold	-	network-compression-threshold	false	false	-	256	-
+network.compression-level	INT_OR_DEFAULT	false	PAPER_GLOBAL	misc.compression-level	-	-	false	false	-	"default"	IntOr.Default; "default" leaves it to zlib
+network.netty-threads	INT	false	SPIGOT	settings.netty-threads	-	-	false	false	-	4	set as a system property before Netty starts; start-up only
+network.prevent-proxy-connections	BOOLEAN	false	SERVER_PROPERTIES	prevent-proxy-connections	-	prevent-proxy-connections	false	false	-	false	-
+network.accepts-transfers	BOOLEAN	false	SERVER_PROPERTIES	accepts-transfers	-	accepts-transfers	true	false	-	false	-
+network.velocity.enabled	BOOLEAN	false	PAPER_GLOBAL	proxies.velocity.enabled	-	-	false	false	-	false	-
+network.velocity.online-mode	BOOLEAN	false	PAPER_GLOBAL	proxies.velocity.online-mode	-	-	false	false	-	true	-
+network.velocity.secret-file	STRING	false	PAPER_GLOBAL	proxies.velocity.secret	-	-	false	true	-	"forwarding.secret"	names config/forwarding.secret; the legacy inline secret is moved into that file and blanked (ForwardingSecret)
+network.bungeecord.enabled	BOOLEAN	false	SPIGOT	settings.bungeecord	-	-	false	false	-	false	SpigotConfig writes false back when it finds an inconsistent setup (SETTINGS-MAP 3.2)
+network.bungeecord.online-mode	BOOLEAN	false	PAPER_GLOBAL	proxies.bungee-cord.online-mode	-	-	false	false	-	true	-
+network.proxy-protocol.enabled	BOOLEAN	false	PAPER_GLOBAL	proxies.proxy-protocol	-	-	false	false	-	false	-
+network.rcon.enabled	BOOLEAN	false	SERVER_PROPERTIES	enable-rcon	-	enable-rcon	false	false	-	true	fork default true (decision 4); vanilla false
+network.rcon.port	INT	false	SERVER_PROPERTIES	rcon.port	-	rcon.port	false	false	-	25575	-
+network.rcon.ip	STRING	false	SERVER_PROPERTIES	rcon.ip	-	rcon.ip	false	false	-	"127.0.0.1"	fork default 127.0.0.1 (decision 4). Empty means absent: fall back to server-ip, never bind to an explicit empty address
+network.rcon.password-file	STRING	false	SERVER_PROPERTIES	rcon.password	-	-	false	true	-	"rcon.secret"	names config/rcon.secret (decision 4): 32 SecureRandom characters generated on first start, regenerated when deleted, a user value respected, never logged. Migration moves rcon.password into the file
+network.query.enabled	BOOLEAN	false	SERVER_PROPERTIES	enable-query	-	enable-query	false	false	-	false	-
+network.query.port	INT	false	SERVER_PROPERTIES	query.port	-	query.port	false	false	-	25565	-
+network.query.expose-plugins	BOOLEAN	false	BUKKIT	settings.query-plugins	-	-	false	false	-	true	-
+network.management.enabled	BOOLEAN	false	SERVER_PROPERTIES	management-server-enabled	-	management-server-enabled	false	false	-	false	-
+network.management.host	STRING	false	SERVER_PROPERTIES	management-server-host	-	management-server-host	false	false	-	"localhost"	-
+network.management.port	INT	false	SERVER_PROPERTIES	management-server-port	-	management-server-port	false	false	-	0	-
+network.management.tls-enabled	BOOLEAN	false	SERVER_PROPERTIES	management-server-tls-enabled	-	management-server-tls-enabled	false	false	-	true	-
+network.management.tls-keystore	STRING	false	SERVER_PROPERTIES	management-server-tls-keystore	-	management-server-tls-keystore	false	false	-	""	-
+network.management.allowed-origins	STRING	false	SERVER_PROPERTIES	management-server-allowed-origins	-	management-server-allowed-origins	false	false	-	""	-
+network.limits.rate-limit	INT	false	SERVER_PROPERTIES	rate-limit	-	rate-limit	false	false	-	0	-
+network.limits.connection-throttle	INT	false	BUKKIT	settings.connection-throttle	-	-	false	false	-	4000	ignored (reported as -1) while BungeeCord or Velocity forwarding is on
+network.limits.chat-spam-threshold-seconds	INT	false	SERVER_PROPERTIES	chat-spam-threshold-seconds	-	chat-spam-threshold-seconds	false	false	-	10	-
+network.limits.command-spam-threshold-seconds	INT	false	SERVER_PROPERTIES	command-spam-threshold-seconds	-	command-spam-threshold-seconds	false	false	-	10	-
+network.limits.spam-exclusions	STRING_LIST	false	SPIGOT	commands.spam-exclusions	-	-	false	false	-	["/skill"]	-
+network.limits.enable-spam-exclusions	BOOLEAN	false	SPIGOT	commands.enable-spam-exclusions	-	-	false	false	-	false	not in the spigot template; when absent SpigotConfig derives it (false while the list is the factory ["/skill"], true otherwise) and writes it. Migration must reproduce that derivation
+network.limits.tab-spam-increment	INT	false	PAPER_GLOBAL	spam-limiter.tab-spam-increment	-	-	false	false	-	1	-
+network.limits.tab-spam-limit	INT	false	PAPER_GLOBAL	spam-limiter.tab-spam-limit	-	-	false	false	-	500	-
+network.limits.recipe-spam-increment	INT	false	PAPER_GLOBAL	spam-limiter.recipe-spam-increment	-	-	false	false	-	1	-
+network.limits.recipe-spam-limit	INT	false	PAPER_GLOBAL	spam-limiter.recipe-spam-limit	-	-	false	false	-	20	-
+network.limits.incoming-packet-threshold	INT_OR_DISABLED	false	PAPER_GLOBAL	spam-limiter.incoming-packet-threshold	-	-	false	false	-	300	IntOr.Disabled
+network.limits.packet-limiter.all-packets.interval	DOUBLE	false	PAPER_GLOBAL	packet-limiter.all-packets.interval	-	-	false	false	-	7.0	-
+network.limits.packet-limiter.all-packets.max-packet-rate	DOUBLE	false	PAPER_GLOBAL	packet-limiter.all-packets.max-packet-rate	-	-	false	false	-	500.0	-
+network.limits.packet-limiter.all-packets.action	ENUM	false	PAPER_GLOBAL	packet-limiter.all-packets.action	-	-	false	false	KICK,DROP	"KICK"	PacketLimit.ViolateAction
+network.monitoring.enable-jmx-monitoring	BOOLEAN	false	SERVER_PROPERTIES	enable-jmx-monitoring	-	enable-jmx-monitoring	false	false	-	false	-
+network.monitoring.spark.enabled	BOOLEAN	false	PAPER_GLOBAL	spark.enabled	-	-	false	false	-	true	-
+network.monitoring.spark.enable-immediately	BOOLEAN	false	PAPER_GLOBAL	spark.enable-immediately	-	-	false	false	-	false	-
+network.monitoring.update-checker.enabled	BOOLEAN	false	PAPER_GLOBAL	update-checker.enabled	-	-	false	false	-	true	-
+chunks.view-distance	INT	true	SERVER_PROPERTIES	view-distance	SPIGOT_WORLD:world-settings.default.view-distance	view-distance	true	false	-	10	spigot per-world value <= 0 or "default" falls back to the server value; result clamped to 3..32 (SpigotWorldConfig)
+chunks.simulation-distance	INT	true	SERVER_PROPERTIES	simulation-distance	SPIGOT_WORLD:world-settings.default.simulation-distance	simulation-distance	true	false	-	10	spigot per-world value <= 0 or "default" falls back to the server value; capped to view-distance
+chunks.auto-save-interval	INT	true	BUKKIT	ticks-per.autosave	PAPER_WORLD:chunks.auto-save-interval	-	false	false	-	6000	Paper AutosavePeriod: a negative paper value defers to bukkit ticks-per.autosave; a paper value >= 0 wins for that world
+chunks.max-auto-save-chunks-per-tick	INT	true	PAPER_WORLD	chunks.max-auto-save-chunks-per-tick	-	-	false	false	-	24	-
+chunks.delay-chunk-unloads-by	INT	true	PAPER_WORLD	chunks.delay-chunk-unloads-by	-	-	false	false	-	200	Paper stores a Duration ("10s"); the TOML is ticks. Convert with Duration.of(ticks / 20 + "s") and back with Duration.ticks()
+chunks.min-chunk-unload-count	INT	true	PAPER_WORLD	chunks.min-chunk-unload-count	-	-	false	false	-	50	new in 26.3; Folia applies it per region (ChunkHolderManager.processUnloads)
+chunks.min-chunk-unload-fraction	DOUBLE	true	PAPER_WORLD	chunks.min-chunk-unload-fraction	-	-	false	false	-	0.05	new in 26.3; clamped to 0..1; per region on Folia
+chunks.fixed-chunk-inhabited-time	INT	true	PAPER_WORLD	chunks.fixed-chunk-inhabited-time	-	-	false	false	-	-1	-
+chunks.flush-regions-on-save	BOOLEAN	true	PAPER_WORLD	chunks.flush-regions-on-save	-	-	false	false	-	false	-
+chunks.chunk-gc-period-in-ticks	INT	false	BUKKIT	chunk-gc.period-in-ticks	-	-	false	false	-	600	-
+chunks.region-file-cache-size	INT	false	PAPER_GLOBAL	misc.region-file-cache-size	-	-	false	false	-	256	-
+chunks.region-file-compression	ENUM	false	SERVER_PROPERTIES	region-file-compression	-	region-file-compression	false	false	deflate,lz4,none	"deflate"	consumed once by RegionFileVersion.configure in Main; restart only
+chunks.unload-frozen-chunks	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.unload-frozen-chunks	-	-	false	false	-	false	-
+chunks.auto-config-send-distance	BOOLEAN	false	PAPER_GLOBAL	chunk-loading-advanced.auto-config-send-distance	-	-	false	false	-	true	-
+chunks.player-max-chunk-send-rate	DOUBLE	false	PAPER_GLOBAL	chunk-loading-basic.player-max-chunk-send-rate	-	-	false	false	-	75.0	-
+chunks.player-max-chunk-load-rate	DOUBLE	false	PAPER_GLOBAL	chunk-loading-basic.player-max-chunk-load-rate	-	-	false	false	-	100.0	-
+chunks.player-max-chunk-generate-rate	DOUBLE	false	PAPER_GLOBAL	chunk-loading-basic.player-max-chunk-generate-rate	-	-	false	false	-	-1.0	-
+chunks.player-max-concurrent-chunk-loads	INT	false	PAPER_GLOBAL	chunk-loading-advanced.player-max-concurrent-chunk-loads	-	-	false	false	-	0	-
+chunks.player-max-concurrent-chunk-generates	INT	false	PAPER_GLOBAL	chunk-loading-advanced.player-max-concurrent-chunk-generates	-	-	false	false	-	0	-
+chunks.chunk-system-worker-threads	INT	false	PAPER_GLOBAL	chunk-system.worker-threads	-	-	false	false	-	-1	-
+chunks.chunk-system-io-threads	INT	false	PAPER_GLOBAL	chunk-system.io-threads	-	-	false	false	-	-1	-
+chunks.adaptive-view-distance.enabled	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+chunks.adaptive-view-distance.view-reduction	INT	false	NONE	-	-	-	false	false	-	4	-
+chunks.adaptive-view-distance.simulation-reduction	INT	false	NONE	-	-	-	false	false	-	4	-
+chunks.adaptive-view-distance.min-distance	INT	false	NONE	-	-	-	false	false	-	3	-
+chunks.adaptive-view-distance.max-distance	INT	false	NONE	-	-	-	false	false	-	32	-
+chunks.adaptive-view-distance.afk-seconds	INT	false	NONE	-	-	-	false	false	-	300	-
+chunks.adaptive-view-distance.check-seconds	INT	false	NONE	-	-	-	false	false	-	10	-
+chunks.adaptive-view-distance.detect-anti-afk-macros	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+chunks.adaptive-view-distance.detect-auto-clickers	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+chunks.adaptive-view-distance.debug	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+performance.entities.entity-broadcast-range-percentage	INT	false	SERVER_PROPERTIES	entity-broadcast-range-percentage	-	entity-broadcast-range-percentage	true	false	-	100	clamped to 10..1000
+performance.entities.activation-range.animals	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.animals	-	-	false	false	-	32	-
+performance.entities.activation-range.monsters	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.monsters	-	-	false	false	-	32	-
+performance.entities.activation-range.raiders	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.raiders	-	-	false	false	-	64	-
+performance.entities.activation-range.misc	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.misc	-	-	false	false	-	16	-
+performance.entities.activation-range.water	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.water	-	-	false	false	-	16	-
+performance.entities.activation-range.villagers	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.villagers	-	-	false	false	-	32	-
+performance.entities.activation-range.flying-monsters	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.flying-monsters	-	-	false	false	-	32	-
+performance.entities.activation-range.tick-inactive-villagers	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.tick-inactive-villagers	-	-	false	false	-	true	-
+performance.entities.activation-range.villagers-active-for-panic	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.villagers-active-for-panic	-	-	false	false	-	true	-
+performance.entities.activation-range.ignore-spectators	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.ignore-spectators	-	-	false	false	-	false	-
+performance.entities.activation-range.villagers-work-immunity-after	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.villagers-work-immunity-after	-	-	false	false	-	100	-
+performance.entities.activation-range.villagers-work-immunity-for	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.villagers-work-immunity-for	-	-	false	false	-	20	-
+performance.entities.activation-range.wake-up-inactive.animals-max-per-tick	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.animals-max-per-tick	-	-	false	false	-	4	-
+performance.entities.activation-range.wake-up-inactive.animals-every	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.animals-every	-	-	false	false	-	1200	-
+performance.entities.activation-range.wake-up-inactive.animals-for	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.animals-for	-	-	false	false	-	100	-
+performance.entities.activation-range.wake-up-inactive.monsters-max-per-tick	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.monsters-max-per-tick	-	-	false	false	-	8	-
+performance.entities.activation-range.wake-up-inactive.monsters-every	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.monsters-every	-	-	false	false	-	400	-
+performance.entities.activation-range.wake-up-inactive.monsters-for	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.monsters-for	-	-	false	false	-	100	-
+performance.entities.activation-range.wake-up-inactive.villagers-max-per-tick	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.villagers-max-per-tick	-	-	false	false	-	4	-
+performance.entities.activation-range.wake-up-inactive.villagers-every	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.villagers-every	-	-	false	false	-	600	-
+performance.entities.activation-range.wake-up-inactive.villagers-for	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.villagers-for	-	-	false	false	-	100	-
+performance.entities.activation-range.wake-up-inactive.flying-monsters-max-per-tick	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.flying-monsters-max-per-tick	-	-	false	false	-	8	-
+performance.entities.activation-range.wake-up-inactive.flying-monsters-every	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.flying-monsters-every	-	-	false	false	-	200	-
+performance.entities.activation-range.wake-up-inactive.flying-monsters-for	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.wake-up-inactive.flying-monsters-for	-	-	false	false	-	100	-
+performance.entities.tracking-range.players	INT	true	SPIGOT_WORLD	world-settings.default.entity-tracking-range.players	-	-	false	false	-	128	-
+performance.entities.tracking-range.animals	INT	true	SPIGOT_WORLD	world-settings.default.entity-tracking-range.animals	-	-	false	false	-	96	-
+performance.entities.tracking-range.monsters	INT	true	SPIGOT_WORLD	world-settings.default.entity-tracking-range.monsters	-	-	false	false	-	96	-
+performance.entities.tracking-range.misc	INT	true	SPIGOT_WORLD	world-settings.default.entity-tracking-range.misc	-	-	false	false	-	96	-
+performance.entities.tracking-range.display	INT	true	SPIGOT_WORLD	world-settings.default.entity-tracking-range.display	-	-	false	false	-	128	-
+performance.entities.tracking-range.other	INT	true	SPIGOT_WORLD	world-settings.default.entity-tracking-range.other	-	-	false	false	-	64	-
+performance.entities.tracking-range-y.enabled	BOOLEAN	true	PAPER_WORLD	entities.tracking-range-y.enabled	-	-	false	false	-	false	-
+performance.entities.tracking-range-y.player	INT_OR_DEFAULT	true	PAPER_WORLD	entities.tracking-range-y.player	-	-	false	false	-	"default"	IntOr.Default; "default" uses the horizontal range of the category
+performance.entities.tracking-range-y.animal	INT_OR_DEFAULT	true	PAPER_WORLD	entities.tracking-range-y.animal	-	-	false	false	-	"default"	IntOr.Default; "default" uses the horizontal range of the category
+performance.entities.tracking-range-y.monster	INT_OR_DEFAULT	true	PAPER_WORLD	entities.tracking-range-y.monster	-	-	false	false	-	"default"	IntOr.Default; "default" uses the horizontal range of the category
+performance.entities.tracking-range-y.misc	INT_OR_DEFAULT	true	PAPER_WORLD	entities.tracking-range-y.misc	-	-	false	false	-	"default"	IntOr.Default; "default" uses the horizontal range of the category
+performance.entities.tracking-range-y.display	INT_OR_DEFAULT	true	PAPER_WORLD	entities.tracking-range-y.display	-	-	false	false	-	"default"	IntOr.Default; "default" uses the horizontal range of the category
+performance.entities.tracking-range-y.other	INT_OR_DEFAULT	true	PAPER_WORLD	entities.tracking-range-y.other	-	-	false	false	-	"default"	IntOr.Default; "default" uses the horizontal range of the category
+performance.entities.merge-radius.item	DOUBLE	true	SPIGOT_WORLD	world-settings.default.merge-radius.item	-	-	false	false	-	0.5	-
+performance.entities.merge-radius.exp	DOUBLE	true	SPIGOT_WORLD	world-settings.default.merge-radius.exp	-	-	false	false	-	-1.0	-
+performance.entities.collisions.enable-player-collisions	BOOLEAN	false	PAPER_GLOBAL	collisions.enable-player-collisions	-	-	false	false	-	true	not a synonym of only-players-collide (SETTINGS-MAP 3.9)
+performance.entities.collisions.only-players-collide	BOOLEAN	true	PAPER_WORLD	collisions.only-players-collide	-	-	false	false	-	false	-
+performance.entities.collisions.allow-vehicle-collisions	BOOLEAN	true	PAPER_WORLD	collisions.allow-vehicle-collisions	-	-	false	false	-	true	-
+performance.entities.collisions.max-entity-collisions	INT	true	PAPER_WORLD	collisions.max-entity-collisions	-	-	false	false	-	8	-
+performance.entities.collisions.allow-player-cramming-damage	BOOLEAN	true	PAPER_WORLD	collisions.allow-player-cramming-damage	-	-	false	false	-	false	-
+performance.entities.collisions.fix-climbing-bypassing-cramming-rule	BOOLEAN	true	PAPER_WORLD	collisions.fix-climbing-bypassing-cramming-rule	-	-	false	false	-	false	-
+performance.entities.collisions.send-full-pos-for-hard-colliding-entities	BOOLEAN	false	PAPER_GLOBAL	collisions.send-full-pos-for-hard-colliding-entities	-	-	false	false	-	true	-
+performance.spawning.mob-spawn-range	INT	true	SPIGOT_WORLD	world-settings.default.mob-spawn-range	-	-	false	false	-	8	-
+performance.spawning.nerf-spawner-mobs	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.nerf-spawner-mobs	-	-	false	false	-	false	-
+performance.spawning.per-player-mob-spawns	BOOLEAN	true	PAPER_WORLD	entities.spawning.per-player-mob-spawns	-	-	false	false	-	true	-
+performance.spawning.spawn-limits.monsters	INT	true	BUKKIT	spawn-limits.monsters	PAPER_WORLD:entities.spawning.spawn-limits.monster	-	false	false	-	70	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.spawn-limits.animals	INT	true	BUKKIT	spawn-limits.animals	PAPER_WORLD:entities.spawning.spawn-limits.creature	-	false	false	-	10	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.spawn-limits.water-animals	INT	true	BUKKIT	spawn-limits.water-animals	PAPER_WORLD:entities.spawning.spawn-limits.water_creature	-	false	false	-	5	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.spawn-limits.water-ambient	INT	true	BUKKIT	spawn-limits.water-ambient	PAPER_WORLD:entities.spawning.spawn-limits.water_ambient	-	false	false	-	20	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.spawn-limits.water-underground-creature	INT	true	BUKKIT	spawn-limits.water-underground-creature	PAPER_WORLD:entities.spawning.spawn-limits.underground_water_creature	-	false	false	-	5	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.spawn-limits.axolotls	INT	true	BUKKIT	spawn-limits.axolotls	PAPER_WORLD:entities.spawning.spawn-limits.axolotls	-	false	false	-	5	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.spawn-limits.ambient	INT	true	BUKKIT	spawn-limits.ambient	PAPER_WORLD:entities.spawning.spawn-limits.ambient	-	false	false	-	15	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.monsters	INT	true	BUKKIT	ticks-per.monster-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.monster	-	false	false	-	1	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.animals	INT	true	BUKKIT	ticks-per.animal-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.creature	-	false	false	-	400	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.water-animals	INT	true	BUKKIT	ticks-per.water-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.water_creature	-	false	false	-	1	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.water-ambient	INT	true	BUKKIT	ticks-per.water-ambient-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.water_ambient	-	false	false	-	1	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.water-underground-creature	INT	true	BUKKIT	ticks-per.water-underground-creature-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.underground_water_creature	-	false	false	-	1	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.axolotls	INT	true	BUKKIT	ticks-per.axolotl-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.axolotls	-	false	false	-	1	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.ticks-per-spawn.ambient	INT	true	BUKKIT	ticks-per.ambient-spawns	PAPER_WORLD:entities.spawning.ticks-per-spawn.ambient	-	false	false	-	1	paper value >= 0 wins for that world; -1 (the paper default) defers to bukkit (CraftWorld)
+performance.spawning.despawn-ranges.shape	ENUM	true	PAPER_WORLD	entities.spawning.despawn-range-shape	-	-	false	false	ELLIPSOID,CUBOID	"ELLIPSOID"	DespawnRange.Shape
+performance.spawning.despawn-ranges.monster-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.monster.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.monster-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.monster.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.creature-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.creature.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.creature-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.creature.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.ambient-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.ambient.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.ambient-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.ambient.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.axolotls-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.axolotls.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.axolotls-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.axolotls.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.underground-water-creature-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.underground_water_creature.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.underground-water-creature-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.underground_water_creature.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.water-creature-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.water_creature.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.water-creature-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.water_creature.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.water-ambient-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.water_ambient.hard	-	-	false	false	-	64	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.water-ambient-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.water_ambient.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.misc-hard	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.misc.hard	-	-	false	false	-	128	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.spawning.despawn-ranges.misc-soft	INT	true	PAPER_WORLD	entities.spawning.despawn-ranges.misc.soft	-	-	false	false	-	32	Paper stores IntOr.Default ("default" = the MobCategory distance); the TOML writes the resolved distance
+performance.ticking.entity-budget-millis	INT	true	SPIGOT_WORLD	world-settings.default.max-tick-time.entity	-	-	false	false	-	50	renamed on purpose: not the watchdog max-tick-time of server.properties (SETTINGS-MAP 3.15)
+performance.ticking.tile-entity-budget-millis	INT	true	SPIGOT_WORLD	world-settings.default.max-tick-time.tile	-	-	false	false	-	50	renamed on purpose (SETTINGS-MAP 3.15)
+performance.regions.threads	INT	false	PAPER_GLOBAL	threaded-regions.threads	-	-	false	false	-	-1	-1 = auto, resolved in @PostProcess
+performance.regions.grid-exponent	INT	false	PAPER_GLOBAL	threaded-regions.grid-exponent	-	-	false	false	-	4	-
+performance.regions.scheduler	ENUM	false	PAPER_GLOBAL	threaded-regions.scheduler	-	-	false	false	EDF,WORK_STEALING	"EDF"	TickRegionScheduler.SchedulerType
+combat.enabled	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.no-attack-cooldown	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.no-sweep-attack	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.legacy-knockback	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.knockback-horizontal	DOUBLE	false	NONE	-	-	-	false	false	-	0.4	-
+combat.knockback-vertical	DOUBLE	false	NONE	-	-	-	false	false	-	0.4	-
+combat.knockback-vertical-limit	DOUBLE	false	NONE	-	-	-	false	false	-	0.4	-
+combat.sprint-knockback	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.sprint-knockback-strength	DOUBLE	false	NONE	-	-	-	false	false	-	0.5	-
+combat.restore-velocity-after-knockback	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.legacy-criticals	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.critical-multiplier	DOUBLE	false	NONE	-	-	-	false	false	-	1.5	-
+combat.invulnerability-ticks	INT	false	NONE	-	-	-	false	false	-	20	-
+combat.damage-overriding	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.legacy-sword-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.sword-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	4.0	-
+combat.legacy-sharpness	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.sharpness-per-level	DOUBLE	false	NONE	-	-	-	false	false	-	1.25	-
+combat.fire-aspect-before-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.fire-aspect-seconds	INT	false	NONE	-	-	-	false	false	-	1	-
+combat.legacy-armor	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.armor-damage-divisor	DOUBLE	false	NONE	-	-	-	false	false	-	25.0	-
+combat.armor-points-cap	INT	false	NONE	-	-	-	false	false	-	20	-
+combat.legacy-protection	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.protection-factor	DOUBLE	false	NONE	-	-	-	false	false	-	0.75	-
+combat.protection-points-cap	INT	false	NONE	-	-	-	false	false	-	25	-
+combat.protection-roll-cap	INT	false	NONE	-	-	-	false	false	-	20	-
+combat.legacy-regeneration	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.regen-interval-ticks	INT	false	NONE	-	-	-	false	false	-	80	-
+combat.regen-food-threshold	INT	false	NONE	-	-	-	false	false	-	18	-
+combat.saturated-fast-regen	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+combat.attack-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.3	-
+combat.regen-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	3.0	-
+combat.sprint-jump-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.8	-
+combat.jump-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.2	-
+combat.legacy-instant-potions	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.instant-damage-base	INT	false	NONE	-	-	-	false	false	-	6	-
+combat.instant-heal-base	INT	false	NONE	-	-	-	false	false	-	4	-
+combat.splash-radius	DOUBLE	false	NONE	-	-	-	false	false	-	4.0	-
+combat.sword-blocking	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.sword-blocking-reduction	DOUBLE	false	NONE	-	-	-	false	false	-	0.5	-
+combat.disable-shields	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.disable-offhand	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+plugins.auto-update.enabled	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+plugins.auto-update.hangar	STRING_LIST	false	NONE	-	-	-	false	false	-	[]	-
+plugins.auto-update.modrinth	STRING_LIST	false	NONE	-	-	-	false	false	-	[]	-
+plugins.auto-update.github	STRING_LIST	false	NONE	-	-	-	false	false	-	[]	-
+plugins.auto-update.luckperms	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
+plugins.auto-update.github-token-file	STRING	false	NONE	-	-	-	false	true	-	"github.token"	names config/github.token; GITHUB_TOKEN overrides it
+plugins.api.update-folder	STRING	false	BUKKIT	settings.update-folder	-	-	false	false	-	"update"	-
+plugins.api.permissions-file	STRING	false	BUKKIT	settings.permissions-file	-	-	false	false	-	"permissions.yml"	resolved against the working directory, not config/
+plugins.api.load-permissions-yml-before-plugins	BOOLEAN	false	PAPER_GLOBAL	misc.load-permissions-yml-before-plugins	-	-	false	false	-	true	-
+plugins.api.minimum-api	STRING	false	BUKKIT	settings.minimum-api	-	-	false	false	-	"none"	-
+plugins.api.plugin-profiling	BOOLEAN	false	BUKKIT	settings.plugin-profiling	-	-	false	false	-	false	-
+plugins.api.use-map-color-cache	BOOLEAN	false	BUKKIT	settings.use-map-color-cache	-	-	false	false	-	true	-
+plugins.api.scoreboards.track-plugin-scoreboards	BOOLEAN	false	PAPER_GLOBAL	scoreboards.track-plugin-scoreboards	-	-	false	false	-	false	-
+plugins.api.scoreboards.save-empty-scoreboard-teams	BOOLEAN	false	PAPER_GLOBAL	scoreboards.save-empty-scoreboard-teams	-	-	false	false	-	true	-
+plugins.api.item-validation.display-name	INT	false	PAPER_GLOBAL	item-validation.display-name	-	-	false	false	-	8192	-
+plugins.api.item-validation.lore-line	INT	false	PAPER_GLOBAL	item-validation.lore-line	-	-	false	false	-	8192	-
+plugins.api.item-validation.resolve-selectors-in-books	BOOLEAN	false	PAPER_GLOBAL	item-validation.resolve-selectors-in-books	-	-	false	false	-	false	-
+plugins.api.item-validation.book.title	INT	false	PAPER_GLOBAL	item-validation.book.title	-	-	false	false	-	8192	-
+plugins.api.item-validation.book.author	INT	false	PAPER_GLOBAL	item-validation.book.author	-	-	false	false	-	8192	-
+plugins.api.item-validation.book.page	INT	false	PAPER_GLOBAL	item-validation.book.page	-	-	false	false	-	16384	-
+plugins.api.item-validation.book-size.page-max	INT_OR_DISABLED	false	PAPER_GLOBAL	item-validation.book-size.page-max	-	-	false	false	-	2560	IntOr.Disabled
+plugins.api.item-validation.book-size.total-multiplier	DOUBLE	false	PAPER_GLOBAL	item-validation.book-size.total-multiplier	-	-	false	false	-	0.98	-
+plugins.commands.log	BOOLEAN	false	SPIGOT	commands.log	-	-	false	false	-	true	-
+plugins.commands.tab-complete	INT	false	SPIGOT	commands.tab-complete	-	-	false	false	-	0	spigot config-version < 6 stored a boolean; SpigotConfig converts true -> 0, false -> -1
+plugins.commands.send-namespaced	BOOLEAN	false	SPIGOT	commands.send-namespaced	-	-	false	false	-	true	-
+plugins.commands.silent-commandblock-console	BOOLEAN	false	SPIGOT	commands.silent-commandblock-console	-	-	false	false	-	false	-
+plugins.commands.replace-commands	STRING_LIST	false	SPIGOT	commands.replace-commands	SPIGOT:replace-commands	-	false	false	-	["setblock", "summon", "testforblock", "tellraw"]	a root replace-commands is the pre-v1 location; SpigotConfig moves it under commands.
+plugins.commands.suggest-player-names-when-null-tab-completions	BOOLEAN	false	PAPER_GLOBAL	commands.suggest-player-names-when-null-tab-completions	-	-	false	false	-	true	-
+plugins.commands.command-block-overrides	STRING_LIST	false	COMMANDS	command-block-overrides	-	-	false	false	-	[]	-
+plugins.commands.ignore-vanilla-permissions	BOOLEAN	false	COMMANDS	ignore-vanilla-permissions	-	-	false	false	-	false	-
+plugins.commands.aliases	TABLE	false	COMMANDS	aliases	-	-	false	false	-	{ "icanhasbukkit" = ["version $1-"] }	map of alias -> list of commands; bukkit.yml aliases: now-in-commands.yml is only a pointer
+gameplay.hunger.jump-walk-exhaustion	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.jump-walk-exhaustion	-	-	false	false	-	0.05	-
+gameplay.hunger.jump-sprint-exhaustion	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.jump-sprint-exhaustion	-	-	false	false	-	0.2	-
+gameplay.hunger.combat-exhaustion	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.combat-exhaustion	-	-	false	false	-	0.1	not consulted while combat.enabled is true; combat.toml has the 1.8 value
+gameplay.hunger.regen-exhaustion	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.regen-exhaustion	-	-	false	false	-	6.0	not consulted while combat.enabled is true; combat.toml has the 1.8 value
+gameplay.hunger.swim-multiplier	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.swim-multiplier	-	-	false	false	-	0.01	-
+gameplay.hunger.sprint-multiplier	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.sprint-multiplier	-	-	false	false	-	0.1	-
+gameplay.hunger.other-multiplier	DOUBLE	true	SPIGOT_WORLD	world-settings.default.hunger.other-multiplier	-	-	false	false	-	0.0	-
+gameplay.growth.cactus-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.cactus-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.cane-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.cane-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.melon-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.melon-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.mushroom-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.mushroom-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.pumpkin-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.pumpkin-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.sapling-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.sapling-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.beetroot-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.beetroot-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.carrot-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.carrot-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.potato-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.potato-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.torchflower-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.torchflower-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.wheat-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.wheat-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.netherwart-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.netherwart-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.vine-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.vine-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.cocoa-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.cocoa-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.bamboo-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.bamboo-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.sweetberry-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.sweetberry-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.kelp-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.kelp-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.twistingvines-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.twistingvines-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.weepingvines-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.weepingvines-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.cavevines-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.cavevines-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.glowberry-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.glowberry-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.pitcherplant-modifier	INT	true	SPIGOT_WORLD	world-settings.default.growth.pitcherplant-modifier	-	-	false	false	-	100	0 is rejected and read as 100
+gameplay.growth.max-growth-height-cactus	INT	true	PAPER_WORLD	max-growth-height.cactus	-	-	false	false	-	3	-
+gameplay.growth.max-growth-height-reeds	INT	true	PAPER_WORLD	max-growth-height.reeds	-	-	false	false	-	3	-
+gameplay.growth.max-growth-height-bamboo-max	INT	true	PAPER_WORLD	max-growth-height.bamboo.max	-	-	false	false	-	16	-
+gameplay.growth.max-growth-height-bamboo-min	INT	true	PAPER_WORLD	max-growth-height.bamboo.min	-	-	false	false	-	11	-
+gameplay.mobs.zombie-aggressive-towards-villager	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.zombie-aggressive-towards-villager	-	-	false	false	-	true	-
+gameplay.mobs.zombies-target-turtle-eggs	BOOLEAN	true	PAPER_WORLD	entities.behavior.zombies-target-turtle-eggs	-	-	false	false	-	true	-
+gameplay.mobs.enable-zombie-pigmen-portal-spawns	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.enable-zombie-pigmen-portal-spawns	-	-	false	false	-	true	-
+gameplay.mobs.nerf-pigmen-from-nether-portals	BOOLEAN	true	PAPER_WORLD	entities.behavior.nerf-pigmen-from-nether-portals	-	-	false	false	-	false	-
+gameplay.mobs.baby-zombie-movement-modifier	DOUBLE	true	PAPER_WORLD	entities.behavior.baby-zombie-movement-modifier	-	-	false	false	-	0.5	-
+gameplay.mobs.zombie-villager-infection-chance	DOUBLE_OR_DEFAULT	true	PAPER_WORLD	entities.behavior.zombie-villager-infection-chance	-	-	false	false	-	"default"	DoubleOr.Default; "default" lets vanilla decide by difficulty
+gameplay.mobs.spawner-nerfed-mobs-should-jump	BOOLEAN	true	PAPER_WORLD	entities.behavior.spawner-nerfed-mobs-should-jump	-	-	false	false	-	false	-
+gameplay.mobs.mobs-can-always-pick-up-loot-zombies	BOOLEAN	true	PAPER_WORLD	entities.behavior.mobs-can-always-pick-up-loot.zombies	-	-	false	false	-	false	-
+gameplay.mobs.mobs-can-always-pick-up-loot-skeletons	BOOLEAN	true	PAPER_WORLD	entities.behavior.mobs-can-always-pick-up-loot.skeletons	-	-	false	false	-	false	-
+gameplay.mobs.disable-chest-cat-detection	BOOLEAN	true	PAPER_WORLD	entities.behavior.disable-chest-cat-detection	-	-	false	false	-	false	-
+gameplay.mobs.piglins-guard-chests	BOOLEAN	true	PAPER_WORLD	entities.behavior.piglins-guard-chests	-	-	false	false	-	true	-
+gameplay.mobs.allow-spider-world-border-climbing	BOOLEAN	true	PAPER_WORLD	entities.behavior.allow-spider-world-border-climbing	-	-	false	false	-	true	-
+gameplay.mobs.disable-creeper-lingering-effect	BOOLEAN	true	PAPER_WORLD	entities.behavior.disable-creeper-lingering-effect	-	-	false	false	-	false	-
+gameplay.mobs.ender-dragons-death-always-places-dragon-egg	BOOLEAN	true	PAPER_WORLD	entities.behavior.ender-dragons-death-always-places-dragon-egg	-	-	false	false	-	false	-
+gameplay.mobs.should-remove-dragon	BOOLEAN	true	PAPER_WORLD	entities.behavior.should-remove-dragon	-	-	false	false	-	false	-
+gameplay.mobs.phantoms-do-not-spawn-on-creative-players	BOOLEAN	true	PAPER_WORLD	entities.behavior.phantoms-do-not-spawn-on-creative-players	-	-	false	false	-	true	-
+gameplay.mobs.phantoms-only-attack-insomniacs	BOOLEAN	true	PAPER_WORLD	entities.behavior.phantoms-only-attack-insomniacs	-	-	false	false	-	true	-
+gameplay.mobs.player-insomnia-start-ticks	INT	true	PAPER_WORLD	entities.behavior.player-insomnia-start-ticks	-	-	false	false	-	72000	-
+gameplay.mobs.phantoms-spawn-attempt-min-seconds	INT	true	PAPER_WORLD	entities.behavior.phantoms-spawn-attempt-min-seconds	-	-	false	false	-	60	-
+gameplay.mobs.phantoms-spawn-attempt-max-seconds	INT	true	PAPER_WORLD	entities.behavior.phantoms-spawn-attempt-max-seconds	-	-	false	false	-	119	-
+gameplay.mobs.pillager-patrols-disable	BOOLEAN	true	PAPER_WORLD	entities.behavior.pillager-patrols.disable	-	-	false	false	-	false	-
+gameplay.mobs.pillager-patrols-spawn-chance	DOUBLE	true	PAPER_WORLD	entities.behavior.pillager-patrols.spawn-chance	-	-	false	false	-	0.2	-
+gameplay.mobs.pillager-patrols-spawn-delay-per-player	BOOLEAN	true	PAPER_WORLD	entities.behavior.pillager-patrols.spawn-delay.per-player	-	-	false	false	-	false	-
+gameplay.mobs.pillager-patrols-spawn-delay-ticks	INT	true	PAPER_WORLD	entities.behavior.pillager-patrols.spawn-delay.ticks	-	-	false	false	-	12000	-
+gameplay.mobs.pillager-patrols-start-per-player	BOOLEAN	true	PAPER_WORLD	entities.behavior.pillager-patrols.start.per-player	-	-	false	false	-	false	-
+gameplay.mobs.pillager-patrols-start-day	INT	true	PAPER_WORLD	entities.behavior.pillager-patrols.start.day	-	-	false	false	-	5	-
+gameplay.mobs.parrots-are-unaffected-by-player-movement	BOOLEAN	true	PAPER_WORLD	entities.behavior.parrots-are-unaffected-by-player-movement	-	-	false	false	-	false	-
+gameplay.mobs.disable-player-crits	BOOLEAN	true	PAPER_WORLD	entities.behavior.disable-player-crits	-	-	false	false	-	false	-
+gameplay.mobs.cooldown-failed-beehive-releases	BOOLEAN	true	PAPER_WORLD	entities.behavior.cooldown-failed-beehive-releases	-	-	false	false	-	true	-
+gameplay.mobs.stuck-entity-poi-retry-delay	INT_OR_DISABLED	true	PAPER_WORLD	entities.behavior.stuck-entity-poi-retry-delay	-	-	false	false	-	200	IntOr.Disabled
+gameplay.mobs.experience-merge-max-value	INT	true	PAPER_WORLD	entities.behavior.experience-merge-max-value	-	-	false	false	-	-1	-
+gameplay.mobs.only-merge-items-horizontally	BOOLEAN	true	PAPER_WORLD	entities.behavior.only-merge-items-horizontally	-	-	false	false	-	false	-
+gameplay.mobs.spiders-immune-to-poison-effect	BOOLEAN	true	PAPER_WORLD	entities.mob-effects.spiders-immune-to-poison-effect	-	-	false	false	-	true	-
+gameplay.mobs.immune-to-wither-effect-wither	BOOLEAN	true	PAPER_WORLD	entities.mob-effects.immune-to-wither-effect.wither	-	-	false	false	-	true	-
+gameplay.mobs.immune-to-wither-effect-wither-skeleton	BOOLEAN	true	PAPER_WORLD	entities.mob-effects.immune-to-wither-effect.wither-skeleton	-	-	false	false	-	true	-
+gameplay.environment.disable-thunder	BOOLEAN	true	PAPER_WORLD	environment.disable-thunder	-	-	false	false	-	false	-
+gameplay.environment.thunder-chance	INT	true	SPIGOT_WORLD	world-settings.default.thunder-chance	-	-	false	false	-	100000	-
+gameplay.environment.disable-ice-and-snow	BOOLEAN	true	PAPER_WORLD	environment.disable-ice-and-snow	-	-	false	false	-	false	-
+gameplay.environment.frosted-ice-enabled	BOOLEAN	true	PAPER_WORLD	environment.frosted-ice.enabled	-	-	false	false	-	true	-
+gameplay.environment.frosted-ice-delay-min	INT	true	PAPER_WORLD	environment.frosted-ice.delay.min	-	-	false	false	-	20	-
+gameplay.environment.frosted-ice-delay-max	INT	true	PAPER_WORLD	environment.frosted-ice.delay.max	-	-	false	false	-	40	-
+gameplay.environment.optimize-explosions	BOOLEAN	true	PAPER_WORLD	environment.optimize-explosions	-	-	false	false	-	false	-
+gameplay.environment.disable-explosion-knockback	BOOLEAN	true	PAPER_WORLD	environment.disable-explosion-knockback	-	-	false	false	-	false	-
+gameplay.environment.generate-flat-bedrock	BOOLEAN	true	PAPER_WORLD	environment.generate-flat-bedrock	-	-	false	false	-	false	-
+gameplay.environment.void-damage-amount	DOUBLE_OR_DISABLED	true	PAPER_WORLD	environment.void-damage-amount	-	-	false	false	-	4.0	DoubleOr.Disabled
+gameplay.environment.void-damage-min-build-height-offset	DOUBLE	true	PAPER_WORLD	environment.void-damage-min-build-height-offset	-	-	false	false	-	-64.0	-
+gameplay.environment.nether-ceiling-void-damage-height	INT_OR_DISABLED	true	PAPER_WORLD	environment.nether-ceiling-void-damage-height	-	-	false	false	-	"disabled"	IntOr.Disabled
+gameplay.environment.fire-tick-delay	INT	true	PAPER_WORLD	environment.fire-tick-delay	-	-	false	false	-	30	-
+gameplay.environment.water-over-lava-flow-speed	INT	true	PAPER_WORLD	environment.water-over-lava-flow-speed	-	-	false	false	-	5	-
+gameplay.environment.portal-search-radius	INT	true	PAPER_WORLD	environment.portal-search-radius	-	-	false	false	-	128	-
+gameplay.environment.portal-create-radius	INT	true	PAPER_WORLD	environment.portal-create-radius	-	-	false	false	-	16	-
+gameplay.environment.portal-search-vanilla-dimension-scaling	BOOLEAN	true	PAPER_WORLD	environment.portal-search-vanilla-dimension-scaling	-	-	false	false	-	true	-
+gameplay.environment.max-fluid-ticks	INT	true	PAPER_WORLD	environment.max-fluid-ticks	-	-	false	false	-	65536	-
+gameplay.environment.max-block-ticks	INT	true	PAPER_WORLD	environment.max-block-ticks	-	-	false	false	-	65536	-
+gameplay.environment.locate-structures-outside-world-border	BOOLEAN	true	PAPER_WORLD	environment.locate-structures-outside-world-border	-	-	false	false	-	false	-
+gameplay.environment.treasure-maps-enabled	BOOLEAN	true	PAPER_WORLD	environment.treasure-maps.enabled	-	-	false	false	-	true	-
+gameplay.environment.treasure-maps-find-already-discovered-villager-trade	BOOLEAN	true	PAPER_WORLD	environment.treasure-maps.find-already-discovered.villager-trade	-	-	false	false	-	false	-
+gameplay.environment.treasure-maps-find-already-discovered-loot-tables	BOOLEAN_OR_DEFAULT	true	PAPER_WORLD	environment.treasure-maps.find-already-discovered.loot-tables	-	-	false	false	-	"default"	BooleanOrDefault
+gameplay.environment.fishing-time-range-minimum	INT	true	PAPER_WORLD	fishing-time-range.minimum	-	-	false	false	-	100	-
+gameplay.environment.fishing-time-range-maximum	INT	true	PAPER_WORLD	fishing-time-range.maximum	-	-	false	false	-	600	-
+gameplay.environment.tick-rates-grass-spread	INT	true	PAPER_WORLD	tick-rates.grass-spread	-	-	false	false	-	1	-
+gameplay.environment.tick-rates-container-update	INT	true	PAPER_WORLD	tick-rates.container-update	-	-	false	false	-	1	-
+gameplay.environment.tick-rates-mob-spawner	INT	true	PAPER_WORLD	tick-rates.mob-spawner	-	-	false	false	-	1	-
+gameplay.environment.tick-rates-wet-farmland	INT	true	PAPER_WORLD	tick-rates.wet-farmland	-	-	false	false	-	1	-
+gameplay.environment.tick-rates-dry-farmland	INT	true	PAPER_WORLD	tick-rates.dry-farmland	-	-	false	false	-	1	-
+gameplay.items.item-despawn-rate	INT	true	SPIGOT_WORLD	world-settings.default.item-despawn-rate	-	-	false	false	-	6000	-
+gameplay.items.arrow-despawn-rate	INT	true	SPIGOT_WORLD	world-settings.default.arrow-despawn-rate	-	-	false	false	-	1200	-
+gameplay.items.trident-despawn-rate	INT	true	SPIGOT_WORLD	world-settings.default.trident-despawn-rate	-	-	false	false	-	1200	when absent, falls back to arrow-despawn-rate (SpigotWorldConfig); the written 1200 only holds while that one is 1200
+gameplay.items.non-player-arrow-despawn-rate	INT_OR_DEFAULT	true	PAPER_WORLD	entities.spawning.non-player-arrow-despawn-rate	-	-	false	false	-	"default"	ArrowDespawnRate: "default" falls back to the spigot arrow-despawn-rate of the world (FallbackValue)
+gameplay.items.creative-arrow-despawn-rate	INT_OR_DEFAULT	true	PAPER_WORLD	entities.spawning.creative-arrow-despawn-rate	-	-	false	false	-	"default"	ArrowDespawnRate: "default" falls back to the spigot arrow-despawn-rate of the world (FallbackValue)
+gameplay.items.max-arrow-despawn-invulnerability	INT_OR_DISABLED	true	PAPER_WORLD	entities.spawning.max-arrow-despawn-invulnerability	-	-	false	false	-	200	IntOr.Disabled
+gameplay.items.alt-item-despawn-rate-enabled	BOOLEAN	true	PAPER_WORLD	entities.spawning.alt-item-despawn-rate.enabled	-	-	false	false	-	false	-
+gameplay.items.alt-item-despawn-rate-items	TABLE	true	PAPER_WORLD	entities.spawning.alt-item-despawn-rate.items	-	-	false	false	-	{ "minecraft:cobblestone" = 300 }	map of item id -> ticks (Reference2IntMap<Item>)
+gameplay.items.lootables-auto-replenish	BOOLEAN	true	PAPER_WORLD	lootables.auto-replenish	-	-	false	false	-	false	-
+gameplay.items.lootables-restrict-player-reloot	BOOLEAN	true	PAPER_WORLD	lootables.restrict-player-reloot	-	-	false	false	-	true	-
+gameplay.items.lootables-restrict-player-reloot-time	DURATION_OR_DISABLED	true	PAPER_WORLD	lootables.restrict-player-reloot-time	-	-	false	false	-	"disabled"	Paper DurationOrDisabled
+gameplay.items.lootables-reset-seed-on-fill	BOOLEAN	true	PAPER_WORLD	lootables.reset-seed-on-fill	-	-	false	false	-	true	-
+gameplay.items.lootables-max-refills	INT	true	PAPER_WORLD	lootables.max-refills	-	-	false	false	-	-1	-
+gameplay.items.lootables-refresh-min	DURATION	true	PAPER_WORLD	lootables.refresh-min	-	-	false	false	-	"12h"	Paper Duration
+gameplay.items.lootables-refresh-max	DURATION	true	PAPER_WORLD	lootables.refresh-max	-	-	false	false	-	"2d"	Paper Duration
+gameplay.items.lootables-retain-unlooted-shulker-box-loot-table-on-non-player-break	BOOLEAN	true	PAPER_WORLD	lootables.retain-unlooted-shulker-box-loot-table-on-non-player-break	-	-	false	false	-	true	-
+gameplay.items.hopper-ticks-per-transfer	INT	true	SPIGOT_WORLD	world-settings.default.ticks-per.hopper-transfer	-	-	false	false	-	8	-
+gameplay.items.hopper-ticks-per-check	INT	true	SPIGOT_WORLD	world-settings.default.ticks-per.hopper-check	-	-	false	false	-	1	-
+gameplay.items.hopper-amount	INT	true	SPIGOT_WORLD	world-settings.default.hopper-amount	-	-	false	false	-	1	-
+gameplay.items.hopper-can-load-chunks	BOOLEAN	true	SPIGOT_WORLD	world-settings.default.hopper-can-load-chunks	-	-	false	false	-	false	-
+gameplay.items.hopper-cooldown-when-full	BOOLEAN	true	PAPER_WORLD	hopper.cooldown-when-full	-	-	false	false	-	true	-
+gameplay.items.hopper-disable-move-event	BOOLEAN	true	PAPER_WORLD	hopper.disable-move-event	-	-	false	false	-	false	-
+gameplay.items.hopper-ignore-occluding-blocks	BOOLEAN	true	PAPER_WORLD	hopper.ignore-occluding-blocks	-	-	false	false	-	false	-
+gameplay.items.max-tnt-per-tick	INT	true	SPIGOT_WORLD	world-settings.default.max-tnt-per-tick	-	-	false	false	-	100	-
+gameplay.redstone.redstone-implementation	ENUM	true	PAPER_WORLD	misc.redstone-implementation	-	-	false	false	vanilla,eigencraft,alternate_current	"vanilla"	WorldConfiguration.Misc.RedstoneImplementation
+gameplay.redstone.alternate-current-update-order	ENUM	true	PAPER_WORLD	misc.alternate-current-update-order	-	-	false	false	horizontal_first_outward,horizontal_first_inward,vertical_first_outward,vertical_first_inward	"horizontal_first_outward"	WorldConfiguration.Misc.AlternateCurrentUpdateOrder
+gameplay.redstone.disable-noteblock-updates	BOOLEAN	false	PAPER_GLOBAL	block-updates.disable-noteblock-updates	-	-	false	false	-	false	-
+gameplay.redstone.disable-tripwire-updates	BOOLEAN	false	PAPER_GLOBAL	block-updates.disable-tripwire-updates	-	-	false	false	-	false	-
+gameplay.redstone.disable-chorus-plant-updates	BOOLEAN	false	PAPER_GLOBAL	block-updates.disable-chorus-plant-updates	-	-	false	false	-	false	-
+gameplay.redstone.disable-mushroom-block-updates	BOOLEAN	false	PAPER_GLOBAL	block-updates.disable-mushroom-block-updates	-	-	false	false	-	false	-
+gameplay.redstone.update-pathfinding-on-block-update	BOOLEAN	true	PAPER_WORLD	misc.update-pathfinding-on-block-update	-	-	false	false	-	true	-
+gameplay.exploits.fix-items-merging-through-walls	BOOLEAN	true	PAPER_WORLD	fixes.fix-items-merging-through-walls	-	-	false	false	-	false	-
+gameplay.exploits.disable-unloaded-chunk-enderpearl-exploit	BOOLEAN	true	PAPER_WORLD	fixes.disable-unloaded-chunk-enderpearl-exploit	-	-	false	false	-	false	-
+gameplay.exploits.prevent-tnt-from-moving-in-water	BOOLEAN	true	PAPER_WORLD	fixes.prevent-tnt-from-moving-in-water	-	-	false	false	-	false	-
+gameplay.exploits.split-overstacked-loot	BOOLEAN	true	PAPER_WORLD	fixes.split-overstacked-loot	-	-	false	false	-	true	-
+gameplay.exploits.falling-block-height-nerf	INT_OR_DISABLED	true	PAPER_WORLD	fixes.falling-block-height-nerf	-	-	false	false	-	"disabled"	IntOr.Disabled
+gameplay.exploits.tnt-entity-height-nerf	INT_OR_DISABLED	true	PAPER_WORLD	fixes.tnt-entity-height-nerf	-	-	false	false	-	"disabled"	IntOr.Disabled
+gameplay.exploits.anti-xray-enabled	BOOLEAN	true	PAPER_WORLD	anticheat.anti-xray.enabled	-	-	false	false	-	false	-
+gameplay.exploits.anti-xray-engine-mode	ENGINE_MODE	true	PAPER_WORLD	anticheat.anti-xray.engine-mode	-	-	false	false	-	1	EngineMode: 1 HIDE, 2 OBFUSCATE, 3 OBFUSCATE_LAYER
+gameplay.exploits.anti-xray-max-block-height	INT	true	PAPER_WORLD	anticheat.anti-xray.max-block-height	-	-	false	false	-	64	-
+gameplay.exploits.anti-xray-update-radius	INT	true	PAPER_WORLD	anticheat.anti-xray.update-radius	-	-	false	false	-	2	-
+gameplay.exploits.anti-xray-lava-obscures	BOOLEAN	true	PAPER_WORLD	anticheat.anti-xray.lava-obscures	-	-	false	false	-	false	-
+gameplay.exploits.anti-xray-use-permission	BOOLEAN	true	PAPER_WORLD	anticheat.anti-xray.use-permission	-	-	false	false	-	false	-
+gameplay.exploits.anti-xray-hidden-blocks	STRING_LIST	true	PAPER_WORLD	anticheat.anti-xray.hidden-blocks	-	-	false	false	-	["minecraft:copper_ore", "minecraft:deepslate_copper_ore", "minecraft:raw_copper_block", "minecraft:gold_ore", "minecraft:deepslate_gold_ore", "minecraft:iron_ore", "minecraft:deepslate_iron_ore", "minecraft:raw_iron_block", "minecraft:coal_ore", "minecraft:deepslate_coal_ore", "minecraft:lapis_ore", "minecraft:deepslate_lapis_ore", "minecraft:mossy_cobblestone", "minecraft:obsidian", "minecraft:chest", "minecraft:diamond_ore", "minecraft:deepslate_diamond_ore", "minecraft:redstone_ore", "minecraft:deepslate_redstone_ore", "minecraft:clay", "minecraft:emerald_ore", "minecraft:deepslate_emerald_ore", "minecraft:ender_chest"]	block ids (List<Block>)
+gameplay.exploits.anti-xray-replacement-blocks	STRING_LIST	true	PAPER_WORLD	anticheat.anti-xray.replacement-blocks	-	-	false	false	-	["minecraft:stone", "minecraft:oak_planks", "minecraft:deepslate"]	block ids (List<Block>)
+gameplay.exploits.enable-item-obfuscation	BOOLEAN	false	PAPER_GLOBAL	anticheat.obfuscation.items.enable-item-obfuscation	-	-	false	false	-	false	-
+gameplay.exploits.obfuscate-item-count	BOOLEAN	false	PAPER_GLOBAL	anticheat.obfuscation.items.all-models.sanitize-count	-	-	false	false	-	true	-
+gameplay.exploits.item-obfuscation-dont-obfuscate	STRING_LIST	false	PAPER_GLOBAL	anticheat.obfuscation.items.all-models.dont-obfuscate	-	-	false	false	-	["minecraft:lodestone_tracker"]	data component ids
+gameplay.exploits.item-obfuscation-also-obfuscate	STRING_LIST	false	PAPER_GLOBAL	anticheat.obfuscation.items.all-models.also-obfuscate	-	-	false	false	-	[]	data component ids
+gameplay.exploits.allow-unsafe-end-portal-teleportation	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.allow-unsafe-end-portal-teleportation	-	-	false	false	-	false	-
+gameplay.exploits.skip-tripwire-hook-placement-validation	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.skip-tripwire-hook-placement-validation	-	-	false	false	-	false	-
+gameplay.exploits.allow-permanent-block-break-exploits	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.allow-permanent-block-break-exploits	-	-	false	false	-	false	-
+gameplay.exploits.allow-piston-duplication	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.allow-piston-duplication	-	-	false	false	-	false	-
+gameplay.exploits.allow-headless-pistons	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.allow-headless-pistons	-	-	false	false	-	false	-
+gameplay.exploits.skip-vanilla-damage-tick-when-shield-blocked	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.skip-vanilla-damage-tick-when-shield-blocked	-	-	false	false	-	false	-
+gameplay.exploits.perform-username-validation	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.perform-username-validation	-	-	false	false	-	true	-
+gameplay.exploits.update-equipment-on-player-actions	BOOLEAN	false	PAPER_GLOBAL	unsupported-settings.update-equipment-on-player-actions	-	-	false	false	-	true	-
+gameplay.exploits.oversized-item-component-sanitizer	STRING_LIST	false	PAPER_GLOBAL	unsupported-settings.oversized-item-component-sanitizer.dont-sanitize	-	-	false	false	-	[]	data component ids, wrapped in a Set
+gameplay.exploits.fix-invulnerable-end-crystal-exploit	BOOLEAN	true	PAPER_WORLD	unsupported-settings.fix-invulnerable-end-crystal-exploit	-	-	false	false	-	true	-
+gameplay.exploits.disable-world-ticking-when-empty	BOOLEAN	true	PAPER_WORLD	unsupported-settings.disable-world-ticking-when-empty	-	-	false	false	-	false	-
+gameplay.exploits.ticking-chunks	BOOLEAN	true	PAPER_WORLD	unsupported-settings.ticking.chunks	-	-	false	false	-	true	-
+gameplay.exploits.ticking-block-entities	BOOLEAN	true	PAPER_WORLD	unsupported-settings.ticking.block-entities	-	-	false	false	-	true	-
+gameplay.sounds.dragon-death-sound-radius	INT	true	SPIGOT_WORLD	world-settings.default.dragon-death-sound-radius	-	-	false	false	-	0	-
+gameplay.sounds.wither-spawn-sound-radius	INT	true	SPIGOT_WORLD	world-settings.default.wither-spawn-sound-radius	-	-	false	false	-	0	-
+gameplay.sounds.end-portal-sound-radius	INT	true	SPIGOT_WORLD	world-settings.default.end-portal-sound-radius	-	-	false	false	-	0	-
