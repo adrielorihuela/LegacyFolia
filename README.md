@@ -1,6 +1,6 @@
 # LegacyFolia — a Folia fork with 1.8 PvP, one config file, and plugin auto-updates
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen)](https://minecraft.net)
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://minecraft.net)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://adoptium.net)
 [![Upstream](https://img.shields.io/badge/fork%20of-PaperMC%2FFolia-blue)](https://github.com/PaperMC/Folia)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0-lightgrey)](PATCHES-LICENSE)
@@ -179,7 +179,7 @@ into it.
 - **Plugins**: everything that runs on Folia runs here. The Bukkit, Spigot and Paper configuration
   files are untouched and still authoritative for what plugins read. Declare `folia-supported: true`
   as you would for Folia.
-- **Clients**: 26.2 natively; 1.8 clients through [ViaVersion](https://hangar.papermc.io/ViaVersion/ViaVersion)
+- **Clients**: 26.3 natively; 1.8 clients through [ViaVersion](https://hangar.papermc.io/ViaVersion/ViaVersion)
   and ViaBackwards, which is the intended way to play the 1.8 PvP.
 - **Proxies**: Velocity modern forwarding and BungeeCord, as upstream.
 
