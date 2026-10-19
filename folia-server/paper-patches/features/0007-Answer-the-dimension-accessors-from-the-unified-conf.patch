@@ -12,10 +12,10 @@ the API disagree with which worlds actually exist.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 3fac32b420ce4ae74166eac43d38c51c1fd513cf..c5ea243b2fa3e677c088993b12b506301fea2e9e 100644
+index c1f7510917ebe606280c63d6150829fb0562f474..bc4dd23416b89c2dcde453f1b26a662153c0f0a0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -783,12 +783,14 @@ public final class CraftServer implements Server {
+@@ -764,12 +764,14 @@ public final class CraftServer implements Server {
  
      @Override
      public boolean getAllowEnd() {

@@ -20,10 +20,10 @@ the same, in a different place.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 8ce8de8eedfe8557848b0508857744a5b9641239..3bb3f568505de2966f7c4a392dcce4b63be9881a 100644
+index eb0ac87536692ea1215bdbb4646cfa6589e6fb10..3f5ede20bce2a0cd90100c5088d388165de1a098 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -30,7 +30,10 @@ public class Main {
+@@ -35,7 +35,10 @@ public class Main {
                  this.acceptsAll(asList("c", "config"), "Properties file to use")
                          .withRequiredArg()
                          .ofType(File.class)
@@ -35,7 +35,7 @@ index 8ce8de8eedfe8557848b0508857744a5b9641239..3bb3f568505de2966f7c4a392dcce4b6
                          .describedAs("Properties file");
  
                  this.acceptsAll(asList("P", "plugins"), "Plugin directory to use")
-@@ -82,13 +85,13 @@ public class Main {
+@@ -87,13 +90,13 @@ public class Main {
                  this.acceptsAll(asList("b", "bukkit-settings"), "File for bukkit settings")
                          .withRequiredArg()
                          .ofType(File.class)
@@ -51,7 +51,7 @@ index 8ce8de8eedfe8557848b0508857744a5b9641239..3bb3f568505de2966f7c4a392dcce4b6
                          .describedAs("Yml file");
  
                  this.accepts("forceUpgrade", "Whether to force a world upgrade");
-@@ -112,7 +115,7 @@ public class Main {
+@@ -117,7 +120,7 @@ public class Main {
                  this.acceptsAll(asList("S", "spigot-settings"), "File for spigot settings")
                          .withRequiredArg()
                          .ofType(File.class)
