@@ -19,7 +19,7 @@
 #  own them. What is below is the rule for making any of them differ in one
 #  world.
 #
-#  More than half of the server's settings are decided per world: 277 of them,
+#  More than half of the server's settings are decided per world: 281 of them,
 #  which is what spigot.yml's world-settings and Paper's paper-world-defaults
 #  between them used to cover. The Nether is not the overworld: it wants a
 #  shorter view distance, different mob limits and no weather at all. Written

@@ -95,6 +95,29 @@ max-auto-save-chunks-per-tick = 24
 # seconds.
 delay-chunk-unloads-by = 200
 
+# The fewest chunks the server unloads in one pass once they are no longer
+# wanted. PER WORLD.
+#
+# Chunks waiting to unload are not all released at once; each pass releases
+# whichever is larger, this count or min-chunk-unload-fraction of the queue.
+# Raising it drains a big backlog faster, for example after many players
+# leave an area together, at the cost of a heavier pass. Lowering it spreads
+# the disk writes thinner and lets memory stay high for longer.
+#
+# Folia note: the queue is kept per region, so this is the floor for each
+# region's pass, not for the whole world at once. Folia's chunk unloader
+# does read it (ChunkHolderManager.processUnloads).
+#
+# New in Minecraft 26.3. 50 is the value that was fixed in code before, so
+# leaving it alone changes nothing.
+min-chunk-unload-count = 50
+
+# The share of the waiting chunks, from 0.0 to 1.0, the server unloads in one
+# pass. PER WORLD. Works together with min-chunk-unload-count above: the
+# larger of the two wins. 0.05 is five percent of the queue per pass; values
+# outside 0.0 to 1.0 are clamped. As above, the queue is per region on Folia.
+min-chunk-unload-fraction = 0.05
+
 # Force every chunk's stored "inhabited time" to this value instead of letting
 # it accumulate. PER WORLD.
 #
