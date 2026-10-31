@@ -78,8 +78,10 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 303 en `LegacyFoliaTestSuite`, en 38 archivos de resultados, sin fallos ni omitidos
-(verificado el 2026-10-31 al cerrar `v0.18.0`, que aporta 14 en `WaypointConnectionsTest` y 1 en
+**Tests:** 323 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
+(verificado el 2026-10-31 al cerrar el punto 4 de §5, que aporta 17 casos en `LegacyCombatTest`, 3
+en `LegacyItemsTest`, que es nuevo, y 3 en `ConfigFileMergeTest`; eran 303, en 38 archivos, al
+cerrar `v0.18.0`, que aporta 14 en `WaypointConnectionsTest` y 1 en
 `WaypointSnapshotTest`; al cerrar `v0.17.0` eran 288, en 37 archivos: esa versión aportó 13 en
 `WeaponTooltipsTest`; al cerrar
 `v0.16.0` eran 275, en 36 archivos: esa versión aportó 4 en `LegacyCombatTest`: cinco casos nuevos
@@ -182,7 +184,8 @@ fuente de todo lo que lee el servidor.
 Al escribir esto (2026-10-31), `main` y el tag `v0.18.0` están publicados y `main` es la única rama.
 **La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. **El punto 2
 (daño de las armas, `v0.16.0`, y su tooltip, `v0.17.0`) también, y el punto 3 (locator bar, `v0.18.0`).**
-Lo siguiente es el punto 4 de §5. Lo que sigue en este apartado es el historial de
+**El punto 4 (PvP 1.8 idéntico) también está hecho**, en `main` y sin tag ni push todavía. Lo
+siguiente es el punto 5 (release) y el 6 (`/init`). Lo que sigue en este apartado es el historial de
 la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
@@ -310,7 +313,19 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    `ServerPlayer`, así que no hay el primer tick que vanilla tiene tras reaparecer; y un
    `remakeConnections` sobre un emisor no seguido (agachado) no conecta a los espectadores como en
    vanilla. **Sin comprobar con un cliente real.**
-4. **PvP 1.8 idéntico al original.** Hacer la misma comparación entre nuestro combate (`combat/` y los
+4. **PvP 1.8 idéntico al original. HECHO (2026-10-31, sin tag).** Se compararon todas las mecánicas
+   con el código de Spigot/CraftBukkit 1.8.8 y se corrigieron en los parches 0038–0055, cada uno con
+   su clave o con `enabled`: Fuerza y Debilidad, las cinco protecciones (redondeo hacia abajo, vacío),
+   bloqueo como modificador `BLOCKING` (solo jugadores, no contra daño que ignora armadura) y la
+   ventana de invulnerabilidad con el daño bruto, golpes de 0 de daño a jugadores, casco, agotamiento,
+   dificultad, todo el knockback (dirección, resistencia, empuje extra, precisión, restore solo de
+   jugadores), sharpness con smite/bane y en mobs, bane, fire aspect, sonidos/estadística/inclinación/
+   críticos, alcance, proyectiles, caña, explosiones, pociones, manzana de Notch (efectos y receta),
+   comida, mano secundaria/escudos/tótems, caídas/fuego/espinas/gólem, invulnerabilidad al aparecer.
+   Claves nuevas (12) y `legacy-sword-damage` renombrada al arrancar. Lo que no se pudo igualar
+   (hitbox agachado, camas/miel/carga de viento, animación de bloqueo en cliente moderno) está en
+   `PVP-1.8.md`. Probado con tests y arrancando el servidor; **sin probar con clientes reales**.
+   El plan con el que se hizo: comparar nuestro combate (`combat/` y los
    parches 0016, 0017 y 0020–0027) y el código fuente de 1.8.8 (`reference/fetch-1.8.8-source.sh`),
    cubriendo todas las mecánicas y no solo las fórmulas: orden de los modificadores, knockback, bloqueo
    con espada, críticos, invulnerabilidad, hambre, pociones y encantamientos. Después corregir hasta
