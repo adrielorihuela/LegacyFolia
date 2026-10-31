@@ -81,9 +81,10 @@ critical-multiplier = 1.5
 # Check reach the way 1.8 did.
 #
 # 1.8 let a player hit or use an entity whose feet were closer than 6 blocks
-# to theirs, or 3 when they could not see it, in any game mode. The modern
-# check measures from the eyes to the nearest point of the target's box,
-# against 3 blocks (5 in creative) plus 3 of leniency. Turning this on also
+# to theirs, or 3 when they could not see it (tall grass, flowers, torches
+# and signs blocking the view, a sneaking head at 1.54), in any game mode.
+# The modern check measures from the eyes to the nearest point of the
+# target's box, against 3 blocks (5 in creative) plus 3 of leniency. Turning this on also
 # makes a swing fire PlayerInteractEvent LEFT_CLICK_AIR whenever no block is
 # within 4.5 blocks (5 in creative), a swing at a player included, as 1.8 did.
 legacy-reach = true
@@ -326,9 +327,11 @@ legacy-fishing-rod = true
 # push is not reduced by Blast Protection (1.8's reduction rounded down to
 # nothing), is only applied to what the explosion actually hurt (or what was
 # still invulnerable from a stronger hit, and always TNT and falling blocks),
-# never to a creative player, and starts from TNT's head height as from every
-# other entity's. An explosion somebody or something living set off also
-# knocks back away from them, on top of the blast.
+# and never to a creative player. Tall grass, flowers, torches and signs shade
+# an entity from the blast, as they did. An explosion somebody or something
+# living set off (a creeper, whoever lit the TNT; not a fireball, a wither
+# skull or an end crystal) also knocks back away from them, on top of the
+# blast.
 legacy-explosions = true
 
 # Shields, the off-hand slot and the Totem of Undying did not exist in 1.8.

@@ -67,8 +67,8 @@ If you change one setting in this file, this is the one that changes how the gam
 The rest of 1.8's knockback, all under `legacy-knockback`:
 
 - **Direction.** The push points away from the entity behind the hit: the attacker, the archer or
-  thrower of a projectile, or whoever set off an explosion (which the modern tags exempt from
-  knockback altogether). An ownerless projectile other than an arrow does not push. The modern game
+  thrower of a projectile, or whoever set off an explosion as 1.8 counted it (which the modern tags
+  exempt from knockback altogether). An ownerless projectile other than an arrow does not push. The modern game
   uses the way a projectile flew, or where a splash potion broke.
 - **Knockback resistance** is a chance to take none of the base push, not a reduction, so an iron
   golem is never moved.
@@ -244,7 +244,8 @@ each armour piece by a point. Paper filters those hits out again. With combat on
 ### Reach — changed
 
 1.8 accepted a hit or a use when the two entities' feet were closer than 6 blocks, or 3 without line
-of sight, in any game mode; the modern check is eye to box, 3 (5 in creative) plus 3 of leniency.
+of sight (traced head to head, a sneaking head at 1.54, and stopped by tall grass, flowers, torches
+and signs as well as solid blocks), in any game mode; the modern check is eye to box, 3 (5 in creative) plus 3 of leniency.
 A swing fired `LEFT_CLICK_AIR` whenever no block was within 4.5 (5 in creative), a swing at a
 player included. `legacy-reach`.
 
@@ -299,8 +300,10 @@ player (1.8 never told their client to move).
 Under `legacy-explosions`, the damage is `(int) ((p² + p) / 2 * 8 * 2r + 1)` (7 and no truncation
 now: a creeper does 49 rather than 43), the push lands only on what the explosion hurt (and always
 on TNT and falling blocks, and on an entity still invulnerable from a stronger hit), never on a
-creative player, is not reduced by Blast Protection, and starts from TNT's head height. An explosion
-something living set off also knocks back away from it.
+creative player, and is not reduced by Blast Protection; TNT is pushed from its feet, as now. Tall
+grass, flowers, torches and signs shade an entity from the blast. An explosion something living set
+off (a creeper, whoever lit the TNT; not a ghast's fireball, a wither skull or an end crystal) also
+knocks back away from it.
 
 ### Potions, the notch apple and food — changed
 
