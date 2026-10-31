@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:58:01 -0500
+Subject: [PATCH] Spend food on moving and mining as 1.8 did
+
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 740a0103f57fcb8b01ed0f45d22da65e885e5668..3f923df4173b6746240fa35fe47ad9dd038691e4 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -1105,7 +1105,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+                 }
+ 
+                 float saturation = this.foodData.getSaturationLevel();
+-                if (saturation < 20.0F) {
++                if (saturation < 20.0F && !io.github.adrielorihuela.legacyfolia.combat.Combat.config().enabled()) { // LegacyFolia - 1.8's peaceful mode gave no saturation
+                     this.foodData.setSaturation(saturation + 1.0F);
+                 }
+             }
+@@ -2536,19 +2536,19 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+                 int distance = Math.round((float)Math.sqrt(dx * dx + dy * dy + dz * dz) * 100.0F);
+                 if (distance > 0) {
+                     this.awardStat(Stats.SWIM_ONE_CM, distance);
+-                    this.causeFoodExhaustion(this.level().spigotConfig.swimMultiplier * distance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.SWIM); // CraftBukkit - EntityExhaustionEvent // Spigot
++                    this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.swimExhaustion(this.level().spigotConfig.swimMultiplier) * distance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.SWIM); // CraftBukkit - EntityExhaustionEvent // Spigot // LegacyFolia - 1.8's cost
+                 }
+             } else if (this.isEyeInFluid(FluidTags.WATER)) {
+                 int distance = Math.round((float)Math.sqrt(dx * dx + dy * dy + dz * dz) * 100.0F);
+                 if (distance > 0) {
+                     this.awardStat(Stats.WALK_UNDER_WATER_ONE_CM, distance);
+-                    this.causeFoodExhaustion(this.level().spigotConfig.swimMultiplier * distance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK_UNDERWATER); // CraftBukkit - EntityExhaustionEvent // Spigot
++                    this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.swimExhaustion(this.level().spigotConfig.swimMultiplier) * distance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK_UNDERWATER); // CraftBukkit - EntityExhaustionEvent // Spigot // LegacyFolia - 1.8's cost
+                 }
+             } else if (this.isInWater()) {
+                 int horizontalDistance = Math.round((float)Math.sqrt(dx * dx + dz * dz) * 100.0F);
+                 if (horizontalDistance > 0) {
+                     this.awardStat(Stats.WALK_ON_WATER_ONE_CM, horizontalDistance);
+-                    this.causeFoodExhaustion(this.level().spigotConfig.swimMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK_ON_WATER); // CraftBukkit - EntityExhaustionEvent // Spigot
++                    this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.swimExhaustion(this.level().spigotConfig.swimMultiplier) * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK_ON_WATER); // CraftBukkit - EntityExhaustionEvent // Spigot // LegacyFolia - 1.8's cost
+                 }
+             } else if (this.onClimbable()) {
+                 if (dy > 0.0) {
+@@ -2562,10 +2562,10 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+                         this.causeFoodExhaustion(this.level().spigotConfig.sprintMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot
+                     } else if (this.isCrouching()) {
+                         this.awardStat(Stats.CROUCH_ONE_CM, horizontalDistance);
+-                        this.causeFoodExhaustion(this.level().spigotConfig.otherMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.CROUCH); // CraftBukkit - EntityExhaustionEvent // Spigot
++                        this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.walkExhaustion(this.level().spigotConfig.otherMultiplier) * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.CROUCH); // CraftBukkit - EntityExhaustionEvent // Spigot // LegacyFolia - 1.8's cost
+                     } else {
+                         this.awardStat(Stats.WALK_ONE_CM, horizontalDistance);
+-                        this.causeFoodExhaustion(this.level().spigotConfig.otherMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK); // CraftBukkit - EntityExhaustionEvent // Spigot
++                        this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.walkExhaustion(this.level().spigotConfig.otherMultiplier) * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK); // CraftBukkit - EntityExhaustionEvent // Spigot // LegacyFolia - 1.8's cost
+                     }
+                 }
+             } else if (this.isFallFlying()) {
+diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
+index c0aab7a11ef6d95aa053ad0002c17f4cc502a651..a49d450fbe77483437d94998a868f1a835f42f4c 100644
+--- a/net/minecraft/world/level/block/Block.java
++++ b/net/minecraft/world/level/block/Block.java
+@@ -534,7 +534,7 @@ public class Block extends BlockBehaviour implements ItemLike {
+         , final boolean includeDrops, final boolean dropExp // Paper - fix drops not preventing stats/food exhaustion
+     ) {
+         player.awardStat(Stats.BLOCK_MINED.get(this));
+-        player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
++        player.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.blockBreakExhaustion(0.005F), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent // LegacyFolia - 1.8's cost
+         if (includeDrops) { // Paper - fix drops not preventing stats/food exhaustion
+         dropResources(state, level, pos, blockEntity, player, destroyedWith, dropExp); // Paper - Properly handle xp dropping
+         } // Paper - fix drops not preventing stats/food exhaustion

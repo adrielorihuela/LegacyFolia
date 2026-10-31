@@ -440,6 +440,18 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("walking, swimming and mining cost what they did in 1.8")
+    void movementExhaustion() {
+        Combat.use(VANILLA);
+        assertEquals(0.01F, Combat.walkExhaustion(0.0F), 0.0F);
+        assertEquals(0.015F, Combat.swimExhaustion(0.01F), 0.0F);
+        assertEquals(0.025F, Combat.blockBreakExhaustion(0.005F), 0.0F);
+        Combat.use(CombatConfig.off());
+        assertEquals(0.0F, Combat.walkExhaustion(0.0F), 0.0F, "the modern value with combat off");
+        assertEquals(0.005F, Combat.blockBreakExhaustion(0.005F), 0.0F);
+    }
+
+    @Test
     @DisplayName("being hurt costs 0.3 unless armour does not stop the damage")
     void damageExhaustion() {
         assertEquals(0.3F, LegacyCombat.damageExhaustion(false, VANILLA), 0.0001F);

@@ -219,6 +219,16 @@ jump-exhaustion = 0.2
 # damage costs 0.1, a third of it.
 damage-exhaustion = 0.3
 
+# What moving and mining cost, per metre and per block. 1.8 charged 0.01 a
+# metre for walking or sneaking, which costs nothing now, and 0.015 in water,
+# against 0.01 now; breaking a block cost 0.025, five times today's 0.005.
+# These shadow gameplay.hunger.other-multiplier and swim-multiplier the same
+# way as the pair above. Peaceful mode's free saturation, added after 1.8, is
+# also left out while combat is on.
+walk-exhaustion = 0.01
+swim-exhaustion = 0.015
+block-break-exhaustion = 0.025
+
 # Instant health and harming as shifts rather than multiplies.
 #
 # Harming does 6 << amplifier and healing restores 4 << amplifier, so level two

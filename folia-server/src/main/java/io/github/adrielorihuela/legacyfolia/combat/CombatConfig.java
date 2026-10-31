@@ -67,6 +67,9 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param legacyExplosions whether explosions hurt and push as in 1.8
  * @param legacyPotions whether splash potions, potion durations and effects work as in 1.8
  * @param legacyNotchApple whether the enchanted golden apple gives 1.8's effects and has its recipe
+ * @param walkExhaustion the exhaustion a metre of walking or sneaking costs, 0.01 in 1.8
+ * @param swimExhaustion the exhaustion a metre in water costs, 0.015 in 1.8
+ * @param blockBreakExhaustion the exhaustion breaking a block costs, 0.025 in 1.8
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -94,7 +97,9 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            boolean legacyStrength, double damageExhaustion,
                            boolean legacyReach, boolean legacyProjectiles,
                            boolean legacyFishingRod, boolean legacyExplosions,
-                           boolean legacyPotions, boolean legacyNotchApple) {
+                           boolean legacyPotions, boolean legacyNotchApple,
+                           double walkExhaustion, double swimExhaustion,
+                           double blockBreakExhaustion) {
 
     private static final String PREFIX = "combat.";
 
@@ -113,7 +118,8 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 0.3,
             true, true,
             true, true,
-            true, true);
+            true, true,
+            0.01, 0.015, 0.025);
     }
 
     /** The module off, for before the configuration exists. */
@@ -185,6 +191,9 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getBoolean(PREFIX + "legacy-fishing-rod", defaults.legacyFishingRod()),
             ServerConfig.getBoolean(PREFIX + "legacy-explosions", defaults.legacyExplosions()),
             ServerConfig.getBoolean(PREFIX + "legacy-potions", defaults.legacyPotions()),
-            ServerConfig.getBoolean(PREFIX + "legacy-notch-apple", defaults.legacyNotchApple()));
+            ServerConfig.getBoolean(PREFIX + "legacy-notch-apple", defaults.legacyNotchApple()),
+            ServerConfig.getDouble(PREFIX + "walk-exhaustion", defaults.walkExhaustion()),
+            ServerConfig.getDouble(PREFIX + "swim-exhaustion", defaults.swimExhaustion()),
+            ServerConfig.getDouble(PREFIX + "block-break-exhaustion", defaults.blockBreakExhaustion()));
     }
 }

@@ -1186,6 +1186,41 @@ public final class Combat {
     }
 
     /**
+     * What a metre of swimming, walking under water or wading costs, 0.015 in 1.8's
+     * {@code EntityHuman.checkMovement}.
+     *
+     * @param modern what the server would otherwise use
+     * @return the exhaustion per metre
+     */
+    public static float swimExhaustion(final float modern) {
+        final CombatConfig current = config;
+        return current.enabled() ? (float) current.swimExhaustion() : modern;
+    }
+
+    /**
+     * What a metre of walking or sneaking on the ground costs, 0.01 in 1.8, nothing now.
+     *
+     * @param modern what the server would otherwise use
+     * @return the exhaustion per metre
+     */
+    public static float walkExhaustion(final float modern) {
+        final CombatConfig current = config;
+        return current.enabled() ? (float) current.walkExhaustion() : modern;
+    }
+
+    /**
+     * What breaking a block costs, 0.025 in 1.8's {@code Block.a(World, EntityHuman, ...)}, 0.005
+     * now.
+     *
+     * @param modern what the server would otherwise use
+     * @return the exhaustion
+     */
+    public static float blockBreakExhaustion(final float modern) {
+        final CombatConfig current = config;
+        return current.enabled() ? (float) current.blockBreakExhaustion() : modern;
+    }
+
+    /**
      * The health an instant healing effect restores.
      *
      * <p>The modern game already uses 1.8's {@code 4 << amplifier}; this exists so the base can be
