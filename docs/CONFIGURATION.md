@@ -1,8 +1,9 @@
 # LegacyFolia configuration: TOML files, server.properties, migration and secrets
 
-Paper and Folia keep their settings in six files and three formats: `server.properties`,
+Paper and Folia keep their settings in a properties file and five YAML files: `server.properties`,
 `bukkit.yml`, `spigot.yml`, `commands.yml`, `config/paper-global.yml` and
-`config/paper-world-defaults.yml`, plus a `paper-world.yml` in every world. LegacyFolia replaces
+`config/paper-world-defaults.yml`, plus a `paper-world.yml` in every world and the EULA answer in
+`eula.txt`. LegacyFolia replaces
 all of them with **eight commented TOML files in `config/`**, grouped by what each setting does,
 and an optional `config/server.properties` that holds only what you changed. Plugins notice
 nothing: every value they read through the Bukkit, Spigot and Paper APIs is still there, built in
@@ -102,7 +103,7 @@ in `gameplay.toml` almost everything is per world, and the exceptions are marked
 "performance.spawning.spawn-limits.monsters" = 30
 
 [worlds.world_the_end.performance.entities.activation-range]   # the same thing, nested
-monsters = 32
+monsters = 24
 ```
 
 - A world reads `[worlds.<world>]`, then `[worlds.default]`, then the value in the file that owns
@@ -290,8 +291,8 @@ fill in is there to be found. Configuration gets pasted into issues and screensh
 secret in its own file keeps the rest safe to share.
 
 The management server's `management-server-secret` and `management-server-tls-keystore-password`
-are not settings here: vanilla generates the first anew on every start, and the second takes
-vanilla's default (empty).
+are not settings here: vanilla generates the first anew on every start, and the second always
+takes vanilla's default (empty), so a keystore protected by a password cannot be used yet.
 
 ## RCON, on and local by default
 
@@ -317,7 +318,7 @@ lobby-spawn-world = "logout-world"    # or "main-world"
 ```
 
 With `always-spawn-at-world-spawn = true`, every join behaves like a first join: the player arrives
-at the world spawn, spread over the `spawnRadius` game rule, instead of where they logged out.
+at the world spawn, spread over the `respawn_radius` game rule, instead of where they logged out.
 `lobby-spawn-world`, read only while that is on, chooses which world's spawn:
 
 - `logout-world` (default): the spawn of the world they logged out in. Any value other than
