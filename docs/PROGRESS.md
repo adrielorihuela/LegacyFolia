@@ -152,7 +152,7 @@ fuente de todo lo que lee el servidor.
 - `server.eula` nunca va a `server.properties` (`SettingEntry.EULA`).
 - Verificado a mano con un servidor nuevo, con un plugin de prueba antes y después de editar
   `server.properties`, con los comandos y con una migración desde un `run/` de Paper 26.3; los
-  detalles están en el mensaje del tag `v0.15.0` y en el historial.
+  resultados, con cifras, están en el informe de cierre de la etapa y en los mensajes de sus commits.
 
 ## 3. Incidencias que conviene recordar
 
