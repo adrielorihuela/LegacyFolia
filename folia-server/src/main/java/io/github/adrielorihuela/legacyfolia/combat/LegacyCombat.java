@@ -318,6 +318,18 @@ public final class LegacyCombat {
     }
 
     /**
+     * How long Bane of Arthropods slows an arthropod, from {@code EnchantmentWeaponDamage.a}:
+     * {@code 20 + nextInt(10 * level)} ticks of Slowness IV.
+     *
+     * @param level the enchantment level
+     * @param random a {@code nextInt(bound)}
+     * @return the duration in ticks
+     */
+    public static int baneSlownessTicks(final int level, final IntUnaryOperator random) {
+        return 20 + random.applyAsInt(10 * level);
+    }
+
+    /**
      * A hit's damage put together the way {@code EntityHuman.attack} did it.
      *
      * <p>Spelled out because the order is the whole point: the critical multiplier applies to the

@@ -229,8 +229,8 @@ public final class Combat {
      * Whether this weapon's damage bonus should be 1.8's flat sharpness.
      *
      * <p>False for a weapon carrying no Sharpness, which leaves Smite, Bane of Arthropods and
-     * anything a datapack adds on the modern path. Vanilla's damage enchantments are mutually
-     * exclusive, so a weapon that has Sharpness has none of the others and nothing is lost.</p>
+     * anything a datapack adds on the modern path. A weapon that has Sharpness keeps the others
+     * too: see {@link #enchantedDamage}.</p>
      *
      * @param weapon the weapon in hand
      * @return whether the old bonus applies
@@ -240,6 +240,92 @@ public final class Combat {
         return current.enabled() && current.legacySharpness()
             && enchantmentLevel(weapon, net.minecraft.world.item.enchantment.Enchantments.SHARPNESS)
                 > 0;
+    }
+
+    /**
+     * The damage the weapon's enchantments add to a hit, with Sharpness at 1.8's flat figure.
+     *
+     * <p>Every other damage enchantment on the weapon still counts, as it did in 1.8, which summed
+     * them all: a weapon a command gave both Sharpness and Smite gets the Smite as well. Mobs
+     * holding a sharpened weapon get the 1.8 figure too, as {@code EntityMonster} gave it.</p>
+     *
+     * @param level the level the hit is in
+     * @param weapon the weapon in hand
+     * @param target who is hit
+     * @param source the damage source of the hit
+     * @param damage the damage before the enchantments
+     * @return the damage with them
+     */
+    public static float enchantedDamage(final net.minecraft.server.level.ServerLevel level,
+                                        final net.minecraft.world.item.ItemStack weapon,
+                                        final net.minecraft.world.entity.Entity target,
+                                        final net.minecraft.world.damagesource.DamageSource source,
+                                        final float damage) {
+        if (!legacySharpness(weapon)) {
+            return net.minecraft.world.item.enchantment.EnchantmentHelper.modifyDamage(level, weapon,
+                target, source, damage);
+        }
+        final net.minecraft.world.item.ItemStack withoutSharpness = weapon.copy();
+        net.minecraft.world.item.enchantment.EnchantmentHelper.updateEnchantments(withoutSharpness,
+            enchantments -> enchantments.removeIf(enchantment ->
+                enchantment.is(net.minecraft.world.item.enchantment.Enchantments.SHARPNESS)));
+        return net.minecraft.world.item.enchantment.EnchantmentHelper.modifyDamage(level,
+            withoutSharpness, target, source, damage) + sharpnessBonus(weapon);
+    }
+
+    /** What a target's Slowness was before a Bane of Arthropods hit, to put back after it. */
+    private record BaneHit(net.minecraft.world.entity.LivingEntity target, int level,
+                           net.minecraft.world.effect.@org.jspecify.annotations.Nullable MobEffectInstance before) {
+    }
+
+    /**
+     * Notes a target's Slowness before the post-attack effects of a Bane of Arthropods weapon run.
+     *
+     * @param target who is hit
+     * @param weapon the weapon in hand
+     * @return what {@link #baneAfter(Object)} needs, or null when 1.8's rule does not apply
+     */
+    public static @org.jspecify.annotations.Nullable Object baneBefore(
+        final net.minecraft.world.entity.Entity target, final net.minecraft.world.item.ItemStack weapon) {
+        if (!config.enabled()
+            || !(target instanceof net.minecraft.world.entity.LivingEntity living)
+            || !living.is(net.minecraft.tags.EntityTypeTags.SENSITIVE_TO_BANE_OF_ARTHROPODS)) {
+            return null;
+        }
+        final int level = enchantmentLevel(weapon,
+            net.minecraft.world.item.enchantment.Enchantments.BANE_OF_ARTHROPODS);
+        if (level <= 0) {
+            return null;
+        }
+        final net.minecraft.world.effect.MobEffectInstance before =
+            living.getEffect(net.minecraft.world.effect.MobEffects.SLOWNESS);
+        return new BaneHit(living, level,
+            before == null ? null : new net.minecraft.world.effect.MobEffectInstance(before));
+    }
+
+    /**
+     * Replaces the Slowness the modern enchantment just gave with 1.8's, from
+     * {@code EnchantmentWeaponDamage.a(EntityLiving, Entity)}: Slowness IV for
+     * {@code 20 + random(10 * level)} ticks, so 20 to 29 at level I and 20 to 69 at level V, where
+     * the modern enchantment gives a flat 30 at level I and 30 to 70 at V.
+     *
+     * @param before what {@link #baneBefore} returned
+     */
+    public static void baneAfter(final @org.jspecify.annotations.Nullable Object before) {
+        if (!(before instanceof BaneHit hit)) {
+            return;
+        }
+        final net.minecraft.world.entity.LivingEntity target = hit.target();
+        if (target.isRemoved() || target.isDeadOrDying()) {
+            return;
+        }
+        target.removeEffect(net.minecraft.world.effect.MobEffects.SLOWNESS);
+        if (hit.before() != null) {
+            target.addEffect(hit.before());
+        }
+        target.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+            net.minecraft.world.effect.MobEffects.SLOWNESS,
+            LegacyCombat.baneSlownessTicks(hit.level(), target.getRandom()::nextInt), 3));
     }
 
     /**

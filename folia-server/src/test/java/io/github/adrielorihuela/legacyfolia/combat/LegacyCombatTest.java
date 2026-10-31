@@ -275,6 +275,20 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("Bane of Arthropods slows for 20 plus up to ten ticks a level")
+    void baneSlowness() {
+        assertEquals(20, LegacyCombat.baneSlownessTicks(1, bound -> 0));
+        assertEquals(29, LegacyCombat.baneSlownessTicks(1, bound -> bound - 1));
+        assertEquals(69, LegacyCombat.baneSlownessTicks(5, bound -> bound - 1));
+        final int[] seen = new int[1];
+        LegacyCombat.baneSlownessTicks(3, bound -> {
+            seen[0] = bound;
+            return 0;
+        });
+        assertEquals(30, seen[0]);
+    }
+
+    @Test
     @DisplayName("a critical multiplies the weapon damage but not the sharpness on top of it")
     void criticalsDoNotAmplifySharpness() {
         // A seven-damage weapon, Sharpness V, critical: 7 * 1.5 = 10.5, then + 6.25.
