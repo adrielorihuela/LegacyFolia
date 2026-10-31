@@ -153,20 +153,46 @@ public final class LegacyCombat {
     /**
      * The protection points one piece of armour is worth, from {@code EnchantmentProtection.a}.
      *
-     * <p>1.8 computed {@code (6 + level * level) / 3} and then scaled it by 0.75 for plain
-     * Protection, rounding up. A piece is worth 2, 3, 4 or 6 points for levels one to four — note
-     * that the step from III to IV is twice the step from II to III.</p>
+     * <p>1.8 computed {@code (6 + level * level) / 3} in {@code float} and then scaled it by 0.75
+     * for plain Protection, rounding down ({@code MathHelper.d} is a floor). A piece is worth 1, 2,
+     * 3 or 5 points for levels one to four, so a full set of Protection IV is 20.</p>
      *
      * @param level the level of Protection on the piece
      * @param config the factor to scale by
      * @return the enchantment protection factor for that piece
      */
     public static int protectionPoints(final int level, final CombatConfig config) {
+        return specialisedProtectionPoints(level, (float) config.protectionFactor());
+    }
+
+    /** What Fire Protection's figure is scaled by, against fire only. */
+    public static final float FIRE_PROTECTION_FACTOR = 1.25F;
+    /** What Feather Falling's figure is scaled by, against falls only. */
+    public static final float FEATHER_FALLING_FACTOR = 2.5F;
+    /** What Blast Protection's figure is scaled by, against explosions only. */
+    public static final float BLAST_PROTECTION_FACTOR = 1.5F;
+    /** What Projectile Protection's figure is scaled by, against projectiles only. */
+    public static final float PROJECTILE_PROTECTION_FACTOR = 1.5F;
+
+    /**
+     * The protection points one piece is worth for one of the five protection enchantments, from
+     * {@code EnchantmentProtection.a(int, DamageSource)}.
+     *
+     * <p>{@code floor((6 + level * level) / 3 * factor)}, in {@code float}: Feather Falling IV is
+     * worth 18 points against a fall, Fire Protection IV 9 against fire, and Blast or Projectile
+     * Protection IV 11 against their own kind. Whether the enchantment applies to the hit at all
+     * is the caller's question.</p>
+     *
+     * @param level the enchantment's level on the piece
+     * @param factor the enchantment's factor
+     * @return the points
+     */
+    public static int specialisedProtectionPoints(final int level, final float factor) {
         if (level <= 0) {
             return 0;
         }
         final float base = (float) (6 + level * level) / 3.0F;
-        return (int) Math.ceil(base * (float) config.protectionFactor());
+        return net.minecraft.util.Mth.floor(base * factor);
     }
 
     /**
@@ -175,9 +201,9 @@ public final class LegacyCombat {
      * <p>This is the part people are surprised by: in 1.8 protection was <em>random on every
      * hit</em>. The summed points are capped at 25, and then the game rolls
      * {@code ((points + 1) >> 1) + nextInt((points >> 1) + 1)} — half the points guaranteed plus up
-     * to half again — and caps the result at 20. A full set of Protection IV is 24 points, which
-     * rolls anywhere from 12 to 20, so the same armour takes between forty-eight and eighty per
-     * cent off depending on the roll. Modern protection is a flat, deterministic figure.</p>
+     * to half again — and caps the result at 20. A full set of Protection IV is 20 points, which
+     * rolls anywhere from 10 to 20, so the same armour takes between forty and eighty per cent off
+     * depending on the roll. Modern protection is a flat, deterministic figure.</p>
      *
      * <p>The randomness is passed in rather than taken from a static field so the roll can be
      * pinned to a fixed number in a test. The operator is a {@code nextInt(bound)}: given a

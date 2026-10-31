@@ -149,29 +149,59 @@ class LegacyCombatTest {
     }
 
     @Test
-    @DisplayName("a piece of protection is worth 2, 3, 4 or 6 points")
+    @DisplayName("a piece of protection is worth 1, 2, 3 or 5 points, rounded down as 1.8 did")
     void protectionPointsPerPiece() {
+        // floor((6 + level^2) / 3 * 0.75): 1.75, 2.5, 3.75 and 5.5 round down.
         assertEquals(0, LegacyCombat.protectionPoints(0, VANILLA));
-        assertEquals(2, LegacyCombat.protectionPoints(1, VANILLA));
-        assertEquals(3, LegacyCombat.protectionPoints(2, VANILLA));
-        assertEquals(4, LegacyCombat.protectionPoints(3, VANILLA));
-        assertEquals(6, LegacyCombat.protectionPoints(4, VANILLA),
+        assertEquals(1, LegacyCombat.protectionPoints(1, VANILLA));
+        assertEquals(2, LegacyCombat.protectionPoints(2, VANILLA));
+        assertEquals(3, LegacyCombat.protectionPoints(3, VANILLA));
+        assertEquals(5, LegacyCombat.protectionPoints(4, VANILLA),
             "the step from III to IV is twice the step from II to III");
+    }
+
+    @Test
+    @DisplayName("the specialised protections count against their own damage with their own factor")
+    void specialisedProtectionPoints() {
+        assertEquals(0, LegacyCombat.specialisedProtectionPoints(0,
+            LegacyCombat.FEATHER_FALLING_FACTOR));
+        // Feather Falling: 2.33, 3.33, 5 and 7.33 times 2.5, rounded down.
+        assertEquals(5, LegacyCombat.specialisedProtectionPoints(1,
+            LegacyCombat.FEATHER_FALLING_FACTOR));
+        assertEquals(8, LegacyCombat.specialisedProtectionPoints(2,
+            LegacyCombat.FEATHER_FALLING_FACTOR));
+        assertEquals(12, LegacyCombat.specialisedProtectionPoints(3,
+            LegacyCombat.FEATHER_FALLING_FACTOR));
+        assertEquals(18, LegacyCombat.specialisedProtectionPoints(4,
+            LegacyCombat.FEATHER_FALLING_FACTOR));
+        // Fire Protection IV: 7.33 * 1.25 = 9.17.
+        assertEquals(9, LegacyCombat.specialisedProtectionPoints(4,
+            LegacyCombat.FIRE_PROTECTION_FACTOR));
+        // Blast and Projectile Protection: 1.5.
+        assertEquals(3, LegacyCombat.specialisedProtectionPoints(1,
+            LegacyCombat.BLAST_PROTECTION_FACTOR));
+        assertEquals(11, LegacyCombat.specialisedProtectionPoints(4,
+            LegacyCombat.PROJECTILE_PROTECTION_FACTOR));
+        // Feather Falling IV boots and full Protection IV against a fall: 18 + 20, capped at 25.
+        assertEquals(LegacyCombat.rollProtection(25, bound -> 0, VANILLA),
+            LegacyCombat.rollProtection(18 + 4 * LegacyCombat.protectionPoints(4, VANILLA),
+                bound -> 0, VANILLA));
     }
 
     @Test
     @DisplayName("protection is rolled fresh on every hit, so the same armour varies")
     void protectionIsRandomPerHit() {
-        // A full set of Protection IV is 4 x 6 = 24 points.
+        // A full set of Protection IV is 4 x 5 = 20 points.
         final int points = 4 * LegacyCombat.protectionPoints(4, VANILLA);
-        assertEquals(24, points);
+        assertEquals(20, points);
 
-        // ((24 + 1) >> 1) = 12 guaranteed, plus nextInt((24 >> 1) + 1) = nextInt(13), so 12 to 24,
-        // then capped at 20.
-        assertEquals(12, LegacyCombat.rollProtection(points, bound -> 0, VANILLA), "worst roll");
+        // ((20 + 1) >> 1) = 10 guaranteed, plus nextInt((20 >> 1) + 1) = nextInt(11), so 10 to 20.
+        assertEquals(10, LegacyCombat.rollProtection(points, bound -> 0, VANILLA), "worst roll");
         assertEquals(20, LegacyCombat.rollProtection(points, bound -> bound - 1, VANILLA),
-            "best roll, capped at twenty");
-        assertEquals(18, LegacyCombat.rollProtection(points, bound -> 6, VANILLA), "a middling one");
+            "best roll");
+        assertEquals(16, LegacyCombat.rollProtection(points, bound -> 6, VANILLA), "a middling one");
+        // 24 points, as a mix of pieces can reach, rolls 12 to 24 and is capped at twenty.
+        assertEquals(20, LegacyCombat.rollProtection(24, bound -> bound - 1, VANILLA));
     }
 
     @Test

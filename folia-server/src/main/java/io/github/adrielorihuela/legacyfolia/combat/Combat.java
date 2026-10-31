@@ -100,25 +100,64 @@ public final class Combat {
     }
 
     /**
-     * The protection points of every worn piece added together, before the roll.
+     * The protection points of every piece of equipment added together, before the roll, from
+     * {@code EnchantmentManager.a(ItemStack[], DamageSource)}.
      *
-     * <p>1.8 counted only plain Protection towards this figure; the specialised protections had
-     * their own paths and are left to the modern code, which never runs when this one does.</p>
+     * <p>All five protection enchantments feed the same sum in 1.8, each only against its own
+     * kind of damage: Protection against everything, Fire Protection against fire, Feather
+     * Falling against falls (an ender pearl's landing is a fall), Blast Protection against
+     * explosions and Projectile Protection against projectiles. None of them counts against
+     * damage that ignores invulnerability, which is the void. A player's equipment there is the
+     * four armour slots; a mob's also includes what it holds.</p>
      *
      * @param target who is being hit
+     * @param source what is hitting them
      * @return the summed points
      */
-    public static int protectionPoints(final net.minecraft.world.entity.LivingEntity target) {
+    public static int protectionPoints(final net.minecraft.world.entity.LivingEntity target,
+                                       final net.minecraft.world.damagesource.DamageSource source) {
+        if (source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+            return 0;
+        }
         final CombatConfig current = config;
+        final boolean fire = source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE);
+        final boolean fall = source.is(net.minecraft.tags.DamageTypeTags.IS_FALL);
+        final boolean explosion = source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION);
+        final boolean projectile = source.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE);
         int points = 0;
         for (final net.minecraft.world.entity.EquipmentSlot slot
-            : net.minecraft.world.entity.EquipmentSlotGroup.ARMOR) {
+            : net.minecraft.world.entity.EquipmentSlot.VALUES) {
+            if (slot.getType() != net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR
+                && (slot != net.minecraft.world.entity.EquipmentSlot.MAINHAND
+                    || target instanceof net.minecraft.world.entity.player.Player)) {
+                continue;
+            }
             final net.minecraft.world.item.ItemStack piece = target.getItemBySlot(slot);
             if (piece.isEmpty()) {
                 continue;
             }
             points += LegacyCombat.protectionPoints(enchantmentLevel(piece,
                 net.minecraft.world.item.enchantment.Enchantments.PROTECTION), current);
+            if (fire) {
+                points += LegacyCombat.specialisedProtectionPoints(enchantmentLevel(piece,
+                    net.minecraft.world.item.enchantment.Enchantments.FIRE_PROTECTION),
+                    LegacyCombat.FIRE_PROTECTION_FACTOR);
+            }
+            if (fall) {
+                points += LegacyCombat.specialisedProtectionPoints(enchantmentLevel(piece,
+                    net.minecraft.world.item.enchantment.Enchantments.FEATHER_FALLING),
+                    LegacyCombat.FEATHER_FALLING_FACTOR);
+            }
+            if (explosion) {
+                points += LegacyCombat.specialisedProtectionPoints(enchantmentLevel(piece,
+                    net.minecraft.world.item.enchantment.Enchantments.BLAST_PROTECTION),
+                    LegacyCombat.BLAST_PROTECTION_FACTOR);
+            }
+            if (projectile) {
+                points += LegacyCombat.specialisedProtectionPoints(enchantmentLevel(piece,
+                    net.minecraft.world.item.enchantment.Enchantments.PROJECTILE_PROTECTION),
+                    LegacyCombat.PROJECTILE_PROTECTION_FACTOR);
+            }
         }
         return points;
     }

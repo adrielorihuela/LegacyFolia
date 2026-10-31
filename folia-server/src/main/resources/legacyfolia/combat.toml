@@ -143,12 +143,20 @@ armor-points-cap = 20
 
 # Protection, as the random per-hit roll it actually was.
 #
-# Each piece is worth ceil((6 + level^2) / 3 * 0.75) points - 2, 3, 4 or 6 for
-# levels one to four. The total is capped at 25, and then 1.8 rolled
+# Each piece is worth floor((6 + level^2) / 3 * 0.75) points - 1, 2, 3 or 5
+# for levels one to four. The total is capped at 25, and then 1.8 rolled
 # ((points + 1) >> 1) + random((points >> 1) + 1), capped at 20, on every
-# single hit. A full set of Protection IV is 24 points, which rolls between 12
-# and 20, so the same armour takes between 48% and 80% off depending on luck.
+# single hit. A full set of Protection IV is 20 points, which rolls between 10
+# and 20, so the same armour takes between 40% and 80% off depending on luck.
 # Modern protection is a flat, deterministic number with no roll at all.
+#
+# The four specialised protections join the same sum, each only against its
+# own damage and with its own factor in place of 0.75: Fire Protection 1.25
+# against fire, Feather Falling 2.5 against falls and ender pearl landings,
+# Blast Protection 1.5 against explosions, Projectile Protection 1.5 against
+# projectiles. Feather Falling IV boots alone are worth 18 points against a
+# fall. Nothing protects against the void. The factor below is plain
+# Protection's.
 legacy-protection = true
 protection-factor = 0.75
 protection-points-cap = 25

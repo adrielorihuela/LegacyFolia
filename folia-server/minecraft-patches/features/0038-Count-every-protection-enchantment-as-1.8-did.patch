@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:07:11 -0500
+Subject: [PATCH] Count every protection enchantment as 1.8 did
+
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 21e6811506706915177b5952046432dd0efab5b6..3dff6dbc25fbf4cf2749f1b291217dc0770a1bd4 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -2441,12 +2441,14 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         }
+ 
+         // LegacyFolia start - 1.8 rolled protection afresh on every hit
++        // Every protection enchantment feeds the roll, each against its own kind of damage, so the
++        // modern per-enchantment protection below must not run as well.
+         if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProtection()) {
+             final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombatConfig =
+                 io.github.adrielorihuela.legacyfolia.combat.Combat.config();
+             return io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.afterProtection(damage,
+                 io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.rollProtection(
+-                    io.github.adrielorihuela.legacyfolia.combat.Combat.protectionPoints(this),
++                    io.github.adrielorihuela.legacyfolia.combat.Combat.protectionPoints(this, damageSource),
+                     this.random::nextInt, legacyCombatConfig), legacyCombatConfig);
+         }
+         // LegacyFolia end - 1.8 rolled protection afresh on every hit
