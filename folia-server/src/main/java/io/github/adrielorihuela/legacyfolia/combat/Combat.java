@@ -595,6 +595,22 @@ public final class Combat {
     }
 
     /**
+     * Whether a player is still protected after joining or respawning, from 1.8's
+     * {@code EntityPlayer}: for 60 ticks every kind of damage but the void is refused. The modern
+     * game protects a player instead until their client says it has loaded the world, which can
+     * be shorter or longer, and from the void too.
+     *
+     * @param player who is hit
+     * @param source what hits them
+     * @return whether to refuse the hit
+     */
+    public static boolean spawnInvulnerable(final net.minecraft.server.level.ServerPlayer player,
+                                            final net.minecraft.world.damagesource.DamageSource source) {
+        return player.legacySpawnInvulnerableTicks > 0
+            && !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY);
+    }
+
+    /**
      * Whether a hit that does no damage still lands on a player.
      *
      * <p>Vanilla 1.8 dropped a 0 damage hit on a player, and CraftBukkit 1.8.8 took that filter

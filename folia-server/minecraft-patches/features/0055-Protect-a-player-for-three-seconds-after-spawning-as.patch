@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 11:08:27 -0500
+Subject: [PATCH] Protect a player for three seconds after spawning, as 1.8 did
+
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index b90062af95ea1b6f4181784c843bb44f8185b37f..f1fff1d6a463889d0afb5e91e6bd4c66060eb146 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -882,10 +882,13 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         return new ServerItemCooldowns(this);
+     }
+ 
++    public int legacySpawnInvulnerableTicks = io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.SPAWN_INVULNERABLE_TICKS; // LegacyFolia - 1.8's three seconds after joining or respawning
++
+     @Override
+     public void tick() {
+         io.github.adrielorihuela.legacyfolia.combat.Combat.syncAttackSpeed(this); // LegacyFolia - no charge indicator with no attack cooldown
+         io.github.adrielorihuela.legacyfolia.combat.Combat.emptyOffhand(this); // LegacyFolia - 1.8 had no off-hand
++        if (this.legacySpawnInvulnerableTicks > 0) this.legacySpawnInvulnerableTicks--; // LegacyFolia - 1.8's spawn invulnerability
+         // CraftBukkit start
+         if (this.joining) {
+             this.joining = false;
+@@ -1792,6 +1795,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+                             )
+                         );
+                     }
++                    ServerPlayer.this.legacySpawnInvulnerableTicks = io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.SPAWN_INVULNERABLE_TICKS; // LegacyFolia - 1.8's three seconds after a respawn
+                     ServerPlayer.this.connection.restartClientLoadTimerAfterRespawn();
+                     // now the respawn logic is complete
+ 
+@@ -2299,7 +2303,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     @Override
+     public boolean isInvulnerableTo(final ServerLevel level, final DamageSource source) {
+         // Paper start - disable player cramming
+-        return (super.isInvulnerableTo(level, source) || this.isChangingDimension() && !source.is(DamageTypes.ENDER_PEARL) || !this.connection.hasClientLoaded())
++        return (super.isInvulnerableTo(level, source) || this.isChangingDimension() && !source.is(DamageTypes.ENDER_PEARL) || (io.github.adrielorihuela.legacyfolia.combat.Combat.config().enabled() ? io.github.adrielorihuela.legacyfolia.combat.Combat.spawnInvulnerable(this, source) : !this.connection.hasClientLoaded())) // LegacyFolia - 1.8's three seconds after joining or respawning
+             || (!this.level().paperConfig().collisions.allowPlayerCrammingDamage && source.is(DamageTypes.CRAMMING));
+         // Paper end - disable player cramming
+     }
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 3c5db1ad5b0c1ed3bc7da8a7e3c9e054a8e76c44..a3e875b3184f09077925a1d7b06f4dd69d7c96dc 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -3162,6 +3162,7 @@ public class ServerGamePacketListenerImpl
+                     this.player.wonGame = false;
+                     this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, RespawnReason.END_PORTAL); // CraftBukkit
+                     this.resetPosition();
++                    this.player.legacySpawnInvulnerableTicks = io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.SPAWN_INVULNERABLE_TICKS; // LegacyFolia - 1.8's three seconds after a respawn
+                     this.restartClientLoadTimerAfterRespawn();
+                     CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
+                 } else {

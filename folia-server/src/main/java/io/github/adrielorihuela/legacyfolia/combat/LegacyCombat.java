@@ -473,6 +473,9 @@ public final class LegacyCombat {
             motion.z * level * 0.6000000238418579 / (double) horizontal);
     }
 
+    /** How long a player is protected after joining or respawning, from 1.8's {@code EntityPlayer}. */
+    public static final int SPAWN_INVULNERABLE_TICKS = 60;
+
     /**
      * The damage of a fall, from 1.8's {@code EntityLiving.e(float, float)}: the distance beyond
      * what is safe, times the block's multiplier, rounded <em>up</em> in {@code float}. A fall of
