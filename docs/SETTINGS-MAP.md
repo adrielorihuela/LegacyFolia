@@ -481,6 +481,16 @@ sistema `Paper.enable-sync-chunk-writes`.
 No están en ningún TOML, y no es un descuido. Ninguna tenía un default que se pudiera escribir sin
 inventarlo, o exponerla habría sido engañar al operador.
 
+**Toda clave heredada está en el catálogo o en esta tabla.** La lista vive en código,
+`config/catalog/LegacyExclusions.java`, con el motivo de cada una; el importador la usa para
+explicar en `import-report.txt` por qué no importó un valor, y `LegacyCoverageTest` falla si
+aparece una clave que no está ni en el catálogo ni aquí. Ese test no usa una lista escrita a mano:
+saca las claves de lo que cada servidor escribe en una instalación nueva (el `server.properties`
+que vanilla rellena desde un archivo vacío, el `spigot.yml` de Spigot con un mundo cargado, los
+`paper-global.yml` y `paper-world-defaults.yml` de Paper, y las plantillas de `bukkit.yml` y
+`commands.yml`, más las tres claves de Bukkit que la plantilla no escribe). Si una actualización de
+Paper añade una clave, el test falla hasta que se le da sitio.
+
 | Clave | Por qué no está |
 |---|---|
 | `entities.behavior.door-breaking-difficulty` | mapa `EntityType -> List<Difficulty>` calculado en runtime desde `Zombie/Vindicator.DOOR_BREAKING_PREDICATE` |
@@ -488,13 +498,72 @@ inventarlo, o exponerla habría sido engañar al operador.
 | `tick-rates.sensor`, `tick-rates.behavior` | tabla bidimensional (`Table<EntityType, String, Integer>`), sin forma plana |
 | `entity-per-chunk-save-limit`, `despawn-time` | mapas por tipo de entidad, todos `-1`/disabled por defecto |
 | `packet-limiter.overrides` | indexado por **clase** de paquete |
-| `packet-limiter.kick-message` | `Component.translatable`, a la espera de 9.1 |
 | `management-server-secret`, `management-server-tls-keystore-password` | secretos; el primero además es aleatorio en cada arranque |
 | `chunks.prevent-moving-into-unloaded-chunks` | Folia lo fuerza a `true` en `@PostProcess` (`WorldConfiguration.java:528-531`) |
 | `settings.compatibility` | código muerto: `CraftServer.loadCompatibilities()` empieza con `if (true) return;` |
+| `announce-player-achievements` | clave muerta: vanilla no la lee desde 1.12, cuando pasó a ser una regla de juego |
+| `feature-seeds.features` | mapa indexado por `Holder<Feature>` (§7) que Paper rellena él mismo cuando `feature-seeds.generate-random-seeds-for-all` (catalogado como `world.generation.random-feature-seeds`) está activo |
 
-Pendiente de asignar: `messages.use-display-name-in-quit-message` (GlobalConfiguration, `false`)
-existe en el código y ningún archivo lo recoge. Candidato natural: `[server.messages]`.
+`packet-limiter.kick-message` y `messages.use-display-name-in-quit-message`, que estaban aquí, ya
+tienen sitio (§8.1).
+
+### 8.1 Claves catalogadas en la etapa 5a
+
+Las etapas 3 y 4 encontraron claves heredadas sin sitio, y el test de cobertura encontró el resto:
+94 en total. Todas tienen ahora clave TOML, comentario, fila en el catálogo, y pasan por el
+importador y por los puentes de la etapa 4 sin código propio, salvo `biome-provider`.
+
+| Origen | Clave heredada | Clave TOML |
+|---|---|---|
+| server.properties | `max-tick-time` | `server.watchdog.vanilla-timeout-ms`; renombrada (§3.15). El watchdog de vanilla está desactivado por Spigot; el valor sólo se informa |
+| server.properties | `max-chained-neighbor-updates` | `performance.ticking.max-chained-neighbor-updates` |
+| server.properties | `enable-code-of-conduct` | `server.access.enable-code-of-conduct` |
+| server.properties | `bug-report-link` | `server.bug-report-link` |
+| bukkit.yml | `worlds.<mundo>.biome-provider` | `world.biome-providers`, una tabla por nombre de mundo como `world.generators` |
+| spigot.yml | `settings.attribute.{maxHealth,maxAbsorption,movementSpeed,attackDamage}.max` | `combat.attribute-limits.*` (§2.5) |
+| spigot.yml | `settings.moved-wrongly-threshold`, `settings.moved-too-quickly-multiplier` | `gameplay.exploits.*` |
+| spigot.yml | `settings.log-villager-deaths`, `settings.log-named-deaths` | `server.console.*` |
+| spigot.yml (mundo) | `hanging-tick-frequency` | `performance.ticking.hanging-tick-frequency` |
+| spigot.yml (mundo) | `verbose` | `world.log-settings-on-load` |
+| spigot.yml (mundo) | los 22 `seed-*` | `world.structure-seeds.*`, con el nombre del conjunto de estructuras de vanilla (`villages`, `nether-complexes`...) |
+| paper-global | `messages.use-display-name-in-quit-message` | `server.messages.use-display-name-in-quit-message` |
+| paper-global | `packet-limiter.kick-message` | `server.messages.kick-packet-limit`, en MiniMessage con `<lang:...>`, porque `translate:` no lleva color |
+| paper-global | `player-auto-save.max-per-tick` | `server.saving.max-players-per-tick` |
+| paper-global | `misc.max-joins-per-tick`, `misc.catchup-ticks` | `performance.ticking.*` (§2.4) |
+| paper-global | `misc.chat-threads.*` | `performance.threads.*` |
+| paper-global | `misc.xp-orb-groups-per-area`, `misc.max-tracking-combat-entries` | `performance.entities.*` |
+| paper-global | `misc.use-alternative-luck-formula` | `gameplay.items.use-alternative-luck-formula`. §2.5 la mandaba a combat; es la suerte del botín, no combate |
+| paper-global | `misc.prevent-negative-villager-demand` | `gameplay.mobs.*` |
+| paper-global | `misc.use-dimension-type-for-custom-spawners` | `gameplay.mob-spawning.*` |
+| paper-global | `misc.client-interaction-leniency-distance`, `misc.strict-advancement-dimension-check` | `gameplay.players.*` |
+| paper-global | `commands.ride-command-allow-player-as-vehicle` | `gameplay.commands.*` |
+| paper-global | `time.affects-all-worlds` | `gameplay.environment.time-affects-all-worlds` |
+| paper-mundo | `entities.armor-stands.*`, `entities.markers.tick` | `performance.ticking.*` |
+| paper-mundo | `maps.*` | `performance.entities.item-frame-map-cursor-*` |
+| paper-mundo | `entities.spawning.count-all-mobs-for-spawning` | `performance.spawning.*` |
+| paper-mundo | `entities.sniffer.*`, `misc.allow-remote-ender-dragon-respawning`, `misc.max-leash-distance` | `gameplay.mobs.*` |
+| paper-mundo | el resto de `entities.spawning.*` (golems, slimes, luz, caballo esqueleto, comerciante, animales de agua, huevos en spawners, dragón antiguo) | `gameplay.mob-spawning.*` |
+| paper-mundo | `entities.spawning.filter-bad-tile-entity-nbt-from-falling-blocks`, `filtered-entity-tag-nbt-paths`, `duplicate-uuid.*` | `gameplay.exploits.*` |
+| paper-mundo | `misc.disable-relative-projectile-velocity`, `misc.legacy-ender-pearl-behavior` | `gameplay.items.*` |
+| paper-mundo | `misc.disable-end-credits`, `misc.disable-sprint-interruption-on-attack` | `gameplay.players.*` |
+| paper-mundo | `command-blocks.*`, `misc.show-sign-click-command-failure-msgs-to-player`, `spawn.allow-using-signs-inside-spawn-protection` | `gameplay.commands.*` |
+| paper-mundo | `scoreboards.*` | `gameplay.scoreboards.*` |
+| paper-mundo | `feature-seeds.generate-random-seeds-for-all` | `world.generation.random-feature-seeds` |
+
+**Por qué las semillas son una sección de `world.toml` y no una tabla de `[worlds.*]`.** En
+`spigot.yml` cuelgan de `world-settings`, pero son ajustes por mundo corrientes: todos los mundos
+los leen, tienen un default fijo (la sal de vanilla) y un mundo que quiere otro lo dice, como
+cualquier otro ajuste por mundo. Eso es exactamente lo que ya resuelve `WorldConfig`: sección global
+en un archivo por mundo, y override en `[worlds.<mundo>]`. Meterlos sólo en `worlds.toml` habría
+obligado a escribir los 22 defaults en `[worlds.default]`, que el test exige vacío de claves
+propias, y los habría dejado sin comentario. `mineshafts` y `strongholds` son texto (`"default"` o
+un número), porque Spigot los lee con `getString` y el de las fortalezas es un `long`.
+
+`chunk-loading-basic.autoconfig-send-distance`, que nombraba el encargo de la etapa 5a, no existe
+en el Paper de 26.3: la clave es `chunk-loading-advanced.auto-config-send-distance`, y ya estaba
+catalogada como `chunks.auto-config-send-distance`. La ruta antigua aparece en la fixture de Paper
+del importador; se añade como `also-from` de esa misma clave para que un archivo antiguo no la
+pierda.
 
 ## 9. Decisiones (resueltas)
 

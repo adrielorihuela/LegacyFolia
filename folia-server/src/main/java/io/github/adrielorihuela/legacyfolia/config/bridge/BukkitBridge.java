@@ -27,7 +27,10 @@ public final class BukkitBridge {
     /** What {@code bukkit.yml} holds under {@code aliases} since the aliases moved out. */
     private static final String ALIASES_POINTER = "now-in-commands.yml";
 
-    private static final String GENERATORS = "world.generators";
+    /** The two per-world tables Bukkit keeps under {@code worlds.<world>}, by TOML path, with the key each one sets. */
+    private static final Map<String, String> PER_WORLD_TABLES = Map.of(
+        "world.generators", "generator",
+        "world.biome-providers", "biome-provider");
 
     /**
      * Not in Bukkit's template: {@code Main} reads it with {@code "."} as its own fallback, so a
@@ -48,8 +51,9 @@ public final class BukkitBridge {
     public static YamlConfiguration bukkit(final EffectiveSettings source) {
         final YamlConfiguration config = new YamlConfiguration();
         for (final SettingEntry entry : SettingsCatalog.get().fromSource(LegacySource.BUKKIT, false)) {
-            if (GENERATORS.equals(entry.tomlPath())) {
-                generators(config, BridgeValues.table(BridgeValues.global(source, entry)));
+            final String worldKey = PER_WORLD_TABLES.get(entry.tomlPath());
+            if (worldKey != null) {
+                perWorld(config, worldKey, BridgeValues.table(BridgeValues.global(source, entry)));
                 continue;
             }
             final Object value = BridgeValues.yaml(entry, BridgeValues.global(source, entry));
@@ -93,17 +97,25 @@ public final class BukkitBridge {
         return config;
     }
 
-    /** {@code worlds.<world>.generator}, one entry per world that names a generator. */
-    private static void generators(final YamlConfiguration config, final Map<String, Object> generators) {
-        ConfigurationSection worlds = null;
-        for (final Map.Entry<String, Object> world : generators.entrySet()) {
-            final String generator = String.valueOf(world.getValue()).trim();
-            if (!generator.isEmpty()) {
-                if (worlds == null) {
-                    worlds = config.createSection("worlds");
-                }
-                worlds.createSection(world.getKey()).set("generator", generator);
+    /**
+     * {@code worlds.<world>.generator} or {@code worlds.<world>.biome-provider}, one entry per world
+     * that names a plugin. A world that names both keeps both in its one section.
+     */
+    private static void perWorld(final YamlConfiguration config, final String key, final Map<String, Object> plugins) {
+        for (final Map.Entry<String, Object> world : plugins.entrySet()) {
+            final String plugin = String.valueOf(world.getValue()).trim();
+            if (plugin.isEmpty()) {
+                continue;
             }
+            ConfigurationSection worlds = config.getConfigurationSection("worlds");
+            if (worlds == null) {
+                worlds = config.createSection("worlds");
+            }
+            ConfigurationSection section = worlds.getConfigurationSection(world.getKey());
+            if (section == null) {
+                section = worlds.createSection(world.getKey());
+            }
+            section.set(key, plugin);
         }
     }
 }

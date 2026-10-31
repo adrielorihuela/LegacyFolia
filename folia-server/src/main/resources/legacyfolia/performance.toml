@@ -276,6 +276,26 @@ debug = false
 # 1000 and values outside it are clamped.
 entity-broadcast-range-percentage = 100
 
+# How many groups experience orbs may be split into in one area. Orbs of the
+# same value in the same group merge into one, so fewer groups means fewer,
+# larger orbs and less to tick and send. "default" is vanilla's 40.
+xp-orb-groups-per-area = "default"
+
+# How many entries an entity's combat record may hold before the oldest is
+# dropped. The record is what writes "was shot by" death messages; an entity
+# that is damaged constantly, such as a mob in a damage farm, would otherwise
+# grow it without end and leak memory. "disabled" removes the cap.
+max-tracking-combat-entries = 10240
+
+# How many players a map held in an item frame shows as cursors, and how often,
+# in ticks, those cursors are recalculated. Both PER WORLD.
+#
+# A map wall in a busy spawn area otherwise tracks every player who walks past
+# every frame, which costs both CPU and packets. An interval of 0 or less stops
+# updating the cursors after the first time.
+item-frame-map-cursor-limit = 128
+item-frame-map-cursor-update-interval = 10
+
 # ----------------------------------------------------------------------------
 #  Activation range: how close a player must be for an entity to think.
 #
@@ -499,6 +519,15 @@ nerf-spawner-mobs = false
 # scales with the player count instead of being fixed.
 per-player-mob-spawns = true
 
+# Whether mobs that did not spawn naturally count towards the mob cap. PER
+# WORLD.
+#
+# Off, only mobs spawned by the world itself (natural spawning and chunk
+# generation) fill the caps below; mobs from spawners, eggs, breeding or
+# plugins do not, so a full spawner farm does not stop mobs spawning in caves.
+# On is vanilla's way: every mob of the category counts.
+count-all-mobs-for-spawning = false
+
 # ----------------------------------------------------------------------------
 #  Mob caps, per spawning category.
 #
@@ -618,6 +647,55 @@ misc-soft = 32
 entity-budget-millis = 50
 tile-entity-budget-millis = 50
 
+# How many block updates one change may cause in a chain before the rest are
+# dropped. It is max-chained-neighbor-updates in server.properties.
+#
+# This is what stops a redstone or sand contraption from updating forever in a
+# single tick. Raising it lets enormous machines finish what they start;
+# lowering it protects the server from machines built to lag it. A negative
+# value removes the limit, which is never a good idea on a public server.
+max-chained-neighbor-updates = 1000000
+
+# How often, in ticks, item frames, paintings and leash knots check that the
+# block they hang on is still there. PER WORLD.
+#
+# Vanilla checks every tick. A wall of item frames is then checked a hundred
+# times more often than it needs to be; at 100 a frame whose wall is removed
+# drops within five seconds instead of at once.
+hanging-tick-frequency = 100
+
+# How many players may finish joining in one tick. More players than this
+# arriving at once - a proxy restarting, a server coming back up - wait their
+# turn in the following ticks instead of all landing on the same one.
+max-joins-per-tick = 5
+
+# How many ticks the server may run back to back to catch up after falling
+# behind. A server that lost a second to a lag spike then runs a few ticks
+# without pausing, so that crops and furnaces end up where they would have
+# been. "default" is 5; 1 turns catching up off.
+#
+# Folia ticks its regions on a scheduler of its own, which does not read this;
+# it is kept so that a value set on an older server is not lost.
+catchup-ticks = "default"
+
+# Whether armour stands tick at all, and whether they look for entities to
+# collide with. Both PER WORLD.
+#
+# A decorative armour stand does nothing while ticking except cost time, so
+# servers with thousands of them in builds turn ticking off. With ticking off a
+# stand still falls if placed in the air only once something moves it, and it
+# ignores gravity, water and pushing. The collision lookup is the expensive
+# half of the tick; turning it off alone keeps stands falling and floating.
+armor-stands-tick = true
+armor-stand-collision-lookups = true
+
+# Whether marker entities tick. PER WORLD.
+#
+# Markers are invisible entities that data packs and plugins use to remember a
+# place. They do nothing on their own, so not ticking them is safe unless a
+# data pack relies on them doing so.
+markers-tick = true
+
 # ----------------------------------------------------------------------------
 #  Regions -- Folia's threading
 # ----------------------------------------------------------------------------
@@ -645,3 +723,17 @@ grid-exponent = 4
 # first, which keeps every region close to its own twenty ticks per second by
 # always serving whichever is nearest to falling behind.
 scheduler = "EDF"
+
+# ----------------------------------------------------------------------------
+#  Threads -- work done off the region threads
+# ----------------------------------------------------------------------------
+[performance.threads]
+
+# The size of the pool that processes chat messages before they are sent, so
+# that a slow chat plugin never holds up a tick.
+#
+# The core size is how many threads are kept even when idle; the maximum is how
+# many may be started when chat is busy. -1 is the server's choice: no idle
+# threads, and no upper limit. A maximum below the core size is raised to it.
+chat-executor-core-size = -1
+chat-executor-max-size = -1

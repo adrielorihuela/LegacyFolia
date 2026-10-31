@@ -17,10 +17,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The result is meant to be assigned to {@code SpigotConfig.config} in place of loading the
  * file, before {@code readConfig} runs. From there Spigot does what it always does: it reads each
- * value with its own default, adds the defaults of whatever the catalogue does not hold (the
- * attribute caps, {@code moved-wrongly-threshold}, the death logging), and resolves each world as
- * {@code world-settings.<key>} over {@code world-settings.default}. {@code Bukkit.spigot().getConfig()}
- * returns this same object.</p>
+ * value with its own default, and resolves each world as {@code world-settings.<key>} over
+ * {@code world-settings.default}. Every key Spigot reads is in the catalogue, so the defaults it
+ * adds only ever repeat what is already there. {@code Bukkit.spigot().getConfig()} returns this
+ * same object.</p>
  *
  * <p>How the layers map:</p>
  * <ul>

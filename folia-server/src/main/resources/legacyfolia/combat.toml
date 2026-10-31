@@ -185,3 +185,20 @@ sword-blocking-reduction = 0.5
 # Shields and the off-hand slot did not exist in 1.8.
 disable-shields = true
 disable-offhand = true
+
+# ----------------------------------------------------------------------------
+#  Attribute limits - the highest value an attribute may take
+# ----------------------------------------------------------------------------
+#  Vanilla caps every attribute. These four caps are raised from vanilla's own
+#  so that plugins and commands can go further: a boss with 2000 health, a
+#  weapon with absurd damage. A value above the cap is clamped to it, without
+#  an error.
+#
+#  These are not part of the 1.8 mechanics above and are read whether or not
+#  combat.enabled is on.
+[combat.attribute-limits]
+
+max-health = 1024.0
+max-absorption = 2048.0
+movement-speed = 1024.0
+attack-damage = 2048.0

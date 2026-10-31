@@ -157,6 +157,14 @@ player-idle-timeout = 0
 user-cache-size = 1000
 save-user-cache-on-stop-only = false
 
+# A link to where players should report problems with this server, shown as
+# "Report Server Bug" in the pause menu and on the screen a client sees when it
+# is disconnected by an error. Empty shows no link.
+#
+# It must be a full http or https address; anything that does not parse as one
+# is logged at start-up and left out, so a typo here never stops the server.
+bug-report-link = ""
+
 # ----------------------------------------------------------------------------
 #  Server list status - what a client sees before it connects
 # ----------------------------------------------------------------------------
@@ -231,6 +239,18 @@ warn-on-overload = true
 # warning with a stack trace, "false" never does.
 deprecated-verbose = "default"
 
+# Write a line to the log whenever a villager dies, with what killed it, and
+# whenever one is struck by lightning (which turns it into a witch).
+#
+# On a server with trading halls this is how you find out where your villagers
+# went. Turn it off when a breeder or a raid farm makes the log unreadable.
+log-villager-deaths = true
+
+# Write a line to the log whenever a mob with a custom name dies - a pet, a
+# name-tagged mob - with its death message. Off keeps those deaths out of the
+# log.
+log-named-deaths = true
+
 # ----------------------------------------------------------------------------
 #  Access - who may connect, and what they may do once connected
 # ----------------------------------------------------------------------------
@@ -279,6 +299,15 @@ log-ips = true
 # positive. This is not a permission: on means allowed for everyone.
 allow-flight = false
 
+# Show the code of conduct to every player when they join, before they reach
+# the world. The player has to accept it to continue; declining disconnects.
+#
+# The text is read from the codeofconduct folder beside the server, one plain
+# text file per client language named after it (en_us.txt, es_es.txt...). A
+# player whose language has no file gets en_us.txt. Off, or with no files, no
+# screen is shown.
+enable-code-of-conduct = false
+
 # ----------------------------------------------------------------------------
 #  Messages - the text the server sends when it refuses or ends a connection
 # ----------------------------------------------------------------------------
@@ -325,6 +354,18 @@ kick-authentication-servers-down = "translate:multiplayer.disconnect.authservers
 # Flight detected while allow-flight is off, on foot and in a vehicle.
 kick-flying-player = "translate:multiplayer.disconnect.flying"
 kick-flying-vehicle = "translate:multiplayer.disconnect.flying"
+
+# Sent to a player whose packets arrive faster than the packet limit in
+# network.toml allows, as they are disconnected. The default is a translation
+# key in red, so each client shows it in its own language; translate: cannot
+# carry a colour, so it is written with MiniMessage's own <lang:...> tag.
+kick-packet-limit = "<red><lang:disconnect.exceeded_packet_rate>"
+
+# Name the player in the "left the game" message by their display name - the
+# one a nickname or a chat plugin sets - instead of their account name. The
+# join message is not affected, and plugins that write their own quit message
+# replace it either way.
+use-display-name-in-quit-message = false
 
 # ----------------------------------------------------------------------------
 #  Resource pack - the pack the server offers or demands on join
@@ -389,6 +430,19 @@ early-warning-interval-ms = 5000
 restart-on-crash = true
 restart-script = "./start.sh"
 
+# How long, in milliseconds, vanilla's own watchdog waits for a tick before it
+# decides the server has hung. It is max-tick-time in server.properties.
+#
+# On this server vanilla's watchdog is never started: the one configured above
+# replaces it. The value is kept because the server still reports it to code
+# that asks, and because a server.properties written by vanilla or by a panel
+# may carry it. Change timeout-seconds above to change what actually happens.
+#
+# RENAMED, deliberately (map section 3.15). The name max-tick-time also
+# belonged to two unrelated per-world tick budgets in spigot.yml, which live in
+# performance.toml as entity-budget-millis and tile-entity-budget-millis.
+vanilla-timeout-ms = 60000
+
 # ----------------------------------------------------------------------------
 #  Saving - what the server writes about players, and how often
 # ----------------------------------------------------------------------------
@@ -429,6 +483,14 @@ forced-stats = {}
 # placeholder that matches nothing, kept so the list is never empty.
 disable-advancement-saving = false
 disabled-advancements = ["minecraft:story/disabled"]
+
+# How many players may be written to disk in one tick when the save interval
+# above comes round. Spreading the saves over several ticks keeps a full
+# server from stalling on the tick that saves everybody at once.
+#
+# -1 lets the server choose: 20 players a tick, or 10 when the interval is a
+# single tick or longer than 100 ticks.
+max-players-per-tick = -1
 
 # ----------------------------------------------------------------------------
 #  Data packs - which packs a newly created world starts with

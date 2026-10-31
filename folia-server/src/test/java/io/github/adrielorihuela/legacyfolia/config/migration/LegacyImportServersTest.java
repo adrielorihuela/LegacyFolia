@@ -79,6 +79,8 @@ class LegacyImportServersTest {
         assertEquals(3000, toml(root, "performance.toml", "chunks.auto-save-interval"));
         assertEquals(false, toml(root, "world.toml", "dimensions.end"));
         assertEquals(Map.of("world", "TerraformGenerator"), toml(root, "world.toml", "world.generators"));
+        assertEquals(Map.of("world", "TerraformBiomes"), toml(root, "world.toml", "world.biome-providers"));
+        assertEquals(2048.0, toml(root, "combat.toml", "combat.attribute-limits.max-health"));
         assertEquals(true, toml(root, "network.toml", "network.bungeecord.enabled"));
         assertEquals(true, toml(root, "server.toml", "server.console.debug"), "debug=true in server.properties");
         assertEquals(0, toml(root, "server.toml", "server.status.sample-count"), "SpigotConfig reads -5 as 0");
@@ -110,9 +112,9 @@ class LegacyImportServersTest {
         assertNull(override(root, "default", "chunks.view-distance"), "view-distance: default defers to server.properties");
 
         final String report = report(root);
-        assertTrue(report.contains("world-settings.default.seed-village = 10387312"), report);
-        assertTrue(report.contains("world-settings.world_nether.seed-village = 999"));
-        assertTrue(report.contains("world-settings.default.verbose"));
+        assertEquals(999, override(root, "world_nether", "world.structure-seeds.villages"));
+        assertEquals(10387312, toml(root, "world.toml", "world.structure-seeds.villages"), "the vanilla salt, unchanged");
+        assertFalse(report.contains("the catalog has no key for it"), report);
         assertTrue(report.contains("world-settings.world_nether.below-zero-generation-in-existing-chunks"));
         assertTrue(report.contains("settings.compatibility"));
         assertTrue(report.contains("config-version (file metadata)"));
@@ -163,11 +165,12 @@ class LegacyImportServersTest {
             "the root replace-commands wins, as SpigotConfig moves it under commands.");
         assertEquals(true, toml(root, "server.toml", "server.console.debug"), "settings.debug in spigot.yml");
         assertEquals("translate:multiplayer.disconnect.flying", toml(root, "server.toml", "server.messages.kick-flying-player"));
+        assertEquals(true, toml(root, "server.toml", "server.messages.use-display-name-in-quit-message"));
+        assertEquals("<red><lang:disconnect.exceeded_packet_rate>", toml(root, "server.toml", "server.messages.kick-packet-limit"));
 
         final String report = report(root);
         for (final String omitted : List.of("door-breaking-difficulty", "tick-rates.sensor", "entity-per-chunk-save-limit",
-            "prevent-moving-into-unloaded-chunks", "packet-limiter.overrides", "packet-limiter.kick-message",
-            "use-display-name-in-quit-message")) {
+            "prevent-moving-into-unloaded-chunks", "packet-limiter.overrides")) {
             assertTrue(report.contains(omitted), omitted + " must be in the report");
         }
         assertTrue(report.contains("player-auto-save.rate = -1 means the chunk autosave interval"));

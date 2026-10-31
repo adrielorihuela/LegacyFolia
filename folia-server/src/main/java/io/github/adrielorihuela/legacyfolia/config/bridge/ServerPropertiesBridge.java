@@ -12,10 +12,9 @@ import java.util.Properties;
  * <p>Every catalogued vanilla setting is written under its vanilla name and in the text form
  * vanilla's {@code Settings} parses: booleans and numbers as their text, the data-pack lists
  * comma separated, the permission levels as their number, difficulty and game mode by name. What
- * vanilla reads that the catalogue does not hold ({@code max-tick-time},
- * {@code max-chained-neighbor-updates}, {@code enable-code-of-conduct}, {@code bug-report-link},
- * the management server's secrets) is left out, so vanilla gives it its own default, as it would
- * for a file without the line.</p>
+ * vanilla reads that the catalogue deliberately does not hold (the management server's two
+ * secrets, {@code config.catalog.LegacyExclusions}) is left out, so vanilla gives it its own
+ * default, as it would for a file without the line.</p>
  *
  * <p>Three settings need more than a rename:</p>
  * <ul>

@@ -158,8 +158,8 @@ class LegacyImportCollisionsTest {
         assertEquals("<red>Slow down", toml(root, "server.toml", "server.messages.kick-connection-throttle"));
         assertEquals(25, toml(root, "performance.toml", "performance.ticking.entity-budget-millis"));
         assertEquals(120, toml(root, "server.toml", "server.watchdog.timeout-seconds"));
-        // The watchdog's max-tick-time has no TOML key in the catalog yet: reported, not lost.
-        assertTrue(report(root).contains("server.properties: max-tick-time = \"120000\"  -- the catalog has no key for it"));
+        // The watchdog's max-tick-time is renamed, so that it is not mistaken for the tick budgets.
+        assertEquals(120000L, ((Number) toml(root, "server.toml", "server.watchdog.vanilla-timeout-ms")).longValue());
     }
 
     @Test
@@ -178,11 +178,14 @@ class LegacyImportCollisionsTest {
     }
 
     @Test
-    @DisplayName("3.14 structure seeds: Spigot's seeds have no TOML key and are reported, never dropped")
+    @DisplayName("3.14 structure seeds: Spigot's seeds land in [world.structure-seeds], a world's own in worlds.toml")
     void seeds(@TempDir final Path root) throws IOException {
-        write(root, "spigot.yml", "world-settings:\n  default:\n    seed-village: 42\n");
+        write(root, "spigot.yml", "world-settings:\n  default:\n    seed-village: 42\n    seed-stronghold: 123456789012\n"
+            + "  world_nether:\n    seed-nether: 7\n");
         run(root).orElseThrow();
-        assertTrue(report(root).contains("world-settings.default.seed-village = 42  -- the catalog has no key for it"));
+        assertEquals(42, toml(root, "world.toml", "world.structure-seeds.villages"));
+        assertEquals("123456789012", toml(root, "world.toml", "world.structure-seeds.strongholds"), "a long, kept as text");
+        assertEquals(7, override(root, "world_nether", "world.structure-seeds.nether-complexes"));
     }
 
     @Test

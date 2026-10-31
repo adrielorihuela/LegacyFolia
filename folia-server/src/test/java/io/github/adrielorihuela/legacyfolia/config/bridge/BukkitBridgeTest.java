@@ -40,7 +40,7 @@ class BukkitBridgeTest {
     }
 
     @Test
-    @DisplayName("generators, aliases and the three-state deprecation warning")
+    @DisplayName("generators, biome providers, aliases and the three-state deprecation warning")
     void tablesAndSpecialTypes() {
         final TomlSettings settings = TomlSettings.bundledWith("""
             [server.console]
@@ -48,6 +48,9 @@ class BukkitBridgeTest {
             [world.generators]
             world = "Terra:overworld"
             skyblock = "VoidGen"
+            [world.biome-providers]
+            world = "Terra:biomes"
+            islands = "OceanOnly"
             [plugins.commands.aliases]
             icanhasbukkit = ["version $1-"]
             spawnme = ["spawn", "heal"]
@@ -57,6 +60,10 @@ class BukkitBridgeTest {
         final YamlConfiguration bukkit = BukkitBridge.bukkit(settings);
         assertEquals("Terra:overworld", bukkit.getString("worlds.world.generator"));
         assertEquals("VoidGen", bukkit.getString("worlds.skyblock.generator"));
+        assertEquals("Terra:biomes", bukkit.getString("worlds.world.biome-provider"), "beside the world's generator");
+        assertEquals("Terra:overworld", bukkit.getString("worlds.world.generator"), "and without replacing it");
+        assertEquals("OceanOnly", bukkit.getString("worlds.islands.biome-provider"));
+        assertEquals(null, bukkit.getString("worlds.islands.generator"));
         assertEquals(Warning.WarningState.ON, Warning.WarningState.value(bukkit.getString("settings.deprecated-verbose")));
         assertEquals(Warning.WarningState.DEFAULT, Warning.WarningState.value(BukkitBridge.bukkit(TomlSettings.bundled()).getString("settings.deprecated-verbose")));
         assertEquals(30, bukkit.getInt("spawn-limits.monsters"));

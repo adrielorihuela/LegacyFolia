@@ -214,7 +214,9 @@ class SettingsCatalogTest {
         assertEquals("network.port", catalog.byVanillaName("server-port").orElseThrow().tomlPath());
         assertTrue(catalog.byVanillaName("announce-player-achievements").isEmpty());
         assertFalse(catalog.inFile(ServerConfig.COMBAT).isEmpty());
-        assertTrue(catalog.inFile(ServerConfig.COMBAT).stream().allMatch(SettingEntry::isForkOnly));
+        // The 1.8 mechanics are the fork's own; only the attribute caps came from Spigot (SETTINGS-MAP 2.5).
+        assertTrue(catalog.inFile(ServerConfig.COMBAT).stream()
+            .allMatch(entry -> entry.isForkOnly() == !entry.tomlPath().startsWith("combat.attribute-limits.")));
         assertTrue(catalog.require("gameplay.items.trident-despawn-rate").notes().contains("arrow-despawn-rate"));
         System.out.println("CATALOG keys=" + catalog.size() + " perWorld=" + catalog.perWorld().size());
     }

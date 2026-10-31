@@ -257,6 +257,85 @@ spiders-immune-to-poison-effect = true
 immune-to-wither-effect-wither = true
 immune-to-wither-effect-wither-skeleton = true
 
+# How long a sniffer egg takes to hatch, in ticks, and how long on moss, where
+# vanilla hatches it twice as fast. "default" is vanilla's 24000 and 12000.
+sniffer-hatch-time = "default"
+sniffer-boosted-hatch-time = "default"
+
+# Let the dragon be respawned by end crystals placed out of sight of the exit
+# portal. Off, as in vanilla, the crystals must stand on the portal itself.
+allow-remote-ender-dragon-respawning = false
+
+# How far, in blocks, a leashed mob may be from whoever holds the lead before
+# the lead snaps. "default" is vanilla's distance.
+max-leash-distance = "default"
+
+# Keep villager demand from going negative (MC-163962). Negative demand is what
+# lets a trade that has been used heavily become absurdly cheap and stay that
+# way. On the whole server, not per world.
+prevent-negative-villager-demand = false
+
+# ----------------------------------------------------------------------------
+#  Mob spawning - where and how mobs are allowed to appear
+# ----------------------------------------------------------------------------
+#  The rules a spawn must pass. The numbers of mobs and how often they are
+#  tried are in performance.toml; these are the conditions. Every key in this
+#  section is per world, except where it says otherwise.
+[gameplay.mob-spawning]
+
+# Let iron golems spawn without a solid block under them, as village golem
+# farms built for older versions expect.
+iron-golems-can-spawn-in-air = false
+
+# Make every chunk a slime chunk, so slimes spawn anywhere below the height
+# given further down, not only in one chunk in ten.
+all-chunks-are-slime-chunks = false
+
+# The brightest block light in which a monster may spawn. "default" is what the
+# dimension says: 0 in the overworld, which is what makes torches work.
+monster-spawn-max-light-level = "default"
+
+# The chance that lightning spawns a skeleton trap horse. "default" is
+# vanilla's, which scales with the local difficulty.
+skeleton-horse-thunder-spawn-chance = "default"
+
+# Stop spawn eggs from changing what a mob spawner spawns.
+disable-mob-spawner-spawn-egg-transformation = false
+
+# Look for an ender dragon saved by a pre-1.9 version when the End is loaded.
+# Only an End that old needs it; off saves the scan on every other.
+scan-for-legacy-ender-dragon = true
+
+# The heights, as y coordinates, between which slimes spawn in swamps and
+# mangrove swamps, and the height below which they spawn in slime chunks.
+slime-surface-biome-max-height = 70.0
+slime-surface-biome-min-height = 50.0
+slime-chunk-max-height = 40.0
+
+# The heights between which water animals - fish, squid, dolphins, axolotls
+# and the rest - may spawn. "default" is vanilla's: sea level and a few blocks
+# below it.
+water-animal-max-height = "default"
+water-animal-min-height = "default"
+
+# How the wandering trader is offered a chance to appear.
+#
+# Every spawn-minute-length ticks the server counts down; once spawn-day-length
+# ticks have passed it rolls the current chance, which starts at
+# spawn-chance-min percent. A failed roll adds spawn-chance-failure-increment,
+# up to spawn-chance-max; a success resets it. The defaults are vanilla's.
+wandering-trader-spawn-minute-length = 1200
+wandering-trader-spawn-day-length = 24000
+wandering-trader-spawn-chance-failure-increment = 25
+wandering-trader-spawn-chance-min = 25
+wandering-trader-spawn-chance-max = 75
+
+# Run the overworld's extra spawners - phantoms, patrols, cats, the wandering
+# trader - in every world whose dimension type is the overworld's, instead of
+# only in the main world. For servers with several overworld-like worlds. On
+# the whole server, not per world.
+use-dimension-type-for-custom-spawners = false
+
 # ----------------------------------------------------------------------------
 #  Environment - weather, water, fire, ice and the passage of time
 # ----------------------------------------------------------------------------
@@ -372,6 +451,11 @@ tick-rates-mob-spawner = 1
 tick-rates-wet-farmland = 1
 tick-rates-dry-farmland = 1
 
+# Let the time of day be the same in every world, as /time set in one changes
+# it in all of them. Off, each world keeps its own clock, which is how this
+# server has always behaved. On the whole server, not per world.
+time-affects-all-worlds = false
+
 # ----------------------------------------------------------------------------
 #  Items - what is dropped, what is picked up, and what disappears
 # ----------------------------------------------------------------------------
@@ -466,6 +550,21 @@ hopper-ignore-occluding-blocks = false
 # skipped. A cannon or a chain reaction is what reaches this; the cap is the
 # difference between a large explosion and a stalled region.
 max-tnt-per-tick = 100
+
+# Use the alternative formula for how luck changes loot quality, which treats
+# low-quality and high-quality drops more evenly (https://luckformula.emc.gs).
+# On the whole server, not per world.
+use-alternative-luck-formula = false
+
+# Leave the thrower's own speed out of a projectile's speed. Vanilla adds it,
+# so an arrow shot while running goes further; on, every projectile leaves the
+# bow or hand at the same speed. PER WORLD.
+disable-relative-projectile-velocity = false
+
+# Ender pearls as they were before 1.21.2: a thrown pearl does not keep its
+# chunk loaded, and does not follow the thrower through a portal or survive
+# them logging out. PER WORLD.
+legacy-ender-pearl-behavior = false
 
 # ----------------------------------------------------------------------------
 #  Redstone - which implementation runs, and in what order
@@ -696,6 +795,40 @@ disable-world-ticking-when-empty = false
 ticking-chunks = true
 ticking-block-entities = true
 
+# How far a player may move in one packet, and how much faster than expected,
+# before the server rejects the move. On the whole server, not per world.
+#
+# moved-wrongly-threshold is the distance, in blocks, by which the position a
+# client reports may differ from where the server worked out it should be
+# before it is put back ("moved wrongly"). moved-too-quickly-multiplier scales
+# how far a player may move in one go before "moved too quickly" puts them
+# back. Raising either makes rubber-banding rarer on bad connections and speed
+# hacks easier.
+moved-wrongly-threshold = 0.0625
+moved-too-quickly-multiplier = 10.0
+
+# Remove block entity data from falling blocks when they are loaded, so a
+# falling block cannot be used to carry a chest's contents or a command block
+# somewhere. PER WORLD.
+filter-bad-tile-entity-nbt-from-falling-blocks = true
+
+# The data a spawn egg or a dispensed item is not allowed to set on the entity
+# it creates, as NBT paths. The defaults stop an item from choosing where its
+# mob appears or how fast it is moving. PER WORLD.
+filtered-entity-tag-nbt-paths = ["Pos", "Motion", "sleeping_pos"]
+
+# What to do when a chunk loads an entity whose UUID is already in use, which
+# corrupted or copied worlds can produce. PER WORLD.
+#
+#   safe_regen - give the newcomer a new UUID, unless the two are within the
+#                range below of each other, in which case it is a duplicate
+#                and is deleted
+#   delete     - delete the newcomer
+#   warn       - log it and load both, which plugins may not cope with
+#   nothing    - say nothing and load both
+duplicate-uuid-mode = "safe_regen"
+duplicate-uuid-delete-range = 32
+
 # ----------------------------------------------------------------------------
 #  Sounds - how far the events everybody hears carry
 # ----------------------------------------------------------------------------
@@ -713,3 +846,68 @@ ticking-block-entities = true
 dragon-death-sound-radius = 0
 wither-spawn-sound-radius = 0
 end-portal-sound-radius = 0
+
+# ----------------------------------------------------------------------------
+#  Players - things that happen to a player rather than to the world
+# ----------------------------------------------------------------------------
+[gameplay.players]
+
+# Skip the end poem and credits the first time a player leaves the End
+# through the exit portal. PER WORLD.
+disable-end-credits = false
+
+# Keep sprinting after hitting something. Vanilla stops the sprint on every
+# hit that knocks back; the 1.8 sprint knockback in combat.toml does its own
+# thing either way. PER WORLD.
+disable-sprint-interruption-on-attack = false
+
+# How much further, in blocks, a player may reach when hitting or using an
+# entity than the server's own check allows, to make up for lag between client
+# and server. "default" is 3. On the whole server, not per world.
+client-interaction-leniency-distance = "default"
+
+# Check the dimension an advancement names exactly. Off, a world counts as the
+# overworld, the Nether or the End by its kind, so a second overworld-like
+# world can complete overworld advancements; on, only the real one can. On the
+# whole server, not per world.
+strict-advancement-dimension-check = false
+
+# ----------------------------------------------------------------------------
+#  Commands - command blocks, signs and the commands players run
+# ----------------------------------------------------------------------------
+[gameplay.commands]
+
+# The operator level command blocks and command block minecarts run their
+# commands at, and whether that level is enforced. Both PER WORLD.
+#
+# 2 is vanilla's: enough for /give, /tp and the rest, not enough to stop the
+# server or change operators. With enforcement off, a command block runs any
+# command a plugin registers, whatever its permission says.
+command-block-permission-level = 2
+command-block-force-follow-perm-level = true
+
+# Tell a player when a command on a sign they click fails, instead of failing
+# silently. PER WORLD.
+show-sign-click-command-failures = false
+
+# Let players click signs inside spawn protection, so that signs with commands
+# on them work in a protected spawn. PER WORLD.
+allow-signs-in-spawn-protection = false
+
+# Let /ride put an entity on a player. Off, as in vanilla, a player cannot be a
+# vehicle. On the whole server, not per world.
+ride-command-allow-player-as-vehicle = false
+
+# ----------------------------------------------------------------------------
+#  Scoreboards - which entities scoreboard teams apply to
+# ----------------------------------------------------------------------------
+[gameplay.scoreboards]
+
+# Let entities other than players be on a scoreboard team. Turning it off
+# saves a team lookup for every mob every time it is checked, and breaks team
+# colours and collision rules on mobs. PER WORLD.
+allow-non-player-entities = true
+
+# Colour a player's name in chat with their team colour, as vanilla does. Off,
+# chat shows the plain name and leaves colour to chat plugins. PER WORLD.
+use-vanilla-world-name-coloring = false

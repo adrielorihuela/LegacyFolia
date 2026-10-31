@@ -46,3 +46,4 @@ aliases: now-in-commands.yml
 worlds:
   world:
     generator: TerraformGenerator
+    biome-provider: TerraformBiomes

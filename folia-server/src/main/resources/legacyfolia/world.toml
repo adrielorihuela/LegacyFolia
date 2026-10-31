@@ -86,6 +86,13 @@ lobby-spawn-world = "logout-world"
 # placed above the roof are left exactly where they are either way.
 disable-nether-roof = false
 
+# Write every per-world setting of this world to the console as the world
+# loads, the way spigot.yml's verbose did. PER WORLD.
+#
+# Useful when checking that an override in worlds.toml is reaching the world
+# it was written for; noise the rest of the time.
+log-settings-on-load = false
+
 # ----------------------------------------------------------------------------
 #  Generation - what a world is made of, the first time it is made
 # ----------------------------------------------------------------------------
@@ -149,6 +156,66 @@ max-world-size = 29999984
 # happened to be reachable. It is one setting here, for every world.
 below-zero-generation-in-existing-chunks = true
 
+# Give every placed feature (trees, ores, flowers, lakes...) a random seed of
+# its own instead of deriving it from the world seed. PER WORLD.
+#
+# Two worlds with the same seed then no longer have the same ore and tree
+# placement, which is what makes seed-cracking tools useless for finding
+# diamonds. It changes only chunks generated from then on: an existing world
+# gets a visible change in vegetation along the border of what was there.
+random-feature-seeds = false
+
+# ----------------------------------------------------------------------------
+#  Structure seeds - where structures are placed
+# ----------------------------------------------------------------------------
+#  Each structure set is spread over the world by a number of its own, mixed
+#  with the world seed. The values below are vanilla's. Change one and that
+#  structure turns up somewhere else than a seed map says it should, which is
+#  the point on a server where players would otherwise look up every village
+#  and stronghold from the seed.
+#
+#  Like the rest of generation, a change applies only to chunks generated from
+#  then on. Every key in this section is PER WORLD: each world may hide its
+#  structures differently, in worlds.toml.
+#
+#  These were spigot.yml's per-world seed-* keys. They live here, as one
+#  section of world.toml, and not as a table in worlds.toml, because they are
+#  ordinary per-world settings: every world reads them, the defaults below are
+#  what every world gets, and a world that differs says so in worlds.toml like
+#  any other setting.
+[world.structure-seeds]
+
+villages = 10387312
+desert-pyramids = 14357617
+igloos = 14357618
+jungle-temples = 14357619
+swamp-huts = 14357620
+ocean-monuments = 10387313
+shipwrecks = 165745295
+ocean-ruins = 14357621
+pillager-outposts = 165745296
+end-cities = 10387313
+nether-complexes = 30084232
+woodland-mansions = 10387319
+nether-fossils = 14357921
+ruined-portals = 34222645
+ancient-cities = 20083232
+trail-ruins = 83469867
+trial-chambers = 94251327
+abandoned-camps = 91231127
+buried-treasure = 10387320
+
+# Mineshafts and strongholds are placed differently from the rest, so their
+# default is not a number but "default", which keeps vanilla's placement.
+# Write a number in quotes to override it; the stronghold one may be a number
+# as large as a world seed.
+mineshafts = "default"
+strongholds = "default"
+
+# The seed slime chunks are chosen with. Changing it moves every slime chunk,
+# so existing slime farms stop working.
+slime-chunks = 987234911
+
 # ----------------------------------------------------------------------------
 #  Storage - where worlds live on disk, and how they are written
 # ----------------------------------------------------------------------------
@@ -192,3 +259,15 @@ sync-chunk-writes = true
 #  Empty by default: every world generates with the settings above.
 [world.generators]
 # world = "MyGeneratorPlugin:archipelago"
+
+# ----------------------------------------------------------------------------
+#  Biome providers - handing a world's biomes to a plugin
+# ----------------------------------------------------------------------------
+#  The same as the generators above, for the biomes alone: the terrain stays
+#  the world's own and the plugin decides which biome is where. One entry per
+#  world, "PluginName" or "PluginName:argument", and the plugin must load at
+#  start-up, before the world.
+#
+#  Empty by default.
+[world.biome-providers]
+# world = "MyBiomePlugin"
