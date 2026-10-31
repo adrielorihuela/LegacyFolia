@@ -612,6 +612,16 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("spawn protection refuses all but the void, and lets a fall through on a PvP world")
+    void spawnProtection() {
+        assertTrue(LegacyCombat.spawnProtects(60, false, false, true), "a hit on a PvP world");
+        assertTrue(LegacyCombat.spawnProtects(1, false, true, false), "a fall with PvP off");
+        assertFalse(LegacyCombat.spawnProtects(60, false, true, true), "a fall with PvP on hurts");
+        assertFalse(LegacyCombat.spawnProtects(60, true, false, false), "the void");
+        assertFalse(LegacyCombat.spawnProtects(0, false, false, false), "after three seconds");
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);

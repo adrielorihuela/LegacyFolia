@@ -359,7 +359,8 @@ disable-totems = true
 #    knockback resistance.
 #  - A player who joins is protected from everything but the void for three
 #    seconds, as in 1.8, rather than until their client says it has loaded
-#    the world. As on Spigot 1.8.8, a respawn does not protect them again.
+#    the world. A fall still hurts them on a world with PvP on, and a respawn
+#    does not protect them again, as on Spigot 1.8.8.
 
 # ----------------------------------------------------------------------------
 #  Attribute limits - the highest value an attribute may take

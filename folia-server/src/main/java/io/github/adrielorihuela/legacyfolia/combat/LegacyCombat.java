@@ -477,6 +477,24 @@ public final class LegacyCombat {
     public static final int SPAWN_INVULNERABLE_TICKS = 60;
 
     /**
+     * Whether 1.8's spawn invulnerability refuses a hit, from CraftBukkit 1.8.8's
+     * {@code EntityPlayer.damageEntity}: while ticks are left, everything but the void, and a fall
+     * only when the world has PvP off ({@code server.ae() && cr() && "fall"}, where a dedicated
+     * server's {@code ae()} is always true and {@code cr()} is the world's PvP).
+     *
+     * @param ticksLeft the protection left
+     * @param bypassesInvulnerability whether the damage goes through any invulnerability, as the
+     *     void does
+     * @param fall whether it is fall damage
+     * @param pvp whether the world has PvP on
+     * @return whether to refuse the hit
+     */
+    public static boolean spawnProtects(final int ticksLeft, final boolean bypassesInvulnerability,
+                                        final boolean fall, final boolean pvp) {
+        return ticksLeft > 0 && !bypassesInvulnerability && !(fall && pvp);
+    }
+
+    /**
      * The damage of a fall, from 1.8's {@code EntityLiving.e(float, float)}: the distance beyond
      * what is safe, times the block's multiplier, rounded <em>up</em> in {@code float}. A fall of
      * 3.5 blocks does 1 and one of 5.2 does 3, where the modern game rounds down to 0 and 2.

@@ -623,7 +623,8 @@ public final class Combat {
 
     /**
      * Whether a player is still protected after joining, from CraftBukkit 1.8.8's
-     * {@code EntityPlayer}: for 60 ticks every kind of damage but the void is refused. The timer
+     * {@code EntityPlayer}: for 60 ticks every kind of damage but the void is refused, and a fall
+     * too unless the world has PvP on ({@link LegacyCombat#spawnProtects}). The timer
      * started when the player object was made, at login; a respawn or leaving the End reused the
      * same object and did not start it again. The modern game protects a player instead after
      * every join and respawn until their client says it has loaded the world, at most 60 ticks,
@@ -635,8 +636,9 @@ public final class Combat {
      */
     public static boolean spawnInvulnerable(final net.minecraft.server.level.ServerPlayer player,
                                             final net.minecraft.world.damagesource.DamageSource source) {
-        return player.legacySpawnInvulnerableTicks > 0
-            && !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY);
+        return LegacyCombat.spawnProtects(player.legacySpawnInvulnerableTicks,
+            source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY),
+            source.is(net.minecraft.tags.DamageTypeTags.IS_FALL), player.level().isPvpAllowed());
     }
 
     /**
