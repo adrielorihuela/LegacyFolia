@@ -80,6 +80,48 @@ public final class TomlSettings implements EffectiveSettings {
     }
 
     /**
+     * Settings from parsed documents with the server.properties mode's effective values over them.
+     *
+     * @param documents whole TOML files, as for {@link #of(List)}
+     * @param global effective server-wide values by TOML path, each replacing what the documents
+     *     say; {@code null} for none
+     * @param worlds the whole per-world layer by world name and dotted path, replacing the
+     *     documents' {@code [worlds]} tables; {@code null} to keep those
+     * @return the settings
+     */
+    public static TomlSettings of(final List<? extends UnmodifiableConfig> documents,
+                                  final @Nullable Map<String, Object> global,
+                                  final @Nullable Map<String, Map<String, Object>> worlds) {
+        final TomlSettings base = of(documents);
+        if (global == null && worlds == null) {
+            return base;
+        }
+        final Map<String, Object> mergedGlobal = new HashMap<>(base.global);
+        if (global != null) {
+            global.forEach((path, value) -> {
+                if (value != null) {
+                    mergedGlobal.put(path, SettingsCatalog.plain(value));
+                }
+            });
+        }
+        final Map<String, Map<String, Object>> mergedWorlds = new LinkedHashMap<>();
+        if (worlds == null) {
+            mergedWorlds.putAll(base.worlds);
+        } else {
+            worlds.forEach((name, values) -> {
+                final Map<String, Object> copy = new HashMap<>();
+                values.forEach((path, value) -> {
+                    if (value != null) {
+                        copy.put(path, SettingsCatalog.plain(value));
+                    }
+                });
+                mergedWorlds.put(name, Map.copyOf(copy));
+            });
+        }
+        return new TomlSettings(Map.copyOf(mergedGlobal), Collections.unmodifiableMap(mergedWorlds));
+    }
+
+    /**
      * The bundled templates, which hold every setting at the value a new server starts with.
      *
      * @return the defaults, as {@code ServerConfig} would read them from a fresh {@code config/}

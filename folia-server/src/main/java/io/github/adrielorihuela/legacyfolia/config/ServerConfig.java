@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -125,6 +126,9 @@ public final class ServerConfig {
 
     private static final WorldConfigCache WORLD_VIEWS = new WorldConfigCache(ServerConfig::resolve);
 
+    /** Moves on every time what the getters answer may have changed, for callers that cache. */
+    private static final AtomicLong GENERATION = new AtomicLong();
+
     private ServerConfig() {
     }
 
@@ -179,6 +183,7 @@ public final class ServerConfig {
         overrides = null;
         directory = ConfigFile.DIRECTORY;
         WORLD_VIEWS.invalidate();
+        GENERATION.incrementAndGet();
     }
 
     /** The directory the files were read from: {@code config/} on a real server. */
@@ -212,6 +217,7 @@ public final class ServerConfig {
     static void setOverrides(final Overrides value) {
         overrides = value;
         WORLD_VIEWS.invalidate();
+        GENERATION.incrementAndGet();
     }
 
     /** The effective values in force, or {@code null}. */
@@ -252,6 +258,7 @@ public final class ServerConfig {
         directory = configDirectory;
         overrides = null;
         WORLD_VIEWS.invalidate();
+        GENERATION.incrementAndGet();
 
         final long created = loaded.values().stream().filter(ConfigFile::wasCreated).count();
         if (created == FILES.size()) {
@@ -392,11 +399,67 @@ public final class ServerConfig {
     public static void set(final String path, final Object value) {
         final ConfigFile file = fileFor(path);
         file.set(path, value);
+        GENERATION.incrementAndGet();
         final Overrides current = overrides;
         if (current != null && current.global().containsKey(path)) {
             final Map<String, Object> global = new HashMap<>(current.global());
             global.put(path, value);
             setOverrides(Overrides.of(global, current.worlds()));
         }
+    }
+
+    // ------------------------------------------------------------------------------------------
+    //  Whole-configuration views, for the bridge to Bukkit, Spigot, Paper and vanilla
+    // ------------------------------------------------------------------------------------------
+
+    /**
+     * A number that changes whenever the answers of this class may have changed: on every load,
+     * every {@link #set}, and every change the server.properties mode makes. A caller that builds
+     * something from the whole configuration rebuilds it when this moves.
+     *
+     * @return the current generation
+     */
+    public static long generation() {
+        return GENERATION.get();
+    }
+
+    /**
+     * The eight files as they were read, in load order, without the server.properties overrides.
+     *
+     * @return the parsed documents
+     * @throws IllegalStateException before {@link #load()}
+     */
+    public static List<UnmodifiableConfig> documents() {
+        final Map<String, ConfigFile> loaded = files;
+        if (loaded == null) {
+            throw new IllegalStateException("the configuration has not been read yet");
+        }
+        final List<UnmodifiableConfig> documents = new ArrayList<>(loaded.size());
+        for (final ConfigFile file : loaded.values()) {
+            documents.add(file.raw());
+        }
+        return documents;
+    }
+
+    /**
+     * The server-wide values the server.properties mode worked out, by TOML path, tables whole.
+     *
+     * @return every catalogued setting's effective value, or {@code null} before
+     *     {@link ServerProperties#reconcile()} has run, when the files answer alone
+     */
+    public static Map<String, Object> overriddenGlobal() {
+        final Overrides current = overrides;
+        return current == null ? null : current.global();
+    }
+
+    /**
+     * The per-world layer the server.properties mode worked out, by world name and dotted path. It
+     * replaces the {@code [worlds]} table of {@code worlds.toml} rather than adding to it.
+     *
+     * @return the layer, or {@code null} before {@link ServerProperties#reconcile()} has run
+     */
+    public static Map<String, Map<String, Object>> overriddenWorlds() {
+        final Overrides current = overrides;
+        return current == null ? null : current.worlds();
     }
 }
