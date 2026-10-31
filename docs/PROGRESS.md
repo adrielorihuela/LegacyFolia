@@ -74,9 +74,26 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 150 en `LegacyFoliaTestSuite` (20 clases; 145 propios más las 5 suites vacías de upstream
-que Gradle también cuenta), sin fallos (verificado el 2026-10-18 sobre 26.3, contando los XML de
-`build/test-results`). Antes de la etapa 1 de la fase de enganche eran 129.
+**Tests:** 189 en `LegacyFoliaTestSuite` (23 clases; 184 propios más las 5 suites vacías de upstream
+que Gradle también cuenta), sin fallos ni omitidos (verificado el 2026-10-30, contando los XML de
+`build/test-results`). Antes de la etapa 1 de la fase de enganche eran 129; tras ella, 150. La
+etapa 2 añade `ServerPropertiesTest`, `PropertiesDocumentTest`, `TomlTextTest` y un caso en
+`ConfigFileMergeTest`, y hace que corra `BundledTomlParseTest`, que con su nombre anterior
+(`...TestSuite`) el filtro de JUnit dejaba fuera.
+
+**Etapa 2 del enganche (hecha, 2026-10-30): el modo `server.properties`** (decisión 6 de §6).
+- `config/ServerProperties.java`: `reconcile()`, `enable()`, `disable()`, `status()`, `isEnabled()`,
+  `set(ruta, valor[, mundo])`, `reset(ruta[, mundo])`, `flush()` y `file()`. Lo describe su javadoc.
+- `ServerConfig` contesta con los overrides ya aplicados (`getInt`, `forWorld`... sin cambiar ninguna
+  llamada) y acepta un directorio (`load(Path)`) para que los tests no toquen `run/`.
+- `config/properties/`: `PropertiesDocument` (lee como `Properties.load` y cambia línea a línea,
+  conservando comentarios y orden), `TomlText` (cambia un valor en el texto del TOML sin reescribir el
+  archivo), `TomlLiterals`, `PropertyValues` (texto de `server.properties` a valor tipado y vuelta,
+  validado con `SettingReaders.convert`) y `AtomicFiles` (temporal y move).
+- No se reescriben los TOML con night-config: su `save()` borra la cabecera y los ejemplos comentados
+  de `worlds.toml` y re-indenta. Por eso `TomlText`.
+- Arreglado de paso en `ConfigFile.merge`: no rellenaba desde la plantilla las tablas de datos
+  (`plugins.commands.aliases`...), así que un alias por defecto borrado volvía en cada arranque.
 
 **Importante:** los 430 ajustes **todavía no los lee el servidor**. Hoy los TOML se generan y se
 documentan, pero los valores efectivos siguen saliendo de `server.properties`, `bukkit.yml`,
@@ -105,7 +122,11 @@ Estamos en la fase de enganche (§5, punto 1). **La etapa 1 está hecha:** las d
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
 su tipo, su default, su origen heredado y su nombre en `server.properties`) con los lectores tipados
-de `config/types/SettingReaders`. Tres agentes pueden trabajar ahora en paralelo contra esa API.
+de `config/types/SettingReaders`.
+
+**La etapa 2 está hecha** (2026-10-30, §2): el modo `server.properties` en
+`config/ServerProperties.java`, con sus tests, todavía **sin enganchar** al arranque. La siguiente es
+la etapa 3 (importador). Lo que la etapa 5 tendrá que enganchar está en §5.
 
 La comprobación de arranque que quedó pendiente en `v0.13.0` está hecha, ya sobre 26.3: con
 `run/config/*.toml` borrados, `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo
@@ -117,11 +138,8 @@ dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en
 Las etapas van **en fila**: cada una empieza cuando la anterior termina y está subida.
 
 1. **Fase de enganche.** Plan detallado en `SETTINGS-MAP.md` §4.1 y §6, y decisiones en §6 de este
-   documento. La etapa 1 (catálogo de claves y lectores de tipos) está hecha. Quedan:
-   - **Etapa 2: modo `server.properties`.** Calcular las diferencias respecto al default, conservar
-     los nombres vanilla, escribir y leer el archivo con su cabecera, y devolver los cambios a los TOML
-     al apagarlo. Antes, arreglar que `BundledTomlParseTestSuite` no se ejecute con
-     `LegacyFoliaTestSuite`.
+   documento. Las etapas 1 (catálogo de claves y lectores de tipos) y 2 (modo `server.properties`,
+   `config/ServerProperties`) están hechas. Quedan:
    - **Etapa 3: importador.** Leer vanilla, Spigot, Paper o Folia, incluido el `paper-world.yml` de
      cada mundo, resolver las colisiones como el servidor original y hacer copia de los originales en
      `config/legacy-backup/<fecha>/`.
@@ -132,6 +150,27 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
      inyección, el comando `/legacyfolia properties on|off|status`, las escrituras en caliente
      (`/whitelist on`, `/difficulty`...), el lobby configurable (`world.lobby-spawn-world`), el EULA
      como clave y el borrado de los yml.
+
+     Lo que la etapa 5 tiene que enganchar del modo `server.properties` (etapa 2):
+     - **Arranque**, en `Main` (parche que hoy llama a `ServerConfig.load()`, línea ~127 de
+       `net/minecraft/server/Main.java`): `ServerConfig.load()`, después el importador de la etapa 3, y
+       después `ServerProperties.reconcile()`. Ese orden importa: hoy `config/server.properties` es el
+       archivo vanilla completo, y si `reconcile()` lo viera tal cual borraría las líneas que valen el
+       default y avisaría de las claves vanilla que no están en el catálogo. Además,
+       `DedicatedServerProperties` no debe volver a leer ni guardar ese archivo (`forceSave()` lo
+       reescribe entero): tiene que alimentarse del `Properties` en memoria de la etapa 4.
+     - **Recarga**: `ServerConfig.load()` y luego `ServerProperties.reconcile()`, siempre juntos
+       (`load()` descarta los overrides).
+     - **Comando** `/legacyfolia properties on|off|status`: `ServerProperties.enable()`,
+       `disable()` y `status()`; los dos primeros guardan el interruptor y devuelven un `Report`.
+     - **Escrituras en caliente**: cada `MutableValue` de `DedicatedServerProperties` (`/difficulty`,
+       `/whitelist on`, `setMaxPlayers`, `/defaultgamemode`...) llama a
+       `ServerProperties.set("server.difficulty", "hard")` con la ruta TOML y el valor como lo tendría
+       el TOML (`String` para los enum, `Integer`, `Boolean`). Los 19 ajustes `mutable` del catálogo
+       son los candidatos. Vale desde cualquier hilo de región: el valor se ve al volver y el archivo
+       se escribe en un hilo propio.
+     - **Parada**: `ServerProperties.flush()` antes de salir, para que la última escritura llegue al
+       disco.
 2. **Daño base de espadas 1.8** (opcional). Es el único de los nueve enganches del PvP que falta.
    Obliga a cargar la configuración antes de `Bootstrap.bootStrap()`, porque `Items` es un registro
    estático.
