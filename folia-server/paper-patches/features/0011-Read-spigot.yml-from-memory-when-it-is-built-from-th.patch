@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:05:58 -0500
+Subject: [PATCH] Read spigot.yml from memory when it is built from the TOML
+ files
+
+SpigotConfig loads its file, reads every value with its own default and
+saves the result back. With spigot.yml built in memory from the TOML
+files there is no file to load and none to save: init(YamlConfiguration)
+takes the built configuration as it is, and readConfig skips the save
+when there is no file, where save(null) would throw.
+
+Everything after the load is unchanged, so SpigotConfig and every
+SpigotWorldConfig read the values exactly as before, and
+Bukkit.spigot().getConfig() returns the same object.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
+index 78fd32976b9394d5a6ddeb0444eae3f5703ab940..24b9313c4b331935157cc58184b98ebe5673b6f4 100644
+--- a/src/main/java/org/spigotmc/SpigotConfig.java
++++ b/src/main/java/org/spigotmc/SpigotConfig.java
+@@ -62,6 +62,22 @@ public class SpigotConfig {
+             throw Throwables.propagate(ex);
+         }
+ 
++        SpigotConfig.readLoaded();
++    }
++
++    // LegacyFolia start - spigot.yml is built in memory from the TOML files
++    /**
++     * Reads a configuration built in memory, with no file behind it: nothing is loaded and
++     * nothing is saved. {@code Bukkit.spigot().getConfig()} returns this same object.
++     */
++    public static void init(YamlConfiguration built) {
++        SpigotConfig.CONFIG_FILE = null;
++        SpigotConfig.config = built;
++        SpigotConfig.readLoaded();
++    }
++
++    static void readLoaded() { // not private: readConfig calls every private method that takes nothing
++        // LegacyFolia end - spigot.yml is built in memory from the TOML files
+         SpigotConfig.config.options().header(SpigotConfig.HEADER);
+         SpigotConfig.config.options().copyDefaults(true);
+ 
+@@ -95,6 +111,7 @@ public class SpigotConfig {
+             }
+         }
+ 
++        if (SpigotConfig.CONFIG_FILE == null) return; // LegacyFolia - built in memory, there is no file to save
+         try {
+             SpigotConfig.config.save(SpigotConfig.CONFIG_FILE);
+         } catch (IOException ex) {
