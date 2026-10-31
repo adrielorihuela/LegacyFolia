@@ -213,8 +213,13 @@ public final class TomlText {
             return null;
         }
         int at = here == -1 ? 0 : this.headers.get(here).lineEnd;
+        final int blockStart = template.commentStart(key.lineStart);
+        // What separates the key from the one before it: a blank line, unless the template writes
+        // the two as one group, as it does early-warning-delay-ms and early-warning-interval-ms.
+        String gap = this.newline;
         // The nearest earlier sibling in the template that this file has, under the same header.
-        for (int i = template.keys.indexOf(key) - 1; i >= 0; i--) {
+        final int index = template.keys.indexOf(key);
+        for (int i = index - 1; i >= 0; i--) {
             final KeyLine sibling = template.keys.get(i);
             if (sibling.header != key.header) {
                 continue;
@@ -222,15 +227,19 @@ public final class TomlText {
             final KeyLine mine = this.key(sibling.path, here);
             if (mine != null) {
                 at = mine.lineEnd;
+                if (i == index - 1 && blockStart >= sibling.lineEnd
+                    && template.text.substring(sibling.lineEnd, blockStart).isBlank()) {
+                    gap = this.adopt(template.text.substring(sibling.lineEnd, blockStart) + "\n").substring(this.newline.length());
+                }
                 break;
             }
         }
-        final String block = this.adopt(template.text.substring(template.commentStart(key.lineStart), key.lineEnd));
+        final String block = this.adopt(template.text.substring(blockStart, key.lineEnd));
         if (at == 0) {
             return this.replace(0, 0, block + this.newline);
         }
         final String lead = this.text.substring(0, at).endsWith("\n") ? "" : this.newline;
-        return this.replace(at, at, lead + this.newline + block);
+        return this.replace(at, at, lead + gap + block);
     }
 
     private TomlText addTable(final TomlText template, final int index) {
@@ -245,18 +254,19 @@ public final class TomlText {
                 break;
             }
         }
-        final String block = this.adopt(stripTrailingBlankLines(
-            template.text.substring(template.commentStart(header.lineStart), end)));
-        // Before the first table that follows it in the template and that this file has.
+        final String text = template.text.substring(template.commentStart(header.lineStart), end);
+        // Before the first table that follows it in the template and that this file has, with
+        // the blank lines the template leaves before that table's banner.
         if (following != -1) {
             for (int i = following; i < template.headers.size(); i++) {
                 final int mine = this.headerIndex(template.headers.get(i).path);
                 if (mine != -1) {
                     final int at = this.commentStart(this.headers.get(mine).lineStart);
-                    return this.replace(at, at, block + this.newline);
+                    return this.replace(at, at, this.adopt(text));
                 }
             }
         }
+        final String block = this.adopt(stripTrailingBlankLines(text));
         final String normal = this.text.replace("\r\n", "\n");
         final String lead = normal.isEmpty() || normal.endsWith("\n\n") ? ""
             : normal.endsWith("\n") ? this.newline : this.newline + this.newline;

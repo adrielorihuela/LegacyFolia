@@ -266,6 +266,48 @@ class ConfigFileMergeTest {
         assertEquals(1, ((Number) parsed.get("worlds.default.chunks")).intValue());
     }
 
+    /**
+     * Every table of every bundled file, taken out with its banner and merged back, comes back
+     * exactly as the template has it: same place, same comments, same blank lines. This is what an
+     * existing server sees when a release adds a section.
+     */
+    @Test
+    @DisplayName("a table a release adds comes back exactly where and as the template has it")
+    void everyBundledTableMergesBackExactly() throws IOException {
+        int checked = 0;
+        for (final String file : ServerConfig.fileNames()) {
+            final String template = new String(ConfigFile.class.getClassLoader()
+                .getResourceAsStream("legacyfolia/" + file).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+                .replace("\r\n", "\n");
+            final List<Integer> headers = new java.util.ArrayList<>();
+            final List<String> names = new java.util.ArrayList<>();
+            for (int at = 0; at < template.length(); at = template.indexOf('\n', at) + 1) {
+                if (template.startsWith("[", at) && !template.startsWith("[[", at)) {
+                    headers.add(at);
+                    names.add(template.substring(at + 1, template.indexOf(']', at)));
+                }
+                if (template.indexOf('\n', at) == -1) {
+                    break;
+                }
+            }
+            for (int i = 0; i < headers.size(); i++) {
+                final String name = names.get(i);
+                final boolean last = i + 1 == headers.size();
+                if (!last && names.get(i + 1).startsWith(name + ".")) {
+                    continue;
+                }
+                final int start = commentStart(template, headers.get(i));
+                final int end = last ? template.length() : commentStart(template, headers.get(i + 1));
+                final String without = template.substring(0, start) + template.substring(end);
+                final ConfigFile.Merged merged = ConfigFile.merge(without, template);
+                assertFalse(merged.added().isEmpty(), file + " [" + name + "]: nothing was added back");
+                assertEquals(template.stripTrailing(), merged.text().stripTrailing(), file + " [" + name + "]");
+                checked++;
+            }
+        }
+        assertTrue(checked > 30, "only " + checked + " tables were checked");
+    }
+
     private static int commentStart(final String text, final int lineStart) {
         int start = lineStart;
         while (start > 0) {
