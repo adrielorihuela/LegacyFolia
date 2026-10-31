@@ -288,6 +288,12 @@ max-tracking-combat-entries = 10240
 item-frame-map-cursor-limit = 128
 item-frame-map-cursor-update-interval = 10
 
+# How often, in ticks, a mob outside every player's activation range runs its
+# goals - the part of its AI that decides to wander, look around or flee.
+# PER WORLD. 20 runs them once a second instead of every tick, which saves CPU
+# on servers with many idle mobs; "disabled" runs them every tick, as before.
+inactive-mob-goal-selector-throttle-rate = "disabled"
+
 # ----------------------------------------------------------------------------
 #  Activation range: how close a player must be for an entity to think.
 #

@@ -218,6 +218,7 @@ performance.entities.xp-orb-groups-per-area	INT_OR_DEFAULT	false	PAPER_GLOBAL	mi
 performance.entities.max-tracking-combat-entries	INT_OR_DISABLED	false	PAPER_GLOBAL	misc.max-tracking-combat-entries	-	-	false	false	-	10240	-
 performance.entities.item-frame-map-cursor-limit	INT	true	PAPER_WORLD	maps.item-frame-cursor-limit	-	-	false	false	-	128	-
 performance.entities.item-frame-map-cursor-update-interval	INT	true	PAPER_WORLD	maps.item-frame-cursor-update-interval	-	-	false	false	-	10	-
+performance.entities.inactive-mob-goal-selector-throttle-rate	INT_OR_DISABLED	true	PAPER_WORLD	entities.behavior.inactive-mob-goal-selector-throttle-rate	-	-	false	false	-	"disabled"	IntOr.Disabled; new in Paper 804dd0c3
 performance.entities.activation-range.animals	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.animals	-	-	false	false	-	32	-
 performance.entities.activation-range.monsters	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.monsters	-	-	false	false	-	32	-
 performance.entities.activation-range.raiders	INT	true	SPIGOT_WORLD	world-settings.default.entity-activation-range.raiders	-	-	false	false	-	64	-
@@ -607,6 +608,7 @@ gameplay.players.client-interaction-leniency-distance	DOUBLE_OR_DEFAULT	false	PA
 gameplay.players.strict-advancement-dimension-check	BOOLEAN	false	PAPER_GLOBAL	misc.strict-advancement-dimension-check	-	-	false	false	-	false	-
 gameplay.commands.command-block-permission-level	INT	true	PAPER_WORLD	command-blocks.permissions-level	-	-	false	false	-	2	a plain int in Paper (PermissionLevel.byId), not a PERMISSION_LEVEL
 gameplay.commands.command-block-force-follow-perm-level	BOOLEAN	true	PAPER_WORLD	command-blocks.force-follow-perm-level	-	-	false	false	-	true	-
+gameplay.commands.command-block-time-format	STRING	true	PAPER_WORLD	command-blocks.time-format-pattern	-	-	false	false	-	"default"	DateTimeFormatterOrDefault: "default" (vanilla's HH:mm:ss) or a DateTimeFormatter pattern; new in Paper 804dd0c3
 gameplay.commands.show-sign-click-command-failures	BOOLEAN	true	PAPER_WORLD	misc.show-sign-click-command-failure-msgs-to-player	-	-	false	false	-	false	-
 gameplay.commands.allow-signs-in-spawn-protection	BOOLEAN	true	PAPER_WORLD	spawn.allow-using-signs-inside-spawn-protection	-	-	false	false	-	false	-
 gameplay.commands.ride-command-allow-player-as-vehicle	BOOLEAN	false	PAPER_GLOBAL	commands.ride-command-allow-player-as-vehicle	-	-	false	false	-	false	-

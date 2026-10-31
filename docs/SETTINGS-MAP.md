@@ -33,9 +33,9 @@ objetos, nunca su existencia ni sus tipos.
 | `config/spigot.yml` (por mundo) | `paper-server/src/main/java/org/spigotmc/SpigotWorldConfig.java` | **106** | de las cuales 22 son `growth.<cultivo>-modifier` y 22 son `seed-<estructura>` (26.3 añade `seed-abandonedcamp`) |
 | `config/commands.yml` | `paper-server/src/main/resources/configurations/commands.yml` | **3** | `command-block-overrides`, `ignore-vanilla-permissions`, `aliases` |
 | `config/paper-global.yml` | `paper-server/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java` | **85 hojas** en 30 secciones | 26.3 quita `misc.send-full-pos-for-item-entities` y `misc.fix-far-end-terrain-generation` (eran 87) |
-| `config/paper-world-defaults.yml` (+ `<mundo>/paper-world.yml`) | `paper-server/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java` | **175 hojas** en 43 secciones | `PaperConfigurations.java:94-96` fija los tres nombres de archivo. 26.3 añade `chunks.min-chunk-unload-count` y `chunks.min-chunk-unload-fraction` (eran 173) |
+| `config/paper-world-defaults.yml` (+ `<mundo>/paper-world.yml`) | `paper-server/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java` | **177 hojas** en 43 secciones | `PaperConfigurations.java:94-96` fija los tres nombres de archivo. 26.3 añade `chunks.min-chunk-unload-count` y `chunks.min-chunk-unload-fraction` (eran 173); Paper `804dd0c3` añade `entities.behavior.inactive-mob-goal-selector-throttle-rate` y `command-blocks.time-format-pattern` |
 
-**Total aproximado: 504 ajustes** (26.3; eran 502 en 26.2). El grueso (260: 85 globales y 175 por
+**Total aproximado: 506 ajustes** (26.3 con Paper `804dd0c3`; eran 504 con `c927bd34` y 502 en 26.2). El grueso (262: 85 globales y 177 por
 mundo) es Paper; el segundo grueso (106) es `spigot.yml` por mundo.
 
 ### 1.2 `server.properties` — 71 claves
@@ -345,7 +345,7 @@ poblada, aunque ya no exista ningún `spigot.yml` en disco.
 ### 5.1 Ajustes por mundo contra un TOML global
 `SpigotWorldConfig.java:46-86` resuelve `world-settings.<mundo>` → `world-settings.default`, y Paper
 hace lo propio con `<mundo>/paper-world.yml` → `paper-world-defaults.yml`
-(`PaperConfigurations.java:94-96, 318-321`). **281 ajustes** (106 spigot + 175 paper, en 26.3) son por mundo.
+(`PaperConfigurations.java:94-96, 318-321`). **283 ajustes** (106 spigot + 177 paper, en 26.3) son por mundo.
 Aplanarlos a un TOML global **rompe** cualquier servidor que hoy afine el Nether distinto del
 overworld, y lo hace en silencio. Mitigación: el `worlds.toml` de §2.7 y un
 `ServerConfig.forWorld(String)` con la misma cadena de resolución, escrito y probado **antes** de
@@ -540,6 +540,7 @@ importador y por los puentes de la etapa 4 sin código propio, salvo `biome-prov
 | paper-global | `time.affects-all-worlds` | `gameplay.environment.time-affects-all-worlds` |
 | paper-mundo | `entities.armor-stands.*`, `entities.markers.tick` | `performance.ticking.*` |
 | paper-mundo | `maps.*` | `performance.entities.item-frame-map-cursor-*` |
+| paper-mundo | `entities.behavior.inactive-mob-goal-selector-throttle-rate` | `performance.entities.*` |
 | paper-mundo | `entities.spawning.count-all-mobs-for-spawning` | `performance.spawning.*` |
 | paper-mundo | `entities.sniffer.*`, `misc.allow-remote-ender-dragon-respawning`, `misc.max-leash-distance` | `gameplay.mobs.*` |
 | paper-mundo | el resto de `entities.spawning.*` (golems, slimes, luz, caballo esqueleto, comerciante, animales de agua, huevos en spawners, dragón antiguo) | `gameplay.mob-spawning.*` |

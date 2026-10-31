@@ -886,6 +886,11 @@ strict-advancement-dimension-check = false
 command-block-permission-level = 2
 command-block-force-follow-perm-level = true
 
+# The clock shown in front of a command block's last output. "default" is
+# vanilla's HH:mm:ss; anything else is a Java DateTimeFormatter pattern, such
+# as "yyyy-MM-dd HH:mm:ss". PER WORLD.
+command-block-time-format = "default"
+
 # Tell a player when a command on a sign they click fails, instead of failing
 # silently. PER WORLD.
 show-sign-click-command-failures = false
