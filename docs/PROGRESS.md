@@ -3,7 +3,7 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.15.0` · **Base:** Folia
+**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.16.0` · **Base:** Folia
 `ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
@@ -59,6 +59,7 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.13.0 | 10-18 | Los 430 ajustes heredados escritos en los ocho TOML, comentados; `worlds.toml` y `gameplay.toml` |
 | v0.14.0 | 10-18 | Minecraft 26.3 (Folia `ver/26.3.x`), con todos los parches del fork |
 | v0.15.0 | 10-31 | Enganche de la configuración: los TOML son la fuente, `server.properties` es un override opcional, los servidores antiguos se migran en el primer arranque; EULA como clave, `/legacyfolia properties`, lobby configurable |
+| v0.16.0 | 10-31 | Daño de las armas de 1.8 (espadas, hachas, picos y palas), el último de los nueve enganches del PvP |
 
 **Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
@@ -75,8 +76,9 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 271 en `LegacyFoliaTestSuite`, en 36 archivos de resultados, sin fallos ni omitidos
-(verificado el 2026-10-31 al cerrar la etapa 5b, contando los XML de
+**Tests:** 275 en `LegacyFoliaTestSuite`, en 36 archivos de resultados, sin fallos ni omitidos
+(verificado el 2026-10-31 al cerrar `v0.16.0`, que aporta 4 en `LegacyCombatTest`: cinco casos nuevos
+del daño de las armas en lugar del de las espadas; al cerrar la etapa 5b eran 271, contando los XML de
 `folia-server/build/test-results/test` tras `./gradlew :folia-server:test --tests
 'io.github.adrielorihuela.legacyfolia.LegacyFoliaTestSuite'`). Con ese mismo comando, antes de la
 etapa 5b eran 264: la cifra de 269 que figuraba aquí sumaba las 5 suites vacías de upstream, que esa
@@ -172,9 +174,9 @@ fuente de todo lo que lee el servidor.
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-31), `main` y el tag `v0.15.0` están publicados y `main` es la única rama.
-**La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. Lo siguiente
-es el punto 2 de §5 (opcional) o directamente el 3. Lo que sigue en este apartado es el historial de
+Al escribir esto (2026-10-31), `main` y el tag `v0.16.0` están publicados y `main` es la única rama.
+**La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. **El punto 2
+(daño de las armas, `v0.16.0`) también.** Lo siguiente es el punto 3 de §5. Lo que sigue en este apartado es el historial de
 la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
@@ -259,9 +261,19 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
        se escribe en un hilo propio.
      - **Parada**: `ServerProperties.flush()` antes de salir, para que la última escritura llegue al
        disco.
-2. **Daño base de espadas 1.8** (opcional). Es el único de los nueve enganches del PvP que falta.
-   Obliga a cargar la configuración antes de `Bootstrap.bootStrap()`, porque `Items` es un registro
-   estático.
+2. **Daño de las armas de 1.8. HECHO (2026-10-31, `v0.16.0`).** El último de los nueve enganches
+   del PvP. Sacado de `ItemSword`, `ItemTool` y `EnumToolMaterial` de 1.8.8: base por tipo (espada
+   4, hacha 3, pico 2, pala 1) más el bonus del material, sobre el 1 del jugador. Las espadas y los
+   picos hacen 1 más que en 26.3, las palas 0,5 menos y las hachas de 2 a 4 menos (en 1.8 el hacha
+   hacía menos que la espada); las azadas ya coinciden. Cobre y netherite siguen la misma regla; el
+   tridente, el mazo y las lanzas se quedan como en 26.3. No se toca el registro `Items`: se
+   sustituye el modificador del arma al leer el atributo en `Player.attack` y `Mob.doHurtTarget`
+   (parche 0035, `Combat.attackDamage`), así que sigue un reload y no hay que cargar la
+   configuración antes de `Bootstrap`. Un arma con modificadores propios no se toca. El tooltip de un
+   cliente moderno sigue mostrando la cifra de 26.3 (motivo en `PVP-1.8.md`). Claves:
+   `legacy-weapon-damage` y `sword-`, `axe-`, `pickaxe-` y `shovel-base-damage`; sustituyen a
+   `legacy-sword-damage`, que no leía nada y queda olvidada en los `combat.toml` existentes (el
+   merge no borra claves). Comprobado en un servidor con un plugin de prueba (cifras en `PVP-1.8.md`).
 3. **Locator bar idéntica a vanilla y Paper.** Comparar línea a línea nuestra implementación
    (`waypoint/RegionisedWaypoints`, parche 0014) con el código de vanilla
    (`ServerWaypointManager`, `WaypointTransmitter` y el atributo `WAYPOINT_TRANSMIT_RANGE`) y con el de
