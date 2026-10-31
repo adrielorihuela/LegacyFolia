@@ -325,6 +325,7 @@ combat.sprint-knockback-strength	DOUBLE	false	NONE	-	-	-	false	false	-	0.5	-
 combat.restore-velocity-after-knockback	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.legacy-criticals	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.critical-multiplier	DOUBLE	false	NONE	-	-	-	false	false	-	1.5	-
+combat.legacy-reach	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.invulnerability-ticks	INT	false	NONE	-	-	-	false	false	-	20	-
 combat.damage-overriding	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.legacy-weapon-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-

@@ -61,6 +61,7 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param legacyStrength whether Strength multiplies the attack damage by {@code 1 + 1.3 * level}
  *     and Weakness takes {@code 0.5 * level} off it, as in 1.8
  * @param damageExhaustion the exhaustion a player pays for damage that armour stops, 0.3 in 1.8
+ * @param legacyReach whether reach is checked feet to feet against 6 blocks (3 without sight)
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -85,7 +86,8 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            double sprintJumpExhaustion, double jumpExhaustion,
                            boolean legacyInstantPotions, int instantDamageBase,
                            int instantHealBase, double splashRadius,
-                           boolean legacyStrength, double damageExhaustion) {
+                           boolean legacyStrength, double damageExhaustion,
+                           boolean legacyReach) {
 
     private static final String PREFIX = "combat.";
 
@@ -101,7 +103,8 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 80, 18, false,
             0.3, 3.0, 0.8, 0.2,
             true, 6, 4, 4.0,
-            true, 0.3);
+            true, 0.3,
+            true);
     }
 
     /** The module off, for before the configuration exists. */
@@ -167,6 +170,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getInt(PREFIX + "instant-heal-base", defaults.instantHealBase()),
             ServerConfig.getDouble(PREFIX + "splash-radius", defaults.splashRadius()),
             ServerConfig.getBoolean(PREFIX + "legacy-strength-and-weakness", defaults.legacyStrength()),
-            ServerConfig.getDouble(PREFIX + "damage-exhaustion", defaults.damageExhaustion()));
+            ServerConfig.getDouble(PREFIX + "damage-exhaustion", defaults.damageExhaustion()),
+            ServerConfig.getBoolean(PREFIX + "legacy-reach", defaults.legacyReach()));
     }
 }

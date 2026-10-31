@@ -199,6 +199,51 @@ public final class Combat {
     }
 
     /**
+     * Whether the server checks reach and swings the way 1.8's did.
+     *
+     * @return whether the old checks apply
+     */
+    public static boolean legacyReach() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyReach();
+    }
+
+    /**
+     * Whether a player may hit or use an entity, from 1.8's {@code PlayerConnection.a(
+     * PacketPlayInUseEntity)}: feet to feet closer than 6 blocks when the player can see the
+     * target and 3 when they cannot, in any game mode.
+     *
+     * <p>The modern check measures from the eyes to the nearest point of the target's box, against
+     * 3 blocks (5 in creative) plus 3 of leniency, and never asks about line of sight.</p>
+     *
+     * @param player who is reaching
+     * @param target what they reach for
+     * @return whether it is in reach
+     */
+    public static boolean withinReach(final net.minecraft.world.entity.player.Player player,
+                                      final net.minecraft.world.entity.Entity target) {
+        return LegacyCombat.withinReach(player.distanceToSqr(target), player.hasLineOfSight(target));
+    }
+
+    /**
+     * Whether a swing hits a block, from 1.8's {@code PlayerConnection.a(PacketPlayInArmAnimation)}:
+     * a trace of blocks only, 4.5 blocks from the eyes (5 in creative). 1.8 fired
+     * {@code LEFT_CLICK_AIR} for any swing that did not, a swing at a player included.
+     *
+     * @param player who swung
+     * @return whether a block is in the way
+     */
+    public static boolean swingHitsBlock(final net.minecraft.server.level.ServerPlayer player) {
+        final net.minecraft.world.phys.Vec3 eye = player.getEyePosition();
+        final double distance = player.isCreative() ? 5.0 : 4.5;
+        final net.minecraft.world.phys.Vec3 end = eye.add(player.getViewVector(1.0F).scale(distance));
+        return player.level().clip(new net.minecraft.world.level.ClipContext(eye, end,
+                net.minecraft.world.level.ClipContext.Block.OUTLINE,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, player)).getType()
+            == net.minecraft.world.phys.HitResult.Type.BLOCK;
+    }
+
+    /**
      * Whether a hit that does no damage still lands on a player.
      *
      * <p>Vanilla 1.8 dropped a 0 damage hit on a player, and CraftBukkit 1.8.8 took that filter

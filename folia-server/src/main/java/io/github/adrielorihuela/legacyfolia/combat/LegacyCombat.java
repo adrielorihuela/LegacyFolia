@@ -351,6 +351,19 @@ public final class LegacyCombat {
     }
 
     /**
+     * Whether an entity is in reach, from 1.8's {@code PlayerConnection.a(PacketPlayInUseEntity)}:
+     * the squared distance between the two positions is below 36 when the player can see the
+     * target and below 9 when they cannot.
+     *
+     * @param distanceSquared the squared distance from the player's feet to the target's
+     * @param lineOfSight whether the player can see the target
+     * @return whether it is in reach
+     */
+    public static boolean withinReach(final double distanceSquared, final boolean lineOfSight) {
+        return distanceSquared < (lineOfSight ? 36.0 : 9.0);
+    }
+
+    /**
      * The exhaustion a player pays for being hurt, from 1.8's {@code DamageSource}.
      *
      * @param ignoresArmor whether the damage is of a kind armour does not stop

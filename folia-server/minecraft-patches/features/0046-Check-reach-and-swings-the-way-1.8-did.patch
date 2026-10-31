@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:32:00 -0500
+Subject: [PATCH] Check reach and swings the way 1.8 did
+
+
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index ea0325e1047b40c8c710235107027f5df0b21c2a..ae69681b69dd36e09a6fcd7a6aa0669b4a4f519c 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2808,6 +2808,13 @@ public class ServerGamePacketListenerImpl
+         double maxRange = Math.max(this.player.blockInteractionRange(), this.player.entityInteractionRange()); // todo flawed
+         // SPIGOT-5607: Only call interact event if no block or entity is being clicked. Use bukkit ray trace method, because it handles blocks and entities at the same time
+         // SPIGOT-7429: Make sure to call PlayerInteractEvent for spectators and non-pickable entities
++        // LegacyFolia start - 1.8 traced blocks only, 4.5 blocks (5 in creative), so a swing at a player was also a swing at the air
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyReach()) {
++            if (!io.github.adrielorihuela.legacyfolia.combat.Combat.swingHitsBlock(this.player)) {
++                CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_AIR, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
++            }
++        } else {
++        // LegacyFolia end - 1.8 traced blocks only
+         org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), maxRange, org.bukkit.FluidCollisionMode.NEVER, false, 0.0, entity -> { // Paper - Call interact event; change raySize from 0.1 to 0.0
+             Entity handle = ((CraftEntity) entity).getHandle();
+             return entity != this.player.getBukkitEntity() && this.player.getBukkitEntity().canSee(entity) && !handle.isSpectator() && handle.isPickable() && !handle.isPassengerOfSameVehicle(this.player);
+@@ -2822,6 +2829,7 @@ public class ServerGamePacketListenerImpl
+                 CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_AIR, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
+             }
+         } // Paper end - Call interact event
++        } // LegacyFolia - 1.8 traced blocks only
+ 
+         // Arm swing animation
+         io.papermc.paper.event.player.PlayerArmSwingEvent event = new io.papermc.paper.event.player.PlayerArmSwingEvent(this.getCraftPlayer(), org.bukkit.inventory.EquipmentSlot.HAND); // Paper - Add PlayerArmSwingEvent
+@@ -2997,7 +3005,7 @@ public class ServerGamePacketListenerImpl
+             if (ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(target) && target != null && level.getWorldBorder().isWithinBounds(target.blockPosition())) { // Folia - region threading - do not allow interaction of entities outside the current region
+                 AABB targetBounds = target.getBoundingBox();
+                 ItemStack mainHandItem = this.player.getMainHandItem();
+-                if (this.player.isWithinAttackRange(mainHandItem, targetBounds, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(3.0))) { // Paper - configurable lenience
++                if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyReach() ? io.github.adrielorihuela.legacyfolia.combat.Combat.withinReach(this.player, target) : this.player.isWithinAttackRange(mainHandItem, targetBounds, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(3.0))) { // Paper - configurable lenience // LegacyFolia - 1.8's reach check
+                     if (!mainHandItem.has(DataComponents.PIERCING_WEAPON)) {
+                         if (target instanceof ItemEntity
+                             || target instanceof ExperienceOrb
+@@ -3040,7 +3048,7 @@ public class ServerGamePacketListenerImpl
+             this.player.setShiftKeyDown(packet.usingSecondaryAction());
+             if (target != null && ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(target) && level.getWorldBorder().isWithinBounds(target.blockPosition())) { // Folia - region threading
+                 AABB targetBounds = target.getBoundingBox();
+-                if (this.player.isWithinEntityInteractionRange(targetBounds, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(3.0))) { // Paper - configurable lenience value for interact range
++                if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyReach() ? io.github.adrielorihuela.legacyfolia.combat.Combat.withinReach(this.player, target) : this.player.isWithinEntityInteractionRange(targetBounds, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(3.0))) { // Paper - configurable lenience value for interact range // LegacyFolia - 1.8's reach check
+                     InteractionHand hand = packet.hand();
+                     Vec3 location = packet.location();
+                     ItemStack tool = this.player.getItemInHand(hand);

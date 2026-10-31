@@ -493,6 +493,17 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("reach is 6 blocks feet to feet, or 3 without sight of the target")
+    void reach() {
+        assertTrue(LegacyCombat.withinReach(35.9, true));
+        assertFalse(LegacyCombat.withinReach(36.0, true), "strictly below");
+        assertTrue(LegacyCombat.withinReach(8.9, false));
+        assertFalse(LegacyCombat.withinReach(9.0, false));
+        assertFalse(LegacyCombat.withinReach(20.0, false), "four and a half blocks unseen");
+        assertTrue(VANILLA.legacyReach());
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);
