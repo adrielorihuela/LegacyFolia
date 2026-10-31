@@ -286,6 +286,13 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    cubriendo todas las mecánicas y no solo las fórmulas: orden de los modificadores, knockback, bloqueo
    con espada, críticos, invulnerabilidad, hambre, pociones y encantamientos. Después corregir hasta
    que sea **exactamente** igual.
+   Cabos sueltos que ya se conocen para esta revisión:
+   - Fuerza y Debilidad funcionaban de otra forma en 1.8, y el daño de armas de `v0.16.0` no lo cambia.
+   - La ruta de ataque del jugador para el daño de armas solo se probó con mobs, no con un cliente real.
+   - En los `combat.toml` existentes queda una clave huérfana, `legacy-sword-damage` (ahora
+     `legacy-weapon-damage`). El merge no borra claves.
+   - La tabla de ajustes de `docs/PVP-1.8.md` está incompleta: le faltan armadura, regeneración, etc.
+   - Tooltip: el cliente muestra el daño moderno. Es una limitación documentada en `PVP-1.8.md`.
 5. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto. Los puntos 3 y 4 son
    lo último que se hace antes.
 6. **`/init`** para generar `CLAUDE.md`, y un último commit.
