@@ -3,7 +3,7 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.14.0` · **Base:** Folia
+**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.15.0` · **Base:** Folia
 `ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
@@ -58,6 +58,7 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.12.0 | 09-02 | Lobby (spawn en el spawn del mundo), techo del Nether, spawn protection 0, jars `legacyfolia-<versión>.jar` |
 | v0.13.0 | 10-18 | Los 430 ajustes heredados escritos en los ocho TOML, comentados; `worlds.toml` y `gameplay.toml` |
 | v0.14.0 | 10-18 | Minecraft 26.3 (Folia `ver/26.3.x`), con todos los parches del fork |
+| v0.15.0 | 10-31 | Enganche de la configuración: los TOML son la fuente, `server.properties` es un override opcional, los servidores antiguos se migran en el primer arranque; EULA como clave, `/legacyfolia properties`, lobby configurable |
 
 **Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
@@ -74,9 +75,14 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 269 en `LegacyFoliaTestSuite` (35 archivos de resultados, contando las 5 suites vacías de
-upstream que Gradle también cuenta), sin fallos ni omitidos (verificado el 2026-10-31, contando los
-XML de `folia-server/build/test-results/test`). Antes de la etapa 1 de la fase de enganche eran 129;
+**Tests:** 271 en `LegacyFoliaTestSuite`, en 36 archivos de resultados, sin fallos ni omitidos
+(verificado el 2026-10-31 al cerrar la etapa 5b, contando los XML de
+`folia-server/build/test-results/test` tras `./gradlew :folia-server:test --tests
+'io.github.adrielorihuela.legacyfolia.LegacyFoliaTestSuite'`). Con ese mismo comando, antes de la
+etapa 5b eran 264: la cifra de 269 que figuraba aquí sumaba las 5 suites vacías de upstream, que esa
+ejecución ya no produce. La etapa 5b aporta 7: `ServerConfigSettingsTest` (1), el EULA fuera de
+`server.properties` en `ServerPropertiesTest` (1), `LegacyFoliaCommandTest` (2) y tres casos nuevos
+en `LobbyTest`. Antes de la etapa 1 de la fase de enganche eran 129;
 tras ella, 150; tras la etapa 2, 189. La etapa 3 aporta 35 (224 al fusionarla), la etapa 4 otros 38
 (262) y la etapa 5a otros 7: `LegacyCoverageTest` (2), cuatro casos nuevos en `ConfigFileMergeTest`
 y uno en `SettingReadersTest`. La etapa 2 había hecho que corriera `BundledTomlParseTest`, que con su
@@ -126,9 +132,27 @@ original escribe en una instalación nueva (hay un test por objeto que lo compar
   renderiza en el idioma del servidor (inglés), que es lo que el jugador habría leído; el javadoc
   ya lo dice.
 
-**Importante:** los 430 ajustes **todavía no los lee el servidor**. Hoy los TOML se generan y se
-documentan, pero los valores efectivos siguen saliendo de `server.properties`, `bukkit.yml`,
-`spigot.yml` y `paper-*.yml`, que viven en `config/`. Conectarlos es la fase siguiente (§5).
+**Etapa 5b del enganche (hecha, 2026-10-31, `v0.15.0`): la conexión al servidor.** Los TOML son la
+fuente de todo lo que lee el servidor.
+- `config/ConfigHooks` es el único punto de entrada: cada parche es una línea que lo llama.
+  `start()` (importador, `ServerConfig.load()`, `ServerProperties.reconcile()` con su informe en el
+  log), `reload()`, los objetos de la etapa 4 y `vanillaChanged()` para las escrituras en caliente.
+- `ServerConfigSettings` ya no pierde las tablas ni los mundos: responde desde los documentos
+  cargados con los overrides del modo `server.properties` encima, con el mismo `TomlSettings` de los
+  tests, y se reconstruye solo cuando cambia `ServerConfig.generation()`.
+- Parches nuevos: minecraft 0032 (arranque desde los TOML, EULA como clave, `DedicatedServerSettings`
+  sin leer ni guardar `server.properties`, sección de Spigot de cada mundo al cargarse, nombre del
+  mundo para Paper), 0033 (escrituras en caliente en `Settings.MutableValue#update` y `flush()` al
+  salir), 0034 (lobby `main-world`); paper 0011 (`SpigotConfig.init(YamlConfiguration)`), 0012
+  (`CraftServer`, `SpigotCommand`, `/paper reload`, `Configurations`/`PaperConfigurations` y el
+  cargador de plugins sin YAML en disco) y 0013 (registro de `/legacyfolia`).
+- Nada escribe ya `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-global.yml`,
+  `paper-world-defaults.yml`, ningún `paper-world.yml` ni `eula.txt`. Sin `ConfigHooks.start()`
+  (solo en los tests que usan los archivos de Paper como referencia) Paper se comporta como upstream.
+- `server.eula` nunca va a `server.properties` (`SettingEntry.EULA`).
+- Verificado a mano con un servidor nuevo, con un plugin de prueba antes y después de editar
+  `server.properties`, con los comandos y con una migración desde un `run/` de Paper 26.3; los
+  detalles están en el mensaje del tag `v0.15.0` y en el historial.
 
 ## 3. Incidencias que conviene recordar
 
@@ -148,8 +172,10 @@ documentan, pero los valores efectivos siguen saliendo de `server.properties`, `
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-18), `main` y el tag `v0.14.0` están publicados y `main` es la única rama.
-Estamos en la fase de enganche (§5, punto 1). **La etapa 1 está hecha:** las decisiones del usuario
+Al escribir esto (2026-10-31), `main` y el tag `v0.15.0` están publicados y `main` es la única rama.
+**La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. Lo siguiente
+es el punto 2 de §5 (opcional) o directamente el 3. Lo que sigue en este apartado es el historial de
+la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
 su tipo, su default, su origen heredado y su nombre en `server.properties`) con los lectores tipados
@@ -158,8 +184,8 @@ de `config/types/SettingReaders`.
 **La etapa 2 está hecha** (2026-10-30, §2): el modo `server.properties` en
 `config/ServerProperties.java`, con sus tests, todavía **sin enganchar** al arranque. **Las etapas 3
 (importador), 4 (objetos en memoria) y 5a (preparación) también están hechas** (2026-10-31, §2) y
-en `main`. La siguiente es la **etapa 5b**: conectarlo todo al servidor, en serie porque toca los
-árboles generados. Lo que tiene que enganchar está en §5.
+en `main`. **La etapa 5b también está hecha** (2026-10-31, §2, tag `v0.15.0`): todo conectado al
+servidor.
 
 La comprobación de arranque que quedó pendiente en `v0.13.0` está hecha, ya sobre 26.3: con
 `run/config/*.toml` borrados, `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo
@@ -170,7 +196,12 @@ dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en
 
 Las etapas van **en fila**: cada una empieza cuando la anterior termina y está subida.
 
-1. **Fase de enganche.** Plan detallado en `SETTINGS-MAP.md` §4.1 y §6, y decisiones en §6 de este
+1. **Fase de enganche. TERMINADA (2026-10-31, `v0.15.0`).** Lo que queda abajo es el plan con el que
+   se hizo, conservado como referencia; la etapa 5b lo cumplió entero, con dos matices que el usuario
+   conoce: `/difficulty` no escribe `server.properties`, porque en vanilla y en Paper cambia la
+   dificultad del mundo y no el ajuste (regla de upstream; el ejemplo correcto es `/whitelist on`), y
+   `help.yml` y `permissions.yml` siguen leyéndose del directorio de trabajo, como antes.
+   Plan detallado en `SETTINGS-MAP.md` §4.1 y §6, y decisiones en §6 de este
    documento. Hechas: la etapa 1 (catálogo de claves y lectores de tipos), la 2 (modo
    `server.properties`, `config/ServerProperties`), la 3 (importador, `config/migration/`), la 4
    (objetos en memoria, `config/bridge/`, y `config/RconSecret`) y la 5a (fusión, las 94 claves que
@@ -299,7 +330,7 @@ aquí (mensajes traducibles, `rcon.password` y lobby en multimundo) y a las reco
    viendo los valores a través de objetos en memoria.
 
 Consecuencias ya aplicadas en la etapa 1 de la fase de enganche (las claves existen en los TOML y
-en el catálogo `config/catalog/`, pero ningún código las lee todavía): `server.eula`,
+en el catálogo `config/catalog/`; desde la etapa 5b el servidor las lee todas): `server.eula`,
 `server.use-server-properties`, `world.lobby-spawn-world`, `[network.rcon]` con `enabled = true`,
 `ip = "127.0.0.1"` y `password-file = "rcon.secret"` en lugar de `password`, y los mensajes de
 `[server.messages]` en MiniMessage con `translate:`.
