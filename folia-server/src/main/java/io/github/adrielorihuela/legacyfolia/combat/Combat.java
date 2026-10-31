@@ -1244,8 +1244,8 @@ public final class Combat {
      *
      * <p>1.8 looked at the entity that dealt the hit directly: a mob's melee hit scaled, but its
      * arrow or fireball did not, because the arrow is not a living thing. An explosion scaled
-     * unless a player set it off. The modern rule looks at the entity behind the hit, so a
-     * skeleton's arrows do half again as much on Hard.</p>
+     * unless a player set it off, as {@link #legacyExplosionCause} reads it. The modern rule looks
+     * at the entity behind the hit, so a skeleton's arrows do half again as much on Hard.</p>
      *
      * @param source what is hitting the player
      * @return whether the difficulty changes the damage
@@ -1257,11 +1257,30 @@ public final class Combat {
         final boolean always = source.type().scaling()
             == net.minecraft.world.damagesource.DamageScaling.ALWAYS;
         if (source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)) {
-            final net.minecraft.world.entity.Entity cause = source.getEntity();
+            final net.minecraft.world.entity.Entity cause = legacyExplosionCause(source);
             return cause == null ? always : livingNonPlayer(cause);
         }
         final net.minecraft.world.entity.Entity direct = source.getDirectEntity();
         return direct == null ? always : livingNonPlayer(direct);
+    }
+
+    /**
+     * Who 1.8 held to have caused an explosion, from {@code Explosion.getSource()}: whoever lit a
+     * TNT, a living thing that blew itself up, such as a creeper, and nobody otherwise. A ghast's
+     * fireball and an end crystal exploded with no source, and a wither skull's source was the
+     * skull, which is not alive. Today's game names the ghast, the wither or the player who hit
+     * the crystal instead.
+     *
+     * @param source the explosion's damage
+     * @return the cause, or null for none
+     */
+    static net.minecraft.world.entity.@org.jspecify.annotations.Nullable Entity legacyExplosionCause(
+        final net.minecraft.world.damagesource.DamageSource source) {
+        final net.minecraft.world.entity.Entity direct = source.getDirectEntity();
+        if (direct instanceof net.minecraft.world.entity.item.PrimedTnt tnt) {
+            return tnt.getOwner();
+        }
+        return direct instanceof net.minecraft.world.entity.LivingEntity ? direct : null;
     }
 
     private static boolean livingNonPlayer(final net.minecraft.world.entity.Entity entity) {
@@ -1464,8 +1483,9 @@ public final class Combat {
      *
      * <p>1.8 pushed away from {@code damageSource.getEntity()}: the attacker for a melee hit, the
      * owner for an arrow, a snowball, a fireball, a fishing hook or a harming potion, and whoever
-     * set off an explosion. An arrow nobody shot pushed away from itself; any other hit with no
-     * living thing behind it did not push at all. While the two stood on top of each other the
+     * set off an explosion ({@link #legacyExplosionCause}). An arrow nobody shot pushed away from
+     * itself; any other hit with no living thing behind it did not push at all. While the two
+     * stood on top of each other the
      * direction was re-rolled from {@code Math.random()}, and nothing clamped a far-off source.</p>
      *
      * @param target who was hit
@@ -1475,7 +1495,8 @@ public final class Combat {
     public static double @org.jspecify.annotations.Nullable [] knockbackDirection(
         final net.minecraft.world.entity.LivingEntity target,
         final net.minecraft.world.damagesource.DamageSource source) {
-        net.minecraft.world.entity.Entity from = source.getEntity();
+        net.minecraft.world.entity.Entity from = source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)
+            ? legacyExplosionCause(source) : source.getEntity();
         if (from == null
             && source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow) {
             from = arrow;
@@ -1495,14 +1516,15 @@ public final class Combat {
 
     /**
      * Whether a hit the game tags as giving no knockback gave some in 1.8: an explosion somebody
-     * or something living set off, which pushed away from them on top of the blast.
+     * or something living set off ({@link #legacyExplosionCause}), which pushed away from them on
+     * top of the blast.
      *
      * @param source what hit
      * @return whether to knock back anyway
      */
     public static boolean knocksBackDespiteTag(final net.minecraft.world.damagesource.DamageSource source) {
         return legacyKnockback() && source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)
-            && source.getEntity() instanceof net.minecraft.world.entity.LivingEntity;
+            && legacyExplosionCause(source) instanceof net.minecraft.world.entity.LivingEntity;
     }
 
     /**
