@@ -28,7 +28,7 @@ class WaypointSnapshotTest {
                                        final Set<UUID> riders) {
         return new WaypointSnapshot(UUID.randomUUID(), new Vec3(x, 64, z),
             BlockPos.containing(x, 64, z), new ChunkPos((int) x >> 4, (int) z >> 4),
-            null, transmitRange, false, true, riders);
+            null, transmitRange, false, true, riders, false, 1, 1, 1, Long.MIN_VALUE, Long.MIN_VALUE);
     }
 
     @Test
@@ -84,11 +84,40 @@ class WaypointSnapshotTest {
     }
 
     @Test
+    @DisplayName("a move of more than one block or chunk is remembered as a jump; a step is not")
+    void jumpsAreRecorded() {
+        final UUID uuid = UUID.randomUUID();
+        final WaypointSnapshot first = WaypointSnapshot.next(null, state(uuid, 0, 0),
+            WaypointSnapshot.Change.TRACKED, 1);
+        final WaypointSnapshot step = WaypointSnapshot.next(first, state(uuid, 1, 0),
+            WaypointSnapshot.Change.MOVED, 2);
+        final WaypointSnapshot jump = WaypointSnapshot.next(step, state(uuid, 40, 0),
+            WaypointSnapshot.Change.MOVED, 3);
+
+        assertEquals(1, first.epoch());
+        assertEquals(1, step.epoch(), "a move keeps the epoch");
+        assertEquals(Long.MIN_VALUE, step.blockJump());
+        assertEquals(3, jump.blockJump());
+        assertEquals(3, jump.chunkJump(), "40 blocks is two chunks");
+        assertEquals(1, jump.trackedSince());
+        assertEquals(4, WaypointSnapshot.next(jump, state(uuid, 40, 0),
+            WaypointSnapshot.Change.REMADE, 4).epoch(), "a remake starts a new epoch");
+        assertEquals(3, WaypointSnapshot.next(jump, state(uuid, 40, 0),
+            WaypointSnapshot.Change.QUIET, 99).version(), "a quiet republish keeps the version");
+    }
+
+    private static WaypointSnapshot.State state(final UUID uuid, final double x, final double z) {
+        final Vec3 at = new Vec3(x, 64, z);
+        return new WaypointSnapshot.State(uuid, at, BlockPos.containing(at),
+            ChunkPos.containing(BlockPos.containing(at)), null, 1000, false, true, Set.of(), false);
+    }
+
+    @Test
     @DisplayName("distance is measured in three dimensions, not along the ground")
     void heightCounts() {
         final WaypointSnapshot high = new WaypointSnapshot(UUID.randomUUID(),
             new Vec3(0, 400, 0), BlockPos.ZERO, new ChunkPos(0, 0), null, 1000, false, true,
-            Set.of());
+            Set.of(), false, 1, 1, 1, Long.MIN_VALUE, Long.MIN_VALUE);
 
         assertTrue(high.reallyFarFrom(RECEIVER),
             "somebody 400 blocks straight up is as far away as one 400 blocks sideways");

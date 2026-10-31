@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 09:04:41 -0500
+Subject: [PATCH] Make the locator bar behave exactly as vanilla's
+
+Receivers now run vanilla's connection state machine (create, update,
+isBroken for the azimuth, chunk and block connections) against
+transmitter snapshots, and leaving a level removes every waypoint from
+the player's bar, so players in other dimensions no longer linger on it.
+A tick hook in LivingEntity lets receivers catch up on transmitters that
+moved and lets transmitters carry out tracking asked for from other
+threads.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/waypoints/ServerWaypointManager.java b/net/minecraft/server/waypoints/ServerWaypointManager.java
+index a96565139c2ac07c348705c9ba0245cb36f47033..7c4e304a5a844aecc11bf5aeca4dc366ce9daeeb 100644
+--- a/net/minecraft/server/waypoints/ServerWaypointManager.java
++++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
+@@ -14,13 +14,14 @@ import net.minecraft.world.waypoints.WaypointTransmitter;
+ // crash in it. Folia's answer was to empty these methods out, which is why /gamerule locator_bar
+ // does nothing on it.
+ //
+-// Everything here now delegates to RegionisedWaypoints, where the two directions are separated so
+-// that each runs on the thread that already owns the state it touches. Nothing is read across a
+-// region boundary.
++// Everything here now delegates to RegionisedWaypoints: transmitters publish snapshots of
++// themselves on their own thread, and each receiver runs upstream's connection state machine
++// against them on its own thread. One instance per level, as upstream, so a receiver only ever
++// sees the transmitters of its own dimension.
+ public class ServerWaypointManager implements WaypointManager<WaypointTransmitter> {
+     private final io.github.adrielorihuela.legacyfolia.waypoint.RegionisedWaypoints delegate;
+ 
+-    /** Kept only so the /waypoint command can still list what is being transmitted. */
++    /** Upstream's tracked set, kept for the /waypoint list command. */
+     private final Set<WaypointTransmitter> waypoints = java.util.concurrent.ConcurrentHashMap.newKeySet();
+ 
+     public boolean locatorBarEnabled; // Paper - optimize ServerWaypointManager with locator bar disabled
+@@ -39,18 +40,23 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+         this.delegate.setEnabled(enabled);
+     }
+ 
++    /** Once per tick for every living entity in this level, on its own thread. */
++    public void tick(final LivingEntity entity) {
++        this.delegate.tick(entity);
++    }
++
+     @Override
+     public void trackWaypoint(final WaypointTransmitter waypoint) {
+         this.waypoints.add(waypoint);
+         if (waypoint instanceof LivingEntity source) {
+-            this.delegate.publish(source);
++            this.delegate.track(source);
+         }
+     }
+ 
+     @Override
+     public void updateWaypoint(final WaypointTransmitter waypoint) {
+-        if (waypoint instanceof LivingEntity source) {
+-            this.delegate.publish(source);
++        if (waypoint instanceof LivingEntity source && this.waypoints.contains(waypoint)) {
++            this.delegate.moved(source);
+         }
+     }
+ 
+@@ -58,33 +64,36 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     public void untrackWaypoint(final WaypointTransmitter waypoint) {
+         this.waypoints.remove(waypoint);
+         if (waypoint instanceof net.minecraft.world.entity.Entity source) {
+-            this.delegate.unpublish(source.getUUID());
++            this.delegate.untrack(source.getUUID());
+         }
+     }
+ 
+     public void addPlayer(final ServerPlayer player) {
++        this.delegate.addReceiver(player);
+         if (player.isTransmittingWaypoint()) {
+             this.trackWaypoint(player);
+         }
+-        this.delegate.refresh(player);
+     }
+ 
+     public void updatePlayer(final ServerPlayer player) {
+-        this.delegate.refresh(player);
++        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
++        this.delegate.receiverMoved(player);
+     }
+ 
+     public void removePlayer(final ServerPlayer player) {
+-        this.delegate.removeReceiver(player.getUUID());
++        this.delegate.removeReceiver(player);
+         this.untrackWaypoint(player);
+     }
+ 
+     public void breakAllConnections() {
+-        this.delegate.clear();
++        this.delegate.breakAll();
+     }
+ 
+     public void remakeConnections(final WaypointTransmitter waypoint) {
+-        // The icon carries the team colour, so a team change means republishing it.
+-        this.updateWaypoint(waypoint);
++        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
++        if (waypoint instanceof LivingEntity source) {
++            this.delegate.remake(source);
++        }
+     }
+ 
+     public Set<WaypointTransmitter> transmitters() {
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 7b8d9cdb7b0b1bf51b417962625a87afd7d2fa42..0199dcfd9b59885c0c34f85ed9d5cc06de71f96d 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -309,6 +309,11 @@ public abstract class Entity
+     protected boolean wasEyeInWater;
+     private int invulnerableTime;
+     protected boolean firstTick = true;
++    // LegacyFolia start - regionised locator bar
++    public final boolean legacyfolia$isFirstTick() {
++        return this.firstTick;
++    }
++    // LegacyFolia end - regionised locator bar
+     protected final SynchedEntityData entityData;
+     protected static final EntityDataAccessor<Byte> DATA_SHARED_FLAGS_ID = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BYTE);
+     protected static final int FLAG_ONFIRE = 0;
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index aae77a422ea0f07bb80d8c9861d7041dd18eb75b..21e6811506706915177b5952046432dd0efab5b6 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -3451,6 +3451,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     @Override
+     public void tick() {
+         super.tick();
++        if (this.level() instanceof ServerLevel serverLevel) serverLevel.getWaypointManager().tick(this); // LegacyFolia - regionised locator bar
+         this.updatingUsingItem();
+         this.updateSwimAmount();
+         if (!this.level().isClientSide()) {
