@@ -123,10 +123,7 @@ class LegacyCombatTest {
     @Test
     @DisplayName("turning overriding off makes the window absolute")
     void overridingCanBeTurnedOff() {
-        final CombatConfig noOverride = new CombatConfig(true, true, true, true, 0.4, 0.4, 0.4,
-            true, 0.5, true, true, 1.5, 20, false, true, 0.5, true, true,
-            true, 25.0, 20, true, 0.75, 25, 20, true, 1.25, true, 4.0, 3.0, 2.0, 1.0, true, 1,
-            true, 80, 18, false, 0.3, 3.0, 0.8, 0.2, true, 6, 4, 4.0);
+        final CombatConfig noOverride = CombatConfigs.with(VANILLA, "damageOverriding", false);
 
         assertEquals(0.0F, LegacyCombat.damageThroughInvulnerability(20.0F, 1.0F, noOverride),
             0.0001F);
@@ -305,18 +302,33 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("Strength multiplies the whole figure and Weakness takes half a point a level")
+    void strengthAndWeaknessAsIn18() {
+        // Diamond sword (1 + 7) under Strength I: 8 * 2.3. Now it would be 1 + 7 + 3 = 11.
+        assertEquals(8.0 * 2.3, LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.0, 1.0, 0, -1),
+            EPSILON);
+        // Strength II is 1 + 2.6.
+        assertEquals(8.0 * 3.6, LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.0, 1.0, 1, -1),
+            EPSILON);
+        // A fist under Strength I.
+        assertEquals(2.3, LegacyCombat.attackDamageWith(1.0, 0.0, 0.0, 0.0, 1.0, 0, -1), EPSILON);
+        // A fist under Weakness I still hurts: 1 - 0.5. Now it is 1 - 4, clamped to nothing.
+        assertEquals(0.5, LegacyCombat.attackDamageWith(1.0, 0.0, 0.0, 0.0, 1.0, -1, 0), EPSILON);
+        // Weakness II on a diamond sword: 8 - 1.
+        assertEquals(7.0, LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.0, 1.0, -1, 1), EPSILON);
+        // Both: the subtraction comes first and the multiplier last, after a plugin's x2.
+        assertEquals((8.0 - 0.5) * 2.0 * 2.3,
+            LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.0, 2.0, 0, 0), EPSILON);
+        // No effects is the plain recomputation.
+        assertEquals(LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.5, 2.0),
+            LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.5, 2.0, -1, -1), EPSILON);
+        assertTrue(VANILLA.legacyStrength());
+    }
+
+    @Test
     @DisplayName("each base can be changed on its own")
     void basesAreConfigurable() {
-        final CombatConfig modernSwords = new CombatConfig(true, true, true, true, 0.4, 0.4, 0.4,
-            true, 0.5, true, true, 1.5, 20, true, true, 0.5, true, true,
-            true, 25.0, 20,
-            true, 0.75, 25, 20,
-            true, 1.25,
-            true, 3.0, 3.0, 2.0, 1.0,
-            true, 1,
-            true, 80, 18, false,
-            0.3, 3.0, 0.8, 0.2,
-            true, 6, 4, 4.0);
+        final CombatConfig modernSwords = CombatConfigs.with(VANILLA, "swordBaseDamage", 3.0);
         assertEquals(6.0, LegacyCombat.weaponAttackDamage(
             LegacyCombat.WeaponKind.SWORD, 3.0, modernSwords), EPSILON);
         assertEquals(6.0, LegacyCombat.weaponAttackDamage(

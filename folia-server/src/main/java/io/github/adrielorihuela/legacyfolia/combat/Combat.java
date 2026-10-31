@@ -168,25 +168,26 @@ public final class Combat {
     }
 
     /**
-     * The attack damage of a melee hit, with the weapon in hand counted at what it was worth in
-     * 1.8.
+     * The attack damage of a melee hit, worked out the way 1.8 worked it out.
      *
-     * <p>Read where the attack damage attribute is read for a melee hit, so it follows a reload and
-     * leaves the item registry, every stored item and every packet exactly as they are. The
-     * weapon's modifier is swapped only when all of this holds; otherwise the attribute comes back
-     * untouched:</p>
+     * <p>Read where the attack damage attribute is read for a melee hit ({@code Player.attack} and
+     * {@code Mob.doHurtTarget}), so it follows a reload and leaves the item registry, every stored
+     * item and every packet exactly as they are. Two things can differ from the attribute:</p>
      * <ul>
-     *   <li>the setting is on;</li>
-     *   <li>the weapon is a sword, axe, pickaxe or shovel of one of the seven materials;</li>
-     *   <li>the stack carries no attribute modifiers of its own. A weapon a plugin, a command or a
-     *       loot table gave modifiers to keeps them, as 1.8 kept an item's
-     *       {@code AttributeModifiers} tag in place of the item's defaults;</li>
-     *   <li>the modifier actually applied to the attacker is that item's own default, so a broken
-     *       weapon, one swapped in this tick, or a modifier somebody put on the entity under the
-     *       same id is left alone.</li>
+     *   <li><b>Strength and Weakness</b>, for every attacker and whatever is in hand. In 1.8
+     *       Strength multiplied the whole figure by {@code 1 + 1.3 * level}, after everything
+     *       else, and Weakness took {@code 0.5 * level} off before that. Now Strength adds 3 a
+     *       level and Weakness takes 4 off, so a fist under Weakness I no longer hurts at all and a
+     *       diamond sword under Strength I does 11 where it did 18.4. The effects' own modifiers
+     *       are left out and these put in their place, read from the effects the attacker has.</li>
+     *   <li><b>The weapon's modifier</b>, swapped for its 1.8 value only when the weapon is a sword,
+     *       axe, pickaxe or shovel of one of the seven materials, the stack carries no attribute
+     *       modifiers of its own (1.8 kept an item's {@code AttributeModifiers} tag in place of its
+     *       defaults), and the modifier applied to the attacker is that item's own default, so a
+     *       broken weapon, one swapped in this tick or a modifier somebody put on the entity under
+     *       the same id is left alone.</li>
      * </ul>
-     * <p>Every other modifier, Strength and Weakness included, is kept, and the value is worked out
-     * the way the attribute works it out and clamped to the attribute's range.</p>
+     * <p>Every other modifier is kept, and the value is clamped to the attribute's range.</p>
      *
      * @param attacker who is swinging
      * @return the attack damage to use
@@ -195,13 +196,7 @@ public final class Combat {
         final double modern = attacker.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
         final CombatConfig current = config;
-        if (!current.enabled() || !current.legacyWeaponDamage()) {
-            return modern;
-        }
-        final net.minecraft.world.item.ItemStack weapon = attacker.getMainHandItem();
-        final Weapons.Entry entry = Weapons.TABLE.get(weapon.getItem());
-        if (entry == null
-            || weapon.hasNonDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS)) {
+        if (!current.enabled() || !current.legacyWeaponDamage() && !current.legacyStrength()) {
             return modern;
         }
         final net.minecraft.world.entity.ai.attributes.AttributeInstance instance =
@@ -209,9 +204,10 @@ public final class Combat {
         if (instance == null) {
             return modern;
         }
-        final net.minecraft.world.entity.ai.attributes.AttributeModifier applied =
-            instance.getModifier(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID);
-        if (applied == null || !applied.equals(entry.modern())) {
+        final Double weaponModifier = current.legacyWeaponDamage()
+            ? legacyWeaponModifier(attacker, instance, current) : null;
+        final boolean effects = current.legacyStrength();
+        if (weaponModifier == null && !effects) {
             return modern;
         }
 
@@ -220,7 +216,9 @@ public final class Combat {
         double multipliedTotal = 1.0;
         for (final net.minecraft.world.entity.ai.attributes.AttributeModifier modifier
             : instance.getModifiers()) {
-            if (modifier.id().equals(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID)) {
+            final net.minecraft.resources.Identifier id = modifier.id();
+            if (weaponModifier != null && id.equals(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID)
+                || effects && (id.equals(STRENGTH_MODIFIER) || id.equals(WEAKNESS_MODIFIER))) {
                 continue;
             }
             switch (modifier.operation()) {
@@ -230,10 +228,46 @@ public final class Combat {
             }
         }
         final double legacy = LegacyCombat.attackDamageWith(instance.getBaseValue(), otherAdditions,
-            LegacyCombat.weaponAttackDamage(entry.kind(), entry.materialBonus(), current),
-            multipliedBase, multipliedTotal);
+            weaponModifier == null ? 0.0 : weaponModifier, multipliedBase, multipliedTotal,
+            effects ? amplifier(attacker, net.minecraft.world.effect.MobEffects.STRENGTH) : -1,
+            effects ? amplifier(attacker, net.minecraft.world.effect.MobEffects.WEAKNESS) : -1);
         return net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE.value()
             .sanitizeValue(legacy);
+    }
+
+    private static final net.minecraft.resources.Identifier STRENGTH_MODIFIER =
+        net.minecraft.resources.Identifier.withDefaultNamespace("effect.strength");
+    private static final net.minecraft.resources.Identifier WEAKNESS_MODIFIER =
+        net.minecraft.resources.Identifier.withDefaultNamespace("effect.weakness");
+
+    /** The amplifier of an effect the entity has, or -1 when it has none. */
+    static int amplifier(final net.minecraft.world.entity.LivingEntity entity,
+                         final net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect) {
+        final net.minecraft.world.effect.MobEffectInstance instance = entity.getEffect(effect);
+        return instance == null ? -1 : instance.getAmplifier();
+    }
+
+    /**
+     * The 1.8 modifier of the weapon in hand, or null when the weapon keeps its modern one: it is
+     * not in the table, it carries modifiers of its own, or the modifier applied to the attacker is
+     * not the item's default.
+     */
+    private static @org.jspecify.annotations.Nullable Double legacyWeaponModifier(
+        final net.minecraft.world.entity.LivingEntity attacker,
+        final net.minecraft.world.entity.ai.attributes.AttributeInstance instance,
+        final CombatConfig current) {
+        final net.minecraft.world.item.ItemStack weapon = attacker.getMainHandItem();
+        final Weapons.Entry entry = Weapons.TABLE.get(weapon.getItem());
+        if (entry == null
+            || weapon.hasNonDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS)) {
+            return null;
+        }
+        final net.minecraft.world.entity.ai.attributes.AttributeModifier applied =
+            instance.getModifier(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID);
+        if (applied == null || !applied.equals(entry.modern())) {
+            return null;
+        }
+        return LegacyCombat.weaponAttackDamage(entry.kind(), entry.materialBonus(), current);
     }
 
     /**

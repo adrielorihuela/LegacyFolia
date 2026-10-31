@@ -100,6 +100,16 @@ axe-base-damage = 3.0
 pickaxe-base-damage = 2.0
 shovel-base-damage = 1.0
 
+# Strength and Weakness as 1.8 applied them.
+#
+# Strength multiplied the whole attack damage by 1 + 1.3 per level, after every
+# other bonus: a diamond sword under Strength I hit for 8 x 2.3 = 18.4, and a
+# bare fist for 2.3. Weakness took 0.5 a level off before that, so a fist
+# under Weakness I still did half a point. Now Strength adds a flat 3 a level
+# and Weakness takes 4 off. This applies to players and mobs, whatever is in
+# their hand.
+legacy-strength-and-weakness = true
+
 # Sharpness as a flat 1.25 per level, added after the critical multiplier.
 #
 # Two differences in one. The number: Sharpness V was a straight +6.25 in 1.8,

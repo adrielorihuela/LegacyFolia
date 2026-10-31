@@ -332,6 +332,7 @@ combat.sword-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	4.0	-
 combat.axe-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	3.0	-
 combat.pickaxe-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	2.0	-
 combat.shovel-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	1.0	-
+combat.legacy-strength-and-weakness	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.legacy-sharpness	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.sharpness-per-level	DOUBLE	false	NONE	-	-	-	false	false	-	1.25	-
 combat.fire-aspect-before-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-

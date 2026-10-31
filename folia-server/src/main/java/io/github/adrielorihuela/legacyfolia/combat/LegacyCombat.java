@@ -354,6 +354,40 @@ public final class LegacyCombat {
     }
 
     /**
+     * An attack damage attribute worked out with Strength and Weakness as 1.8 applied them, from
+     * {@code MobEffectList} and {@code MobEffectAttackDamage}.
+     *
+     * <p>1.8 registered Weakness as an addition of {@code -0.5 * (amplifier + 1)} and Strength as a
+     * multiplier of the total, {@code 1 + 1.3 * (amplifier + 1)}, so Strength I multiplies by 2.3
+     * and Strength II by 3.6, after every other modifier. A diamond sword under Strength I hits for
+     * 8 * 2.3 = 18.4, a fist for 2.3, and a fist under Weakness I for 0.5, which still hurts. Now
+     * Strength adds 3 a level and Weakness takes 4 off.</p>
+     *
+     * @param baseValue the attribute's base, 1.0 for a player
+     * @param otherAdditions every {@code ADD_VALUE} modifier except the effects', and except the
+     *     weapon's when {@code weaponModifier} replaces it
+     * @param weaponModifier the weapon's 1.8 modifier, or zero when the weapon keeps its own
+     * @param multipliedBase the sum of the {@code ADD_MULTIPLIED_BASE} amounts
+     * @param multipliedTotal the product of one plus each {@code ADD_MULTIPLIED_TOTAL} amount
+     * @param strengthAmplifier the Strength amplifier, or -1 for none
+     * @param weaknessAmplifier the Weakness amplifier, or -1 for none
+     * @return the attribute value, before clamping
+     */
+    public static double attackDamageWith(final double baseValue, final double otherAdditions,
+                                          final double weaponModifier,
+                                          final double multipliedBase,
+                                          final double multipliedTotal,
+                                          final int strengthAmplifier,
+                                          final int weaknessAmplifier) {
+        final double weakness = weaknessAmplifier < 0 ? 0.0
+            : (double) (-0.5F * (float) (weaknessAmplifier + 1));
+        final double value = attackDamageWith(baseValue, otherAdditions + weakness, weaponModifier,
+            multipliedBase, multipliedTotal);
+        return strengthAmplifier < 0 ? value
+            : value * (1.0 + 1.3 * (double) (strengthAmplifier + 1));
+    }
+
+    /**
      * How long fire aspect sets a target alight for, from {@code EntityHuman.attack}.
      *
      * <p>One second, and — the part worth restoring — 1.8 lit the target <em>before</em> calling

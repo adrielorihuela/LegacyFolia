@@ -57,6 +57,8 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param instantDamageBase what harming shifts left by the amplifier, 6 in 1.8
  * @param instantHealBase what healing shifts left by the amplifier, 4 in 1.8
  * @param splashRadius the radius over which a splash potion weakens to nothing, 4.0 in 1.8
+ * @param legacyStrength whether Strength multiplies the attack damage by {@code 1 + 1.3 * level}
+ *     and Weakness takes {@code 0.5 * level} off it, as in 1.8
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -80,7 +82,8 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            double attackExhaustion, double regenExhaustion,
                            double sprintJumpExhaustion, double jumpExhaustion,
                            boolean legacyInstantPotions, int instantDamageBase,
-                           int instantHealBase, double splashRadius) {
+                           int instantHealBase, double splashRadius,
+                           boolean legacyStrength) {
 
     private static final String PREFIX = "combat.";
 
@@ -95,7 +98,8 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 1,
             true, 80, 18, false,
             0.3, 3.0, 0.8, 0.2,
-            true, 6, 4, 4.0);
+            true, 6, 4, 4.0,
+            true);
     }
 
     /** The module off, for before the configuration exists. */
@@ -159,6 +163,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getBoolean(PREFIX + "legacy-instant-potions", defaults.legacyInstantPotions()),
             ServerConfig.getInt(PREFIX + "instant-damage-base", defaults.instantDamageBase()),
             ServerConfig.getInt(PREFIX + "instant-heal-base", defaults.instantHealBase()),
-            ServerConfig.getDouble(PREFIX + "splash-radius", defaults.splashRadius()));
+            ServerConfig.getDouble(PREFIX + "splash-radius", defaults.splashRadius()),
+            ServerConfig.getBoolean(PREFIX + "legacy-strength-and-weakness", defaults.legacyStrength()));
     }
 }
