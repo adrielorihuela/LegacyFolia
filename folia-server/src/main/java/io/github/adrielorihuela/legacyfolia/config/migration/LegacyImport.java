@@ -253,7 +253,10 @@ public final class LegacyImport {
         }
 
         for (final String name : written.keySet()) {
+            final Path path = configDirectory.resolve(name);
+            final String trailing = trailingComments(Files.readString(path, StandardCharsets.UTF_8));
             files.get(name).save();
+            restoreTrailingComments(path, trailing);
             checkpoint.reached("saved:" + name);
         }
 
@@ -289,6 +292,38 @@ public final class LegacyImport {
             report.replaced.add(where + ": was " + LegacyValues.describe(current) + ", now "
                 + LegacyValues.describe(planned.value()) + " (the older server ran with the imported value)");
         }
+    }
+
+    /**
+     * The comment block at the very end of a file, after its last key or table header.
+     *
+     * <p>night-config keeps a comment by attaching it to the key that follows, so a comment with
+     * no key after it is dropped on save. {@code worlds.toml} ends with such a block, its worked
+     * examples, and the import would otherwise delete them from every server it runs on.</p>
+     */
+    static String trailingComments(final String text) {
+        final List<String> lines = text.lines().toList();
+        int start = lines.size();
+        while (start > 0) {
+            final String line = lines.get(start - 1).strip();
+            if (!line.isEmpty() && !line.startsWith("#")) {
+                break;
+            }
+            start--;
+        }
+        final String block = String.join("\n", lines.subList(start, lines.size())).strip();
+        return block.isEmpty() ? "" : block + "\n";
+    }
+
+    private static void restoreTrailingComments(final Path path, final String trailing) throws IOException {
+        if (trailing.isEmpty()) {
+            return;
+        }
+        final String saved = Files.readString(path, StandardCharsets.UTF_8);
+        if (trailingComments(saved).equals(trailing)) {
+            return;
+        }
+        Files.writeString(path, saved.stripTrailing() + "\n\n" + trailing, StandardCharsets.UTF_8);
     }
 
     private static Object tomlValue(final Config parent, final Object value) {
