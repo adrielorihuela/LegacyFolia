@@ -2,6 +2,7 @@ package io.github.adrielorihuela.legacyfolia.config.types;
 
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingEntry;
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingKind;
+import io.papermc.paper.adventure.PaperAdventure;
 import io.papermc.paper.configuration.type.BooleanOrDefault;
 import io.papermc.paper.configuration.type.Duration;
 import io.papermc.paper.configuration.type.DurationOrDisabled;
@@ -54,7 +55,17 @@ public final class SettingReaders {
      */
     private static final Pattern DURATION = Pattern.compile("^\\s*-?\\d+(\\.\\d+)?\\s*[smhd]?\\s*$");
 
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    /**
+     * Section-sign text, rendered with Paper's flattener: the same serializer Paper hands out as
+     * {@code LegacyComponentSerializer.legacySection()}, built here explicitly so that what a
+     * translation key turns into does not depend on which service provider happens to be loaded.
+     */
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
+        .flattener(PaperAdventure.FLATTENER)
+        .character(LegacyComponentSerializer.SECTION_CHAR)
+        .hexColors()
+        .useUnusualXRepeatedCharacterHexFormat()
+        .build();
 
     private SettingReaders() {
     }
@@ -207,13 +218,28 @@ public final class SettingReaders {
      * {@code messages.*} and Bukkit's shutdown message.
      *
      * <p>A translation key cannot survive this: a string has no way to ask the client to translate
-     * it, so it is rendered as the key itself.</p>
+     * it. It is rendered once, here, in the server's language (vanilla's English), so
+     * {@code translate:multiplayer.disconnect.flying} becomes "Flying is not enabled on this
+     * server". That is the text a player would otherwise have read, which the bare key is not;
+     * those fields are shown to players as they are, and a key would reach them untranslated.
+     * A key the language does not know is kept as the key, as vanilla shows it.</p>
      *
      * @param raw the parsed TOML value
      * @return the message as a legacy string
      */
     public static String legacyMessage(final Object raw) {
-        return LEGACY.serialize(message(raw));
+        return legacyText(message(raw));
+    }
+
+    /**
+     * A component as section-sign text, with translation keys rendered in the server's language;
+     * see {@link #legacyMessage(Object)}.
+     *
+     * @param message the component
+     * @return the legacy string
+     */
+    public static String legacyText(final Component message) {
+        return LEGACY.serialize(message);
     }
 
     /**

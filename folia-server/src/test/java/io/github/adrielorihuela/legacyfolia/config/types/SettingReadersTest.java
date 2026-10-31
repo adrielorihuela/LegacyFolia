@@ -17,6 +17,7 @@ import java.util.OptionalInt;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minecraft.locale.Language;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.permissions.PermissionLevel;
 import org.junit.jupiter.api.DisplayName;
@@ -143,6 +144,20 @@ class SettingReadersTest {
         assertThrows(InvalidSettingException.class, () -> SettingReaders.message("translate:two words"));
         assertThrows(InvalidSettingException.class, () -> SettingReaders.message(42));
         assertThrows(InvalidSettingException.class, () -> SettingReaders.message(null));
+    }
+
+    @Test
+    @DisplayName("a translation key in a legacy string field is rendered in the server's language")
+    void legacyTranslations() {
+        // Spigot's and Bukkit's message fields are plain strings shown to players as they are, so
+        // the key itself would reach them untranslated.
+        final String key = "multiplayer.disconnect.flying";
+        final String english = Language.getInstance().getOrDefault(key);
+        assertFalse(english.equals(key), "the server's language should know " + key);
+        assertEquals(english, SettingReaders.legacyMessage("translate:" + key));
+        assertEquals(english, SettingReaders.legacyText(SettingReaders.message("translate:" + key)));
+        // A key the language does not know stays the key, as vanilla shows it.
+        assertEquals("legacyfolia.no.such.key", SettingReaders.legacyMessage("translate:legacyfolia.no.such.key"));
     }
 
     @Test

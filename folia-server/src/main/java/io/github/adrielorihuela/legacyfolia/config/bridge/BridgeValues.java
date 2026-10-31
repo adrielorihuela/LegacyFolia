@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import org.apache.logging.log4j.LogManager;
@@ -33,8 +32,6 @@ import org.jspecify.annotations.Nullable;
 final class BridgeValues {
 
     private static final Logger LOGGER = LogManager.getLogger("LegacyFolia");
-
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private BridgeValues() {
     }
@@ -80,14 +77,14 @@ final class BridgeValues {
      *
      * <p>Messages are strings with section-sign colours there: Spigot and Bukkit hand them to the
      * client as legacy text. A string cannot ask the client to translate it, so a
-     * {@code translate:} key is rendered once, here, through Paper's flattener: in the server's
-     * language (vanilla's English), not as the bare key.</p>
+     * {@code translate:} key is rendered once, in the server's language (vanilla's English), not as
+     * the bare key: see {@link SettingReaders#legacyMessage(Object)}.</p>
      */
     static Object yaml(final SettingEntry entry, final Object value) {
         return switch (entry.kind()) {
             case BOOLEAN, INT, LONG, DOUBLE, STRING, ENUM -> value;
             case STRING_LIST -> List.copyOf(strings(value));
-            case MESSAGE -> LEGACY.serialize((Component) value);
+            case MESSAGE -> SettingReaders.legacyText((Component) value);
             case BOOLEAN_OR_DEFAULT -> {
                 final Boolean bool = ((BooleanOrDefault) value).value();
                 yield bool == null ? "default" : bool;
