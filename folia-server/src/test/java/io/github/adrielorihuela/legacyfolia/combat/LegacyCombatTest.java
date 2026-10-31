@@ -512,6 +512,9 @@ class LegacyCombatTest {
         assertTrue(LegacyCombat.withinReach(8.9, false));
         assertFalse(LegacyCombat.withinReach(9.0, false));
         assertFalse(LegacyCombat.withinReach(20.0, false), "four and a half blocks unseen");
+        assertEquals(1.62F, LegacyCombat.playerHeadHeight(false, false));
+        assertEquals(1.62F - 0.08F, LegacyCombat.playerHeadHeight(false, true), "1.54, not today's 1.27");
+        assertEquals(0.2F, LegacyCombat.playerHeadHeight(true, false));
         assertTrue(VANILLA.legacyReach());
     }
 

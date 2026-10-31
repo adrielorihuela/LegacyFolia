@@ -563,6 +563,22 @@ public final class LegacyCombat {
     }
 
     /**
+     * A player's head height, from 1.8's {@code EntityHuman.getHeadHeight()}: 1.62, 0.2 in bed,
+     * less 0.08 while sneaking, in {@code float}.
+     *
+     * @param sleeping whether the player is in bed
+     * @param sneaking whether they are sneaking
+     * @return the height of their eyes above their feet
+     */
+    public static float playerHeadHeight(final boolean sleeping, final boolean sneaking) {
+        float height = sleeping ? 0.2F : 1.62F;
+        if (sneaking) {
+            height -= 0.08F;
+        }
+        return height;
+    }
+
+    /**
      * The exhaustion a player pays for being hurt, from 1.8's {@code DamageSource}.
      *
      * @param ignoresArmor whether the damage is of a kind armour does not stop

@@ -213,8 +213,11 @@ public final class Combat {
      * PacketPlayInUseEntity)}: feet to feet closer than 6 blocks when the player can see the
      * target and 3 when they cannot, in any game mode.
      *
-     * <p>The modern check measures from the eyes to the nearest point of the target's box, against
-     * 3 blocks (5 in creative) plus 3 of leniency, and never asks about line of sight.</p>
+     * <p>Sight is 1.8's {@code EntityLiving.hasLineOfSight}: a ray from head to head, with a
+     * sneaking player's head at 1.54, that {@link #legacyRayBlocked grass, torches and signs} stop
+     * as well as solid blocks. The modern check measures from the eyes to the nearest point of the
+     * target's box, against 3 blocks (5 in creative) plus 3 of leniency, and never asks about line
+     * of sight.</p>
      *
      * @param player who is reaching
      * @param target what they reach for
@@ -222,7 +225,30 @@ public final class Combat {
      */
     public static boolean withinReach(final net.minecraft.world.entity.player.Player player,
                                       final net.minecraft.world.entity.Entity target) {
-        return LegacyCombat.withinReach(player.distanceToSqr(target), player.hasLineOfSight(target));
+        return LegacyCombat.withinReach(player.distanceToSqr(target),
+            legacyLineOfSight(player, target));
+    }
+
+    private static boolean legacyLineOfSight(final net.minecraft.world.entity.Entity from,
+                                             final net.minecraft.world.entity.Entity to) {
+        if (to.level() != from.level()) {
+            return false;
+        }
+        final net.minecraft.world.phys.Vec3 eyes =
+            new net.minecraft.world.phys.Vec3(from.getX(), from.getY() + legacyHeadHeight(from), from.getZ());
+        final net.minecraft.world.phys.Vec3 target =
+            new net.minecraft.world.phys.Vec3(to.getX(), to.getY() + legacyHeadHeight(to), to.getZ());
+        return !legacyRayBlocked(from.level(), eyes, target);
+    }
+
+    /**
+     * An entity's head height in 1.8: a player's was 1.62, 0.08 lower while sneaking and 0.2 in
+     * bed, rather than the 1.27 of today's crouch; anything else's is today's.
+     */
+    private static double legacyHeadHeight(final net.minecraft.world.entity.Entity entity) {
+        return entity instanceof net.minecraft.world.entity.player.Player player
+            ? (double) LegacyCombat.playerHeadHeight(player.isSleeping(), player.isShiftKeyDown())
+            : (double) entity.getEyeHeight();
     }
 
     /**
@@ -546,10 +572,8 @@ public final class Combat {
 
     private static net.minecraft.world.phys.Vec3 legacyOrigin(
         final net.minecraft.world.entity.LivingEntity owner) {
-        final double eyeHeight = owner instanceof net.minecraft.world.entity.player.Player player
-            ? (double) (player.isShiftKeyDown() ? 1.62F - 0.08F : 1.62F)
-            : (double) owner.getEyeHeight();
-        return LegacyCombat.projectileOrigin(owner.getX(), owner.getY(), owner.getZ(), eyeHeight,
+        return LegacyCombat.projectileOrigin(owner.getX(), owner.getY(), owner.getZ(),
+            legacyHeadHeight(owner),
             owner.getYRot());
     }
 
