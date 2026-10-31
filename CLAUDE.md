@@ -60,9 +60,14 @@ On Windows, `applyAllPatches` needs long paths:
   so plugins see unchanged APIs. `migration/LegacyImport` imports old server files on first start and backs
   them up to `config/legacy-backup/<date>/`. All TOML writes go through `properties/TomlText`
   (night-config's `save()` destroys comments).
-- `combat/` — 1.8 PvP. `Combat.attackDamage` is called from `Player.attack` and `Mob.doHurtTarget`;
-  weapon damage is applied at attack time. `WeaponTooltips` rewrites items only on the outgoing
-  `ItemStack` codec and strips the injection on inbound creative items.
+- `combat/` — 1.8 PvP, matched against the 1.8.8 source mechanic by mechanic (patches 0016–0057:
+  damage pipeline, protections, sword blocking, knockback, reach, projectiles, rod, explosions,
+  potions, food, fall/fire, spawn invulnerability). `LegacyCombat` holds the 1.8 formulas, `Combat`
+  is what the NMS hooks call, `CombatConfig` reads `combat.toml`. With legacy combat off every hook must
+  fall through to pure 26.3 behaviour. Weapon damage is applied at attack time; `WeaponTooltips`
+  rewrites items only on the outgoing `ItemStack` codec and strips the injection on inbound creative
+  items. To compare against 1.8.8, build its sources with `reference/fetch-1.8.8-source.sh`
+  (needs `JAVA_8_HOME`; output is never committed). `docs/PVP-1.8.md` lists what is and isn't identical.
 - `waypoint/` — locator bar, matching vanilla 26.3. `RegionisedWaypoints` is the per-level manager
   behind the patched `ServerWaypointManager`; transmitters publish immutable `WaypointSnapshot`s and
   `WaypointConnections` runs vanilla's per-receiver connection logic against them on the receiver's own
