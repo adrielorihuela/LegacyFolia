@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -317,15 +316,5 @@ final class LegacyFiles {
             dot = rest.indexOf('.', dot + 1);
         }
         return false;
-    }
-
-    /** Every file under a directory, for tests and for the report. */
-    static List<Path> walk(final Path directory) throws IOException {
-        if (!Files.isDirectory(directory)) {
-            return List.of();
-        }
-        try (Stream<Path> stream = Files.walk(directory)) {
-            return stream.filter(Files::isRegularFile).sorted().toList();
-        }
     }
 }

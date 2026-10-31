@@ -11,7 +11,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
@@ -345,10 +344,5 @@ final class LegacyValues {
             return String.valueOf(SettingsCatalog.plain(config));
         }
         return String.valueOf(value);
-    }
-
-    /** One value of a setting, if the legacy value is not {@link #INHERIT}. */
-    static Optional<Object> unlessInherit(final Object value) {
-        return value == INHERIT ? Optional.empty() : Optional.of(value);
     }
 }
