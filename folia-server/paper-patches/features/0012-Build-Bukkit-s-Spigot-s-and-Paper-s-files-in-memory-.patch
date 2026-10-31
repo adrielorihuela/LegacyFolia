@@ -1,0 +1,370 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:10:13 -0500
+Subject: [PATCH] Build Bukkit's, Spigot's and Paper's files in memory from the
+ TOML files
+
+bukkit.yml, commands.yml, spigot.yml, paper-global.yml,
+paper-world-defaults.yml and each world's paper-world.yml stop existing
+on disk. Their content comes from the TOML files in config/, through the
+objects LegacyFolia's bridge builds, and nothing here loads or saves any
+of them any more:
+
+- CraftServer takes configuration and commandsConfiguration from the
+  bridge, in its constructor, in reload() and in reloadCommandAliases(),
+  and no longer has saveConfig or saveCommandsConfig.
+- SpigotConfig is initialised with the built configuration on reload and
+  by /spigot reload, with a section for every loaded world.
+- Paper's global node, its world-defaults node and each world's node are
+  the bridge's nodes copied into a node of Paper's own loader, so they
+  carry Paper's serializers; the version check and the transformations
+  run as before, and the save, the template file Paper created for each
+  world and the read-back of the defaults from disk are gone. The world
+  defaults stay in memory where Paper used to save them for each world
+  to read back. A world's section in worlds.toml is found by its folder
+  name, which a new context key carries.
+- Bukkit.spigot().getPaperConfig() is assembled from the same nodes.
+- /reload, /spigot reload and /paper reload read the TOML files and
+  server.properties again first, so an edit is what they pick up.
+- The plugin loader, which reads the update folder before the TOML files
+  are loaded, reads it in the order the server will settle it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/src/main/java/io/papermc/paper/command/subcommands/ReloadCommand.java b/src/main/java/io/papermc/paper/command/subcommands/ReloadCommand.java
+index 48a43341b17247355a531164019d5cc9c5555f26..b334aef624f3a697eb003178091942c7f6263ea8 100644
+--- a/src/main/java/io/papermc/paper/command/subcommands/ReloadCommand.java
++++ b/src/main/java/io/papermc/paper/command/subcommands/ReloadCommand.java
+@@ -27,6 +27,7 @@ public final class ReloadCommand implements PaperSubcommand {
+         Command.broadcastCommandMessage(sender, text("If you encounter any issues please use the /stop command to restart your server.", RED));
+ 
+         MinecraftServer server = ((CraftServer) sender.getServer()).getServer();
++        io.github.adrielorihuela.legacyfolia.config.ConfigHooks.reloadOrWarn(); // LegacyFolia - the TOML files again, which Paper's configuration is built from
+         server.paperConfigurations.reloadConfigs(server);
+         server.server.reloadCount++;
+ 
+diff --git a/src/main/java/io/papermc/paper/configuration/Configurations.java b/src/main/java/io/papermc/paper/configuration/Configurations.java
+index b2c5e5cc2e798ac10c1c9cded65e1f8171a6cf98..84f606c539af5258c6cc8dda03822db9f35381c1 100644
+--- a/src/main/java/io/papermc/paper/configuration/Configurations.java
++++ b/src/main/java/io/papermc/paper/configuration/Configurations.java
+@@ -124,6 +124,14 @@ public abstract class Configurations<G, W> {
+             .path(configFile)
+             .build();
+         final ConfigurationNode node;
++        // LegacyFolia start - paper-global.yml is built in memory from the TOML files, and never saved
++        final boolean legacyFolia = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.isStarted();
++        if (legacyFolia) {
++            node = loader.createNode().from(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.paperGlobal());
++            GlobalConfiguration.isFirstStart = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.isFirstStart();
++            this.verifyGlobalConfigVersion(node);
++        } else
++        // LegacyFolia end - paper-global.yml is built in memory from the TOML files, and never saved
+         if (Files.notExists(configFile)) {
+             node = CommentedConfigurationNode.root(loader.defaultOptions());
+             node.node(Configuration.VERSION_FIELD).raw(this.globalConfigVersion());
+@@ -134,6 +142,7 @@ public abstract class Configurations<G, W> {
+         }
+         this.applyGlobalConfigTransformations(node);
+         final G instance = creator.apply(node);
++        if (!legacyFolia) // LegacyFolia - never saved
+         trySaveFileNode(loader, node, configFile.toString());
+         return instance;
+     }
+@@ -165,7 +174,13 @@ public abstract class Configurations<G, W> {
+         final Path configFile = this.globalFolder.resolve(this.defaultWorldConfigFileName);
+         final DefaultWorldLoader result = this.createDefaultWorldLoader(false, contextMap, configFile);
+         final YamlConfigurationLoader loader = result.loader();
+-        final ConfigurationNode node = loader.load();
++        // LegacyFolia start - paper-world-defaults.yml is built in memory from the TOML files, and never saved
++        final boolean legacyFolia = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.isStarted();
++        final ConfigurationNode node = legacyFolia ? loader.createNode().from(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.paperWorldDefaults()) : loader.load();
++        if (legacyFolia) {
++            this.verifyWorldConfigVersion(contextMap, node);
++        } else
++        // LegacyFolia end - paper-world-defaults.yml is built in memory from the TOML files, and never saved
+         if (result.isNewFile()) { // add version to new files
+             node.node(Configuration.VERSION_FIELD).raw(this.worldConfigVersion());
+         } else {
+@@ -174,9 +189,17 @@ public abstract class Configurations<G, W> {
+         this.applyWorldConfigTransformations(contextMap, node, null);
+         final W instance = node.require(this.worldConfigClass);
+         node.set(this.worldConfigClass, instance);
++        // LegacyFolia start - kept in memory where Paper saved it for each world to read back
++        if (legacyFolia) {
++            this.worldDefaultsNode = node;
++            return;
++        }
++        // LegacyFolia end - kept in memory where Paper saved it for each world to read back
+         this.trySaveFileNode(loader, node, configFile.toString());
+     }
+ 
++    private volatile @Nullable ConfigurationNode worldDefaultsNode; // LegacyFolia - the world defaults, built from the TOML files
++
+     private DefaultWorldLoader createDefaultWorldLoader(final boolean requireFile, final ContextMap contextMap, final Path configFile) {
+         boolean willCreate = Files.notExists(configFile);
+         if (requireFile && willCreate) {
+@@ -211,6 +234,11 @@ public abstract class Configurations<G, W> {
+     protected W createWorldConfig(final ContextMap contextMap, final CheckedFunction<ConfigurationNode, W, SerializationException> creator) throws IOException {
+         Preconditions.checkArgument(!contextMap.isDefaultWorldContext(), "cannot create world map with default world context");
+         final Path defaultsConfigFile = this.globalFolder.resolve(this.defaultWorldConfigFileName);
++        // LegacyFolia start - the world's paper-world.yml and the defaults are built in memory from the TOML files, and never saved
++        if (io.github.adrielorihuela.legacyfolia.config.ConfigHooks.isStarted()) {
++            return this.createWorldConfigInMemory(contextMap, creator);
++        }
++        // LegacyFolia end - the world's paper-world.yml and the defaults are built in memory from the TOML files, and never saved
+         final YamlConfigurationLoader defaultsLoader = this.createDefaultWorldLoader(true, this.createDefaultContextMap(contextMap.require(REGISTRY_ACCESS)).build(), defaultsConfigFile).loader();
+         final ConfigurationNode defaultsNode = defaultsLoader.load();
+ 
+@@ -240,6 +268,35 @@ public abstract class Configurations<G, W> {
+         return creator.apply(worldNode);
+     }
+ 
++    // LegacyFolia start - the world's paper-world.yml and the defaults are built in memory from the TOML files, and never saved
++    private W createWorldConfigInMemory(final ContextMap contextMap, final CheckedFunction<ConfigurationNode, W, SerializationException> creator) throws IOException {
++        final @Nullable ConfigurationNode builtDefaults = this.worldDefaultsNode;
++        if (builtDefaults == null) {
++            throw new IllegalStateException("The world defaults configuration has not been initialized");
++        }
++        final Path defaultsConfigFile = this.globalFolder.resolve(this.defaultWorldConfigFileName);
++        final YamlConfigurationLoader defaultsLoader = this.createDefaultWorldLoader(false, this.createDefaultContextMap(contextMap.require(REGISTRY_ACCESS)).build(), defaultsConfigFile).loader();
++        final ConfigurationNode defaultsNode = defaultsLoader.createNode().from(builtDefaults);
++
++        final YamlConfigurationLoader worldLoader = this.createWorldConfigLoaderBuilder(contextMap)
++            .defaultOptions(this.applyObjectMapperFactory(this.createWorldObjectMapperFactoryBuilder(contextMap).build()))
++            .path(contextMap.require(WORLD_DIRECTORY).resolve(this.worldConfigFileName))
++            .build();
++        final @Nullable String worldName = contextMap.get(WORLD_NAME);
++        final ConfigurationNode worldNode = worldLoader.createNode();
++        if (worldName != null) {
++            worldNode.from(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.paperWorld(worldName));
++        } else {
++            worldNode.node(Configuration.VERSION_FIELD).set(this.worldConfigVersion());
++        }
++        this.verifyWorldConfigVersion(contextMap, worldNode);
++        this.applyWorldConfigTransformations(contextMap, worldNode, defaultsNode);
++        this.applyDefaultsAwareWorldConfigTransformations(contextMap, worldNode, defaultsNode);
++        worldNode.mergeFrom(defaultsNode);
++        return creator.apply(worldNode);
++    }
++    // LegacyFolia end - the world's paper-world.yml and the defaults are built in memory from the TOML files, and never saved
++
+     protected void verifyWorldConfigVersion(final ContextMap contextMap, final ConfigurationNode worldNode) {
+         final ConfigurationNode version = worldNode.node(Configuration.VERSION_FIELD);
+         final Identifier worldKey = contextMap.require(WORLD_KEY);
+@@ -342,6 +399,7 @@ public abstract class Configurations<G, W> {
+     public static final ContextKey<Void> FIRST_DEFAULT = new ContextKey<>(Void.class, "first default");
+     public static final ContextKey<RegistryAccess> REGISTRY_ACCESS = new ContextKey<>(RegistryAccess.class, "registry access");
+     public static final ContextKey<GameRules> GAME_RULES = new ContextKey<>(GameRules.class, "game rules");
++    public static final ContextKey<String> WORLD_NAME = new ContextKey<>(String.class, "world name"); // LegacyFolia - the world's folder name, which names its section in worlds.toml
+ 
+     public record ContextKey<T>(TypeToken<T> type, String name) {
+ 
+diff --git a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+index de9a78d5b20d13a114591e986e990b4bd973097a..91d77729e0aca1bc4ac36f7a4864b6ae98c92c72 100644
+--- a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
++++ b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+@@ -348,7 +348,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+     }
+ 
+     private static ContextMap createWorldContextMap(ServerLevel level) {
+-        return createWorldContextMap(level.getServer().storageSource.getDimensionPath(level.dimension()), level.dimension().identifier(), level.spigotConfig, level.registryAccess(), level.getGameRules());
++        return createWorldContextMap(level.getServer().storageSource.getDimensionPath(level.dimension()), level.dimension().identifier(), level.spigotConfig, level.registryAccess(), level.getGameRules(), level.getWorld().getName()); // LegacyFolia - the world's name
+     }
+ 
+     public static ContextMap createWorldContextMap(final Path dir, final Identifier worldKey, final SpigotWorldConfig spigotConfig, final RegistryAccess registryAccess, final GameRules gameRules) {
+@@ -361,6 +361,19 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+             .build();
+     }
+ 
++    // LegacyFolia start - the world's folder name, which names its section in worlds.toml
++    public static ContextMap createWorldContextMap(final Path dir, final Identifier worldKey, final SpigotWorldConfig spigotConfig, final RegistryAccess registryAccess, final GameRules gameRules, final String worldName) {
++        return ContextMap.builder()
++            .put(WORLD_DIRECTORY, dir)
++            .put(WORLD_KEY, worldKey)
++            .put(SPIGOT_WORLD_CONFIG_CONTEXT_KEY, Suppliers.ofInstance(spigotConfig))
++            .put(REGISTRY_ACCESS, registryAccess)
++            .put(GAME_RULES, gameRules)
++            .put(WORLD_NAME, worldName)
++            .build();
++    }
++    // LegacyFolia end - the world's folder name, which names its section in worlds.toml
++
+     public static PaperConfigurations setup(final Path legacyConfig, final Path configDir, final Path worldFolder, final File spigotConfig) throws Exception {
+         final Path legacy = Files.isSymbolicLink(legacyConfig) ? Files.readSymbolicLink(legacyConfig) : legacyConfig;
+         if (needsConverting(legacyConfig)) {
+@@ -451,13 +464,13 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+ 
+     @Deprecated
+     public YamlConfiguration createLegacyObject(final MinecraftServer server) {
+-        YamlConfiguration global = YamlConfiguration.loadConfiguration(this.globalFolder.resolve(this.globalConfigFileName).toFile());
+-        ConfigurationSection worlds = global.createSection("__________WORLDS__________");
+-        worlds.set("__defaults__", YamlConfiguration.loadConfiguration(this.globalFolder.resolve(this.defaultWorldConfigFileName).toFile()));
++        // LegacyFolia start - the files are built in memory from the TOML files
++        final java.util.List<String> worldNames = new java.util.ArrayList<>();
+         for (ServerLevel level : server.getAllLevels()) {
+-            worlds.set(level.getWorld().getName(), YamlConfiguration.loadConfiguration(getWorldConfigFile(level).toFile()));
++            worldNames.add(level.getWorld().getName());
+         }
+-        return global;
++        return io.github.adrielorihuela.legacyfolia.config.ConfigHooks.paperLegacyObject(worldNames);
++        // LegacyFolia end - the files are built in memory from the TOML files
+     }
+ 
+     @Deprecated
+diff --git a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
+index 5741a60faba70da485053599c9370f0e27e868f4..6d50f7f8ef7078d605c35732d2d457565306a991 100644
+--- a/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
++++ b/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java
+@@ -39,9 +39,7 @@ public class PluginInitializerManager {
+ 
+         final Path pluginDirectory = ((File) minecraftOptionSet.valueOf("plugins")).toPath();
+ 
+-        final YamlConfiguration configuration = PaperConfigurations.loadLegacyConfigFile(configFileLocationBukkit);
+-
+-        final String updateDirectoryName = configuration.getString("settings.update-folder", "update");
++        final String updateDirectoryName = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.earlyUpdateFolder(configFileLocationBukkit); // LegacyFolia - bukkit.yml is built from the TOML files, which are not loaded yet
+         if (updateDirectoryName.isBlank()) {
+             return new PluginInitializerManager(pluginDirectory, null);
+         }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a84bea7b4 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -399,7 +399,7 @@ public final class CraftServer implements Server {
+             this.getLogger().info("Console input is disabled due to --noconsole command argument");
+         }
+ 
+-        this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
++        this.configuration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.bukkit(); // LegacyFolia - built in memory from the TOML files
+         this.configuration.options().copyDefaults(true);
+         YamlConfiguration configurationDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), StandardCharsets.UTF_8));
+         this.configuration.setDefaults(configurationDefaults);
+@@ -409,11 +409,10 @@ public final class CraftServer implements Server {
+             legacyAlias = this.configuration.getConfigurationSection("aliases");
+             this.configuration.set("aliases", "now-in-commands.yml");
+         }
+-        this.saveConfig();
+-        if (this.getCommandsConfigFile().isFile()) {
+-            legacyAlias = null;
+-        }
+-        this.commandsConfiguration = YamlConfiguration.loadConfiguration(this.getCommandsConfigFile());
++        // LegacyFolia start - built in memory from the TOML files, and never saved
++        legacyAlias = null;
++        this.commandsConfiguration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.commands();
++        // LegacyFolia end - built in memory from the TOML files, and never saved
+         this.commandsConfiguration.options().copyDefaults(true);
+         // Paper start - don't enforce icanhasbukkit default if alias block exists
+         final YamlConfiguration commandsDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/commands.yml"), StandardCharsets.UTF_8));
+@@ -421,7 +420,6 @@ public final class CraftServer implements Server {
+         this.commandsConfiguration.setDefaults(commandsDefaults);
+         // Paper end - don't enforce icanhasbukkit default if alias block exists
+         this.commandsConfiguration.options().setHeader(commandsDefaults.options().getHeader());
+-        this.saveCommandsConfig();
+ 
+         // Migrate aliases from old file and add previously implicit $1- to pass all arguments
+         if (legacyAlias != null) {
+@@ -441,7 +439,6 @@ public final class CraftServer implements Server {
+             }
+         }
+ 
+-        this.saveCommandsConfig();
+         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
+         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+         this.overrideSpawnLimits();
+@@ -466,14 +463,6 @@ public final class CraftServer implements Server {
+         return this.overrideAllCommandBlockCommands || this.commandsConfiguration.getStringList("command-block-overrides").contains(command);
+     }
+ 
+-    private File getConfigFile() {
+-        return (File) this.console.options.valueOf("bukkit-settings");
+-    }
+-
+-    private File getCommandsConfigFile() {
+-        return (File) this.console.options.valueOf("commands-settings");
+-    }
+-
+     private void overrideSpawnLimits() {
+         for (SpawnCategory spawnCategory : SpawnCategory.values()) {
+             if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
+@@ -482,22 +471,6 @@ public final class CraftServer implements Server {
+         }
+     }
+ 
+-    private void saveConfig() {
+-        try {
+-            this.configuration.save(this.getConfigFile());
+-        } catch (IOException ex) {
+-            Logger.getLogger(CraftServer.class.getName()).log(Level.SEVERE, "Could not save " + this.getConfigFile(), ex);
+-        }
+-    }
+-
+-    private void saveCommandsConfig() {
+-        try {
+-            this.commandsConfiguration.save(this.getCommandsConfigFile());
+-        } catch (IOException ex) {
+-            Logger.getLogger(CraftServer.class.getName()).log(Level.SEVERE, "Could not save " + this.getCommandsConfigFile(), ex);
+-        }
+-    }
+-
+     private void loadCompatibilities() {
+         if (true) return; // Paper - Big nope
+         ConfigurationSection compatibilities = this.configuration.getConfigurationSection("settings.compatibility");
+@@ -971,8 +944,11 @@ public final class CraftServer implements Server {
+         // Paper end - lifecycle events
+         org.spigotmc.WatchdogThread.hasStarted = false; // Paper - Disable watchdog early timeout on reload
+         this.reloadCount++;
+-        this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
+-        this.commandsConfiguration = YamlConfiguration.loadConfiguration(this.getCommandsConfigFile());
++        // LegacyFolia start - the TOML files and server.properties again, and the objects built from them
++        io.github.adrielorihuela.legacyfolia.config.ConfigHooks.reloadOrWarn();
++        this.configuration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.bukkit();
++        this.commandsConfiguration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.commands();
++        // LegacyFolia end - the TOML files and server.properties again, and the objects built from them
+ 
+         this.console.settings = new DedicatedServerSettings(this.console.options);
+         DedicatedServerProperties config = this.console.settings.getProperties();
+@@ -999,7 +975,7 @@ public final class CraftServer implements Server {
+             this.logger.log(Level.WARNING, "Failed to load banned-players.json, " + ex.getMessage());
+         }
+ 
+-        org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
++        org.spigotmc.SpigotConfig.init(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.spigotForLoadedWorlds()); // Spigot // LegacyFolia - built in memory from the TOML files
+         this.console.paperConfigurations.reloadConfigs(this.console);
+         for (ServerLevel world : this.console.getAllLevels()) {
+             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
+@@ -2925,15 +2901,15 @@ public final class CraftServer implements Server {
+                 .map(key -> key.toLowerCase(java.util.Locale.ENGLISH))
+                 .collect(java.util.stream.Collectors.toSet());
+         getCommandMap().getKnownCommands().keySet().removeIf(removals::contains);
+-        File file = getCommandsConfigFile();
++        // LegacyFolia start - commands.yml is built in memory from the TOML files
+         try {
+-            commandsConfiguration.load(file);
+-        } catch (FileNotFoundException ex) {
+-            return false;
+-        } catch (IOException | org.bukkit.configuration.InvalidConfigurationException ex) {
+-            Bukkit.getLogger().log(Level.SEVERE, "Cannot load " + file, ex);
++            io.github.adrielorihuela.legacyfolia.config.ConfigHooks.reload();
++        } catch (IOException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Cannot read the configuration again", ex);
+             return false;
+         }
++        this.commandsConfiguration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.commands();
++        // LegacyFolia end - commands.yml is built in memory from the TOML files
+         commandMap.registerServerAliases();
+         return true;
+     }
+diff --git a/src/main/java/org/spigotmc/SpigotCommand.java b/src/main/java/org/spigotmc/SpigotCommand.java
+index 44e546dae8644ef4fade3cd262af93a3438b8bc9..873a6391d54339d1481eca6102d07cae5fb25757 100644
+--- a/src/main/java/org/spigotmc/SpigotCommand.java
++++ b/src/main/java/org/spigotmc/SpigotCommand.java
+@@ -37,7 +37,8 @@ public class SpigotCommand extends Command {
+ 
+         io.papermc.paper.threadedregions.RegionizedServer.getInstance().addTask(() -> { // Folia - region threading
+         MinecraftServer console = MinecraftServer.getServer();
+-        org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
++        io.github.adrielorihuela.legacyfolia.config.ConfigHooks.reloadOrWarn(); // LegacyFolia - the TOML files again
++        org.spigotmc.SpigotConfig.init(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.spigotForLoadedWorlds()); // LegacyFolia - built in memory from the TOML files
+         for (ServerLevel world : console.getAllLevels()) {
+             world.spigotConfig.init();
+         }
