@@ -452,3 +452,26 @@ es `white-list`.
 
 **Orden decidido:** primero la actualización (hecha) y solo entonces el enganche, que crea parches
 justo sobre `Main`, `DedicatedServer`, `CraftServer`, `ServerLevel` y `SpigotConfig`.
+
+**Actualización de 2026-10-31 (Paper `804dd0c3`).** Merge `e5e16b3` de `ver/26.3.x`: tres
+actualizaciones de Paper (`05dca87`, `8cffa90`, `8664923`; Paper pasa de `c927bd34` a `804dd0c3`) y
+el cambio de insignia del README de upstream (`73865e0`), que se deja fuera porque el README es el
+del fork. Lo que nos tocó:
+- **Conflictos de merge:** `README.md` (se queda el nuestro) y `build.gradle.kts.patch` (leafpile
+  1.3.2 e `ioutil` de upstream, más nuestra línea de night-config; los hunks se movieron una línea).
+- **Parches:** solo el 0017 no aplicó: Paper hizo público `Player.canCriticalAttack` para su nueva
+  API (`bc68acd74`). Se queda público con nuestro gancho de críticos 1.8 dentro, así que con el
+  combate 1.8 encendido la API responde con la regla de 1.8. El resto solo movió líneas.
+- **Código:** Paper movió `Duration` y `DurationOrDisabled` a `configuration.type.time`; el puente y
+  `SettingReaders` importan de ahí.
+- **Defaults:** `GlobalConfiguration`, `SpigotConfig`, `SpigotWorldConfig` y
+  `DedicatedServerProperties` no cambian. `WorldConfiguration` añade dos claves, catalogadas en
+  `8a8eef0`: `performance.entities.inactive-mob-goal-selector-throttle-rate` (`"disabled"`) y
+  `gameplay.commands.command-block-time-format` (`"default"`), las dos por mundo. Un servidor ya
+  existente las recibe en sus TOML al arrancar.
+- Otros cambios de Paper que rozan lo nuestro sin conflicto: `EntityDamageByBlockEvent` para el daño
+  por fuego (`2e549d651`), `PotionSplashEvent` cancelado ya no apaga fuegos (`ff31a2c99`), límite de
+  canales de plugin configurable con `-Dpaper.pluginMessageChannelLimit` (`e8a1f8fd6`, propiedad del
+  sistema, no ajuste) y regeneración de los ajustes de generación del mundo desde
+  `server.properties` (`e3ba7b1dc`), que con nuestro parche 0032 los toma de los TOML.
+- 325 tests propios en verde; `runDevServer` llega a `Done (`.
