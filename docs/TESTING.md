@@ -7,7 +7,7 @@ linked where they explain the reason.
 
 The tests of `LegacyFoliaTestSuite` check formulas, file handling and packet contents. None of
 them has a person holding a mouse. In particular nobody has yet tried the locator bar, the 1.8 PvP or
-the weapon tooltip with real clients (see `PROGRESS.md` §5 and §6).
+the weapon tooltip with real clients (see `PROGRESS.md` §5).
 
 ## What you need
 
