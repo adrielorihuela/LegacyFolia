@@ -1,0 +1,5 @@
+_version: 31
+lootables:
+  refresh-min: 12h
+misc:
+  redstone-implementation: EIGENCRAFT

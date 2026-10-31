@@ -83,10 +83,13 @@ public final class ConfigFile {
     }
 
     /**
-     * Reads one file from a given directory, creating it from its template when it is not there.
+     * Reads one file from a given configuration directory, creating it from its template when it
+     * is not there.
      *
-     * <p>The server always uses {@link #DIRECTORY}; the tests pass a temporary one so that nothing
-     * they do can reach a real configuration.</p>
+     * <p>The same as {@link #open(String)} for a directory other than the working directory's
+     * {@code config/}. The server always uses {@link #DIRECTORY}; the importer of older servers
+     * works on a server root it is handed, and the tests pass a temporary directory so that
+     * nothing they do can reach a real configuration.</p>
      *
      * @param directory the configuration directory
      * @param fileName the file's name within it

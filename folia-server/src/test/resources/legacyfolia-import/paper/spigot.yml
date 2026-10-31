@@ -1,0 +1,41 @@
+settings:
+  debug: true
+  bungeecord: false
+  sample-count: 12
+  timeout-time: 60
+  restart-on-crash: true
+  restart-script: ./start.sh
+  netty-threads: 4
+messages:
+  whitelist: You are not whitelisted on this server!
+  unknown-command: Unknown command. Type "/help" for help.
+  server-full: The server is full!
+  outdated-client: Outdated client! Please use {0}
+  outdated-server: Outdated server! I'm still on {0}
+  restart: Server is restarting
+commands:
+  log: true
+  tab-complete: 0
+  send-namespaced: true
+  spam-exclusions:
+  - /skill
+  enable-spam-exclusions: false
+  silent-commandblock-console: false
+  replace-commands:
+  - setblock
+  - summon
+  - testforblock
+  - tellraw
+replace-commands:
+- setblock
+- summon
+config-version: 12
+world-settings:
+  default:
+    view-distance: 8
+    simulation-distance: default
+    item-despawn-rate: 6000
+    arrow-despawn-rate: 1200
+    trident-despawn-rate: 1200
+  world_the_end:
+    view-distance: default

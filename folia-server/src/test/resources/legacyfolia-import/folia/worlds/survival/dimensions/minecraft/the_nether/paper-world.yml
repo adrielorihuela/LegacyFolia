@@ -1,0 +1,4 @@
+# World: survival_nether (minecraft:the_nether)
+_version: 31
+lootables:
+  refresh-min: 1d

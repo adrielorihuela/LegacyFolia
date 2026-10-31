@@ -1,0 +1,10 @@
+settings:
+  allow-end: true
+  world-container: worlds
+  connection-throttle: 4000
+  shutdown-message: Server closed
+spawn-limits:
+  monsters: 70
+ticks-per:
+  autosave: 6000
+aliases: now-in-commands.yml
