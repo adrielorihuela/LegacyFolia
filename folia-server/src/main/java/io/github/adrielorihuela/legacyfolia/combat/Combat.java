@@ -439,7 +439,8 @@ public final class Combat {
     /**
      * How much of an entity an explosion sees, from 1.8's {@code World.a(Vec3D, AxisAlignedBB)}:
      * the same grid of rays as now, but stepped with {@code float} counters, which lands on
-     * slightly different points of the box.
+     * slightly different points of the box, and stopped by every block {@link #legacyRayBlocked}
+     * names, grass and torches included.
      *
      * @param center the explosion's centre
      * @param entity what it reaches
@@ -464,11 +465,8 @@ public final class Combat {
                     final double x = bb.minX + (bb.maxX - bb.minX) * (double) fx;
                     final double y = bb.minY + (bb.maxY - bb.minY) * (double) fy;
                     final double z = bb.minZ + (bb.maxZ - bb.minZ) * (double) fz;
-                    if (entity.level().clip(new net.minecraft.world.level.ClipContext(
-                            new net.minecraft.world.phys.Vec3(x + xOffset, y, z + zOffset), center,
-                            net.minecraft.world.level.ClipContext.Block.COLLIDER,
-                            net.minecraft.world.level.ClipContext.Fluid.NONE, entity)).getType()
-                        == net.minecraft.world.phys.HitResult.Type.MISS) {
+                    if (!legacyRayBlocked(entity.level(),
+                            new net.minecraft.world.phys.Vec3(x + xOffset, y, z + zOffset), center)) {
                         hits++;
                     }
                     count++;
@@ -476,6 +474,35 @@ public final class Combat {
             }
         }
         return count == 0 ? 0.0F : (float) hits / (float) count;
+    }
+
+    /**
+     * Whether a block stands between two points, from 1.8's {@code World.rayTrace(Vec3D, Vec3D)}.
+     *
+     * <p>1.8 stopped on every block but air, fire and liquids, and tested each one's selection
+     * box, so tall grass, flowers, torches, signs, open doors and cobwebs blocked the ray. Today's
+     * explosion and line-of-sight traces use the collision box, which those blocks lack.</p>
+     *
+     * @param level where the points are
+     * @param from where the ray starts
+     * @param to where it ends
+     * @return whether a block is in the way
+     */
+    static boolean legacyRayBlocked(final net.minecraft.world.level.Level level,
+                                    final net.minecraft.world.phys.Vec3 from,
+                                    final net.minecraft.world.phys.Vec3 to) {
+        return level.clip(new net.minecraft.world.level.ClipContext(from, to,
+            net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE,
+            net.minecraft.world.phys.shapes.CollisionContext.empty()) {
+            @Override
+            public net.minecraft.world.phys.shapes.VoxelShape getBlockShape(
+                final net.minecraft.world.level.block.state.BlockState state,
+                final net.minecraft.world.level.BlockGetter getter, final net.minecraft.core.BlockPos pos) {
+                return state.getBlock() instanceof net.minecraft.world.level.block.BaseFireBlock
+                    ? net.minecraft.world.phys.shapes.Shapes.empty()
+                    : super.getBlockShape(state, getter, pos);
+            }
+        }).getType() != net.minecraft.world.phys.HitResult.Type.MISS;
     }
 
     /**
