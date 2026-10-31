@@ -3,7 +3,6 @@ package io.github.adrielorihuela.legacyfolia.config.migration;
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingEntry;
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingsCatalog;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -11,7 +10,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
@@ -291,11 +289,7 @@ final class LegacyFiles {
         if (besideBukkitOrSpigot || header.contains("minecraft server properties")) {
             return true;
         }
-        final Properties properties = new Properties();
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.ISO_8859_1)) {
-            properties.load(reader);
-        }
-        for (final String key : properties.stringPropertyNames()) {
+        for (final String key : LegacyReader.properties(file).keySet()) {
             if (!isModeKey(key)) {
                 return true;
             }

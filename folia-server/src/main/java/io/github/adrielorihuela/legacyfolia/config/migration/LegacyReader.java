@@ -1,7 +1,11 @@
 package io.github.adrielorihuela.legacyfolia.config.migration;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,11 +47,19 @@ final class LegacyReader {
     }
 
     static Map<String, Object> properties(final Path path) throws IOException {
-        final Properties properties = new Properties();
-        // Vanilla writes server.properties in ISO-8859-1 with \\u escapes, as java.util.Properties
-        // does; reading it any other way would mangle a motd with accents.
-        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.ISO_8859_1)) {
-            properties.load(reader);
+        // As vanilla's Settings.loadFromFile reads it: UTF-8, which is what it writes, and
+        // ISO-8859-1 for a file an older version or a text editor wrote, which UTF-8 cannot decode.
+        // Reading it any other way would mangle a motd with accents.
+        Properties properties = new Properties();
+        try (InputStream in = Files.newInputStream(path)) {
+            properties.load(new InputStreamReader(in, StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)));
+        } catch (final CharacterCodingException e) {
+            properties = new Properties();
+            try (Reader reader = Files.newBufferedReader(path, StandardCharsets.ISO_8859_1)) {
+                properties.load(reader);
+            }
         }
         final Map<String, Object> map = new TreeMap<>();
         for (final String key : properties.stringPropertyNames()) {
@@ -75,7 +87,6 @@ final class LegacyReader {
     }
 
     /** YAML allows any key; the legacy files only use strings, but a number key must not break the walk. */
-    @SuppressWarnings("unchecked")
     static Map<String, Object> stringKeys(final Map<?, ?> map) {
         final Map<String, Object> copy = new LinkedHashMap<>();
         for (final Map.Entry<?, ?> entry : map.entrySet()) {
