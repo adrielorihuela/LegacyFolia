@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:16:43 -0500
+Subject: [PATCH] Register /legacyfolia
+
+The command that turns the server.properties mode on and off, and says
+how it stands, is registered beside Paper's own internal Brigadier
+commands, so it is in the dispatcher the console and players share and
+is re-registered with them when the data packs reload.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/src/main/java/io/papermc/paper/command/PaperCommands.java b/src/main/java/io/papermc/paper/command/PaperCommands.java
+index 6216147f4d4c04ba616375430a91232d5ebe838a..fe42f191a07100969270e79d06f61b3ac8675fa7 100644
+--- a/src/main/java/io/papermc/paper/command/PaperCommands.java
++++ b/src/main/java/io/papermc/paper/command/PaperCommands.java
+@@ -36,6 +36,7 @@ public final class PaperCommands {
+         //registerInternalCommand(PaperMSPTCommand.create(), "paper", PaperMSPTCommand.DESCRIPTION, List.of(), Set.of()); // Folia - region threading
+         registerInternalCommand(PaperVersionCommand.create(), "bukkit", PaperVersionCommand.DESCRIPTION, List.of("ver", "about"), Set.of());
+         registerInternalCommand(PaperPluginsCommand.create(), "bukkit", PaperPluginsCommand.DESCRIPTION, List.of("pl"), Set.of());
++        registerInternalCommand(io.github.adrielorihuela.legacyfolia.command.LegacyFoliaCommand.create(), "legacyfolia", io.github.adrielorihuela.legacyfolia.command.LegacyFoliaCommand.DESCRIPTION, List.of(), Set.of()); // LegacyFolia - /legacyfolia properties on|off|status
+     }
+ 
+     private static void registerInternalCommand(final LiteralCommandNode<CommandSourceStack> node, final String namespace, final String description, final List<String> aliases, final Set<CommandRegistrationFlag> flags) {
