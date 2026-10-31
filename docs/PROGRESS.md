@@ -3,7 +3,7 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.16.0` · **Base:** Folia
+**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.17.0` · **Base:** Folia
 `ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
@@ -60,6 +60,7 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.14.0 | 10-18 | Minecraft 26.3 (Folia `ver/26.3.x`), con todos los parches del fork |
 | v0.15.0 | 10-31 | Enganche de la configuración: los TOML son la fuente, `server.properties` es un override opcional, los servidores antiguos se migran en el primer arranque; EULA como clave, `/legacyfolia properties`, lobby configurable |
 | v0.16.0 | 10-31 | Daño de las armas de 1.8 (espadas, hachas, picos y palas), el último de los nueve enganches del PvP |
+| v0.17.0 | 10-31 | El tooltip de las armas muestra el daño de 1.8: se reescribe al enviar el objeto y se quita de lo que devuelve un cliente en creativo |
 
 **Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
@@ -76,8 +77,9 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 275 en `LegacyFoliaTestSuite`, en 36 archivos de resultados, sin fallos ni omitidos
-(verificado el 2026-10-31 al cerrar `v0.16.0`, que aporta 4 en `LegacyCombatTest`: cinco casos nuevos
+**Tests:** 288 en `LegacyFoliaTestSuite`, en 37 archivos de resultados, sin fallos ni omitidos
+(verificado el 2026-10-31 al cerrar `v0.17.0`, que aporta 13 en `WeaponTooltipsTest`; al cerrar
+`v0.16.0` eran 275, en 36 archivos: esa versión aportó 4 en `LegacyCombatTest`: cinco casos nuevos
 del daño de las armas en lugar del de las espadas; al cerrar la etapa 5b eran 271, contando los XML de
 `folia-server/build/test-results/test` tras `./gradlew :folia-server:test --tests
 'io.github.adrielorihuela.legacyfolia.LegacyFoliaTestSuite'`). Con ese mismo comando, antes de la
@@ -176,7 +178,7 @@ fuente de todo lo que lee el servidor.
 
 Al escribir esto (2026-10-31), `main` y el tag `v0.16.0` están publicados y `main` es la única rama.
 **La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. **El punto 2
-(daño de las armas, `v0.16.0`) también.** Lo siguiente es el punto 3 de §5. Lo que sigue en este apartado es el historial de
+(daño de las armas, `v0.16.0`, y su tooltip, `v0.17.0`) también.** Lo siguiente es el punto 3 de §5. Lo que sigue en este apartado es el historial de
 la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
@@ -269,8 +271,10 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    tridente, el mazo y las lanzas se quedan como en 26.3. No se toca el registro `Items`: se
    sustituye el modificador del arma al leer el atributo en `Player.attack` y `Mob.doHurtTarget`
    (parche 0035, `Combat.attackDamage`), así que sigue un reload y no hay que cargar la
-   configuración antes de `Bootstrap`. Un arma con modificadores propios no se toca. El tooltip de un
-   cliente moderno sigue mostrando la cifra de 26.3 (motivo en `PVP-1.8.md`). Claves:
+   configuración antes de `Bootstrap`. Un arma con modificadores propios no se toca. **El tooltip
+   (`v0.17.0`)** muestra la cifra de 1.8: `combat/WeaponTooltips` la pone en el codificador de objetos
+   al enviar (parche 0036) y la quita al decodificar lo que manda un cliente en creativo, así que
+   ningún objeto guardado cambia; detalles en `PVP-1.8.md`. Claves:
    `legacy-weapon-damage` y `sword-`, `axe-`, `pickaxe-` y `shovel-base-damage`; sustituyen a
    `legacy-sword-damage`, que no leía nada y queda olvidada en los `combat.toml` existentes (el
    merge no borra claves). Comprobado en un servidor con un plugin de prueba (cifras en `PVP-1.8.md`).
@@ -292,7 +296,8 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    - En los `combat.toml` existentes queda una clave huérfana, `legacy-sword-damage` (ahora
      `legacy-weapon-damage`). El merge no borra claves.
    - La tabla de ajustes de `docs/PVP-1.8.md` está incompleta: le faltan armadura, regeneración, etc.
-   - Tooltip: el cliente muestra el daño moderno. Es una limitación documentada en `PVP-1.8.md`.
+   - Tooltip: resuelto en `v0.17.0`, comprobado con tests y sin cliente real; falta verlo en un
+     cliente moderno y en uno 1.8 vía ViaVersion.
 5. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto. Los puntos 3 y 4 son
    lo último que se hace antes.
 6. **`/init`** para generar `CLAUDE.md`, y un último commit.

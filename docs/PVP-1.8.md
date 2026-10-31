@@ -118,18 +118,40 @@ no rule to extend and they keep their modern damage.
 the attack damage attribute — mobs too, because 1.8 applied the same item modifiers to a zombie
 holding a sword. The item registry is not touched. That would have meant loading the configuration
 before `Bootstrap.bootStrap()`, and it could not follow a reload; this does, and nothing stored on
-disk or sent to a client changes. The weapon's modifier is swapped only when the stack carries no
-attribute modifiers of its own: a weapon a plugin, a command or a loot table gave modifiers to keeps
-them, as 1.8 kept an item's `AttributeModifiers` tag instead of the item's defaults. Every other
-modifier on the attacker (Strength, Weakness, a plugin's) is kept and the value worked out again.
+disk changes. The weapon's modifier is swapped only when the stack carries no attribute modifiers
+of its own: a weapon a plugin, a command or a loot table gave modifiers to keeps them, as 1.8 kept
+an item's `AttributeModifiers` tag instead of the item's defaults. Every other modifier on the
+attacker (Strength, Weakness, a plugin's) is kept and the value worked out again.
 
-**The tooltip still shows the modern figure.** A modern client draws it from its own copy of the
-item's default components, and the server only sends the components a stack has changed. Showing
-1.8's number would mean adding an `attribute_modifiers` component to every weapon sent, and a
-creative-mode client sends the whole stack back, which would write that component into the item for
-good: it would survive turning the setting off and would make the weapon look custom to every
-plugin. So it is not done. A 1.8 client through ViaVersion draws the tooltip from 1.8's own item
-definitions, so it already shows the 1.8 figure.
+**The tooltip shows the 1.8 figure.** A modern client draws "N Attack Damage" from its own copy of
+the item's defaults, and the server only sends the components a stack has changed. So the figure is
+rewritten on the way out, in the item encoder every packet uses (`WeaponTooltips.outgoing`, called
+from `ItemStack`'s stream codec): a covered weapon with no attribute modifiers of its own is sent
+with an `attribute_modifiers` component that is the item's default with the attack damage amount set
+to 1.8's. Same id, slot and display, so the client draws it exactly as it draws the default — in
+green, with its own 1.0 added (a diamond sword reads 8) — and the attack speed line is unchanged.
+That one encoder carries inventories, opened containers, the cursor, held and worn items seen on
+other players, dropped items, item frames and villager trades; the recipe book's results are
+rewritten as well. With `legacy-weapon-damage` or `enabled` off, nothing is added and the tooltip is
+26.3's. Weapons with modifiers of their own are sent as they are, matching what the hit does.
+
+The server's copy never changes: saved worlds, inventories and what plugins read keep the modern
+components, so turning the setting off reverts everything at once. A reload that changes the figures
+resends every online player's inventory and open container, so their tooltips follow it.
+
+**The creative-mode safeguard.** A creative client sends whole stacks back, including the component
+it was given. Wherever the server decodes a stack from a client (the creative slot packet, which is
+also how creative mode drops items, and stacks inside a bundle) a component exactly equal to what
+would be added for that item is removed again, so the stored item goes back to the default. It is
+compared with the configured bases whether or not the setting is on, so a stack sent just before the
+setting was turned off is still recognised. A weapon taken from the creative menu, which the client
+builds itself, is sent back to it once with the 1.8 figure. Container clicks compare the client's
+item hashes with what it was sent, so the rewrite does not cause resyncs.
+
+Not rewritten: recipe-book ingredients shown by item type (the client builds those itself), items
+named in a villager's price, and items in chat hover text. A 1.8 client through ViaVersion receives
+the same component, which ViaVersion translates to the 1.8 attribute tag; that was not tried with a
+real 1.8 client.
 
 ### Sprint knockback — unchanged
 
@@ -184,7 +206,11 @@ zombie (base 3) hit a pig once with each of the 28 swords, axes, pickaxes and sh
 plus the 1.8 modifier, while its attack damage attribute still read the modern figure; the hoes,
 the trident, the mace and an empty hand hit for their modern damage; and a diamond sword a plugin
 gave a +20 modifier hit for its own 23. The player's path calls the same method from
-`Player.attack` and was not exercised with a real client.
+`Player.attack` and was not exercised with a real client. The tooltip rewrite is checked in
+`WeaponTooltipsTest` through the game's own item codecs: the bytes a client receives carry 1.8's
+modifier, a creative client's stack sent back (also inside a bundle) is stored with the default,
+container-click hashes match, and nothing is added with the setting off. No real client has drawn
+the tooltip yet.
 
 **Not verified** — whether it *feels* right, and whether the blocking animation renders correctly
 for a 1.8 client through ViaVersion. Both need people in a server hitting each other; neither can be
