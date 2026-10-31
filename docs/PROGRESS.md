@@ -3,8 +3,9 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.19.0` · **Base:** Folia
-`ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
+**Última actualización:** 2026-10-31 · **Último tag de fase:** `v0.19.0` · **Prerelease de prueba:**
+`v1.0.0-rc.1` · **Base:** Folia `ver/26.3.x` en `73865e0` (2026-10-29, merge `e5e16b3`), Minecraft
+26.3, Paper `804dd0c3`, Java 25.
 
 ---
 
@@ -38,6 +39,10 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 12. Scripts `build` y `update`. Documentación optimizada para SEO.
 13. Proceso: un commit por cambio, al estilo de Folia; un tag por fase; `v1.0.0` reservado para la
     release con el jar adjunto; `/init` al final.
+14. (2026-10-31) Antes de `v1.0.0`, una prerelease con el jar en GitHub para probarlo; `v1.0.0` solo
+    cuando el usuario lo diga. `/init` pasa a significar actualizar **toda** la documentación
+    (`README.md`, cada `docs/*.md`, este documento y `CLAUDE.md`) contra el código, no solo
+    `CLAUDE.md`.
 
 ## 2. Qué está hecho
 
@@ -63,6 +68,28 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.17.0 | 10-31 | El tooltip de las armas muestra el daño de 1.8: se reescribe al enviar el objeto y se quita de lo que devuelve un cliente en creativo |
 | v0.18.0 | 10-31 | Locator bar idéntica a la de vanilla: solo la dimensión propia, la máquina de estados de conexiones de vanilla sobre snapshots, todos los paquetes en el hilo del receptor |
 | v0.19.0 | 10-31 | PvP 1.8 idéntico a Spigot 1.8.8: daño, protección, bloqueo, knockback, alcance, proyectiles, caña, explosiones, pociones, comida, invulnerabilidad al entrar; 12 claves nuevas (parches 0038–0057) |
+| v1.0.0-rc.1 | 10-31 | Prerelease para probar antes de `v1.0.0`: upstream al día (Paper `804dd0c3`), documentación entera revisada contra el código, jar paperclip adjunto en GitHub |
+
+**Estado del código hoy** (comprobado leyendo el árbol, no los documentos):
+- Parches propios: minecraft 0012–0057 (46) y paper 0007–0013 (7), encima de los de Folia (minecraft
+  0001–0011 y paper 0001–0006, idénticos a upstream). El mapa por número está en `CLAUDE.md`.
+- Catálogo (`legacyfolia/catalog.tsv`): **593 claves**; 303 admiten override por mundo, 19 las
+  reescribe el servidor en caliente (`mutable`), 3 son secretos y 513 tienen origen heredado
+  (Paper global 88, Paper por mundo 182, Spigot 35, Spigot por mundo 105, Bukkit 30, `commands.yml`
+  3, `server.properties` 69, `eula.txt` 1); las 80 restantes son propias. Por archivo: gameplay 207,
+  performance 132 (`[chunks]` 31 y `[performance.*]` 101), server 76, combat 62, network 45, world
+  38 (`[dimensions]` 3 y `[world.*]` 35), plugins 31; `worlds.toml` solo tiene ejemplos.
+- **Tests:** 325 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
+  (2026-10-31, tras el merge de Paper `804dd0c3`). La ejecución completa de `:folia-server:test`
+  da 10445 tests con 71 omitidos, todos de upstream.
+- El jar que sale de `./build.sh` es `folia-server/build/libs/legacyfolia-paperclip-<versión>.jar`;
+  la versión la pone `settings.gradle.kts` (`26.3.local-SNAPSHOT` sin `BUILD_NUMBER`), es decir, la
+  de Minecraft y no la de LegacyFolia.
+- Defaults que difieren de Folia/Paper/vanilla, todos comprobables en los TOML de
+  `folia-server/src/main/resources/legacyfolia/`: `white-list = false`, `spawn-protection-radius = 0`,
+  `[network.rcon]` encendido en `127.0.0.1` con `config/rcon.secret`, `[combat] enabled = true`.
+  Apagados por defecto: auto-updater, distancia de visión adaptativa, lobby
+  (`always-spawn-at-world-spawn`) y techo del Nether.
 
 **Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
@@ -79,24 +106,12 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 325 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
-(verificado el 2026-10-31 al cerrar `v0.19.0`, el punto 4 de §5, que aporta 22 casos entre
-`LegacyCombatTest`, `LegacyItemsTest`, que es nuevo, y `ConfigFileMergeTest`; eran 303, en 38 archivos, al
-cerrar `v0.18.0`, que aporta 14 en `WaypointConnectionsTest` y 1 en
-`WaypointSnapshotTest`; al cerrar `v0.17.0` eran 288, en 37 archivos: esa versión aportó 13 en
-`WeaponTooltipsTest`; al cerrar
-`v0.16.0` eran 275, en 36 archivos: esa versión aportó 4 en `LegacyCombatTest`: cinco casos nuevos
-del daño de las armas en lugar del de las espadas; al cerrar la etapa 5b eran 271, contando los XML de
-`folia-server/build/test-results/test` tras `./gradlew :folia-server:test --tests
-'io.github.adrielorihuela.legacyfolia.LegacyFoliaTestSuite'`). Con ese mismo comando, antes de la
-etapa 5b eran 264: la cifra de 269 que figuraba aquí sumaba las 5 suites vacías de upstream, que esa
-ejecución ya no produce. La etapa 5b aporta 7: `ServerConfigSettingsTest` (1), el EULA fuera de
-`server.properties` en `ServerPropertiesTest` (1), `LegacyFoliaCommandTest` (2) y tres casos nuevos
-en `LobbyTest`. Antes de la etapa 1 de la fase de enganche eran 129;
-tras ella, 150; tras la etapa 2, 189. La etapa 3 aporta 35 (224 al fusionarla), la etapa 4 otros 38
-(262) y la etapa 5a otros 7: `LegacyCoverageTest` (2), cuatro casos nuevos en `ConfigFileMergeTest`
-y uno en `SettingReadersTest`. La etapa 2 había hecho que corriera `BundledTomlParseTest`, que con su
-nombre anterior (`...TestSuite`) el filtro de JUnit dejaba fuera.
+**Historia del número de tests** (contando los XML de `folia-server/build/test-results/test`):
+129 antes de la fase de enganche; 150, 189, 224 y 262 tras sus etapas 1 a 4; 269 tras la 5a
+contando 5 suites vacías de upstream, que ejecuciones posteriores ya no producen (264 sin ellas), y
+271 tras la 5b; 275 en
+`v0.16.0`, 288 en `v0.17.0`, 303 en `v0.18.0` y 325 en `v0.19.0`. El merge de Paper `804dd0c3` no
+añade tests: los dos ajustes nuevos los detectó `LegacyCoverageTest` y se catalogaron.
 
 **Etapa 2 del enganche (hecha, 2026-10-30): el modo `server.properties`** (decisión 6 de §6).
 - `config/ServerProperties.java`: `reconcile()`, `enable()`, `disable()`, `status()`, `isEnabled()`,
@@ -182,95 +197,50 @@ fuente de todo lo que lee el servidor.
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-31), `main` y el tag `v0.19.0` están publicados y `main` es la única rama.
-**La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. **El punto 2
-(daño de las armas, `v0.16.0`, y su tooltip, `v0.17.0`) también, y el punto 3 (locator bar, `v0.18.0`).**
-**El punto 4 (PvP 1.8 idéntico, `v0.19.0`) también.** Lo siguiente es el punto 6 (`/init`); la
-release (punto 5) espera a que el usuario la pida. Lo que sigue en este apartado es el historial de
-la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
-(§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
-claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
-su tipo, su default, su origen heredado y su nombre en `server.properties`) con los lectores tipados
-de `config/types/SettingReaders`.
+Al escribir esto (2026-10-31), `main` es la única rama y está publicada. Todo lo que había que hacer
+antes de `v1.0.0` está hecho: la fase de enganche (`v0.15.0`), el daño de las armas y su tooltip
+(`v0.16.0`, `v0.17.0`), la locator bar (`v0.18.0`), el PvP 1.8 idéntico (`v0.19.0`), la
+actualización de upstream a Paper `804dd0c3` (§7) y el `/init`, que revisó la documentación entera
+contra el código.
 
-**La etapa 2 está hecha** (2026-10-30, §2): el modo `server.properties` en
-`config/ServerProperties.java`, con sus tests, todavía **sin enganchar** al arranque. **Las etapas 3
-(importador), 4 (objetos en memoria) y 5a (preparación) también están hechas** (2026-10-31, §2) y
-en `main`. **La etapa 5b también está hecha** (2026-10-31, §2, tag `v0.15.0`): todo conectado al
-servidor.
+**Lo siguiente es probar `v1.0.0-rc.1`**, la prerelease de GitHub con el jar adjunto (§5, punto 1).
+Lo que se encuentre se corrige en `main` y, si hace falta otra ronda, sale un `rc.2`.
+**`v1.0.0` solo se publica cuando el usuario lo diga** (§5, punto 2).
 
-La comprobación de arranque que quedó pendiente en `v0.13.0` está hecha, ya sobre 26.3: con
-`run/config/*.toml` borrados, `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo
-arranque con los archivos presentes no duplica ninguna clave, no cambia ningún archivo y conserva
-dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en `gameplay.toml`).
+La comprobación de arranque está hecha sobre 26.3: con `run/config/*.toml` borrados,
+`runDevServer` llega a `Done (` y genera los ocho TOML; un segundo arranque con los archivos
+presentes no duplica ninguna clave, no cambia ningún archivo y conserva dos valores editados a mano
+(`motd` en `server.toml` y `jump-walk-exhaustion` en `gameplay.toml`). Tras el merge de `804dd0c3`
+vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 
 ## 5. Qué falta, en orden
 
-Las etapas van **en fila**: cada una empieza cuando la anterior termina y está subida.
+1. **Probar `v1.0.0-rc.1`.** Lo que no se ha podido comprobar sin clientes reales:
+   - **PvP 1.8:** golpes, combos y knockback entre dos jugadores; bloqueo con espada y su animación;
+     el indicador de cooldown oculto; alcance a través de hierba; caña, perlas y flechas; explosiones
+     de TNT y creeper; pociones y manzana de Notch; reaparecer y recibir un golpe al momento; el
+     tooltip de las armas en un cliente moderno y en uno 1.8 vía ViaVersion; cómo se siente
+     comparado con un servidor 1.8 real.
+   - **Locator bar:** dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con
+     cabeza puesta.
+   - **EULA:** el prompt en Linux con una TTY real (ENTER acepta, ESC cancela).
+   - **Configuración:** un servidor nuevo (en la raíz solo el jar y las carpetas que genera; los ocho
+     TOML y `config/server.properties` con solo la cabecera), una migración desde un Paper o Folia
+     real, `/legacyfolia properties on|off|status`, `/whitelist on` y `/paper reload` con un plugin
+     que lea los valores de Bukkit, Spigot y Paper.
+   - **Auto-updater** con al menos una fuente activada, y los interruptores de dimensiones, lobby y
+     techo del Nether.
+   - ViaVersion 5.11.0 da un error al arrancar porque no soporta 26.3 (§7); para probar con clientes
+     1.8 hace falta 5.12.1 o posterior.
+2. **Release `v1.0.0`**, con el jar paperclip adjunto, **solo cuando el usuario lo indique**.
 
-1. **Fase de enganche. TERMINADA (2026-10-31, `v0.15.0`).** Lo que queda abajo es el plan con el que
-   se hizo, conservado como referencia; la etapa 5b lo cumplió entero, con dos matices que el usuario
-   conoce: `/difficulty` no escribe `server.properties`, porque en vanilla y en Paper cambia la
-   dificultad del mundo y no el ajuste (regla de upstream; el ejemplo correcto es `/whitelist on`), y
-   `help.yml` y `permissions.yml` siguen leyéndose del directorio de trabajo, como antes.
-   Plan detallado en `SETTINGS-MAP.md` §4.1 y §6, y decisiones en §6 de este
-   documento. Hechas: la etapa 1 (catálogo de claves y lectores de tipos), la 2 (modo
-   `server.properties`, `config/ServerProperties`), la 3 (importador, `config/migration/`), la 4
-   (objetos en memoria, `config/bridge/`, y `config/RconSecret`) y la 5a (fusión, las 94 claves que
-   faltaban, la escritura de los TOML sin night-config y `legacyMessage`). Queda:
-   - **Etapa 5b: conexión al servidor**, en serie porque toca los árboles generados. Los cinco puntos
-     de inyección, el comando `/legacyfolia properties on|off|status`, las escrituras en caliente
-     (`/whitelist on`, `/difficulty`...), el lobby configurable (`world.lobby-spawn-world`), el EULA
-     como clave y el borrado de los yml.
+### Hecho (de lo que había en esta lista)
 
-     Lo que la etapa 5b tiene que enganchar de las etapas 3, 4 y 5a:
-     - **Importador**, en `Main`, después de leer la línea de comandos y antes de `ServerConfig.load()`:
-       `LegacyImport.runIfNeeded(raíz, contenedor)`, con `--universe` como contenedor si se dio. Su
-       javadoc explica por qué ese orden.
-     - **`DedicatedServerProperties`** se construye con `new DedicatedServerProperties(
-       ServerPropertiesBridge.build(ajustes, RconSecret.resolve(ServerPropertiesBridge.rconPasswordFile(ajustes))), null)`
-       en lugar de leer `server.properties`, y no vuelve a guardar el archivo (`forceSave()`).
-     - **`SpigotConfig.config`** = `SpigotBridge.build(ajustes, SpigotBridge.vanillaWorldKeys(levelName))`
-       antes de `readConfig`, sin cargar ni guardar `spigot.yml`; cada mundo que no sea uno de los
-       tres de vanilla se añade al cargarse con `SpigotBridge.addWorld`.
-     - **`CraftServer`**: `configuration` = `BukkitBridge.bukkit(ajustes)` y `commandsConfiguration`
-       = `BukkitBridge.commands(ajustes)`, en el constructor y en `reload()`; las plantillas siguen
-       debajo como defaults. `Main` lee `settings.world-container` de `bukkit.yml` antes de que
-       exista `CraftServer`: tiene que pasar a leer `world.storage.world-container` del TOML.
-     - **Paper**: en `PaperConfigurations`, el nodo global, el de defaults de mundo y el de cada mundo
-       se copian de `PaperBridge.global`, `worldDefaults` y `world` a un nodo del loader de Paper
-       (`loader.createNode().from(nodo)`) y no se guardan.
-     - **De dónde salen los ajustes**: `ServerConfigSettings` lee `ServerConfig`, pero devuelve las
-       tablas como ausentes (`world.generators`, `world.biome-providers`, los alias de comandos,
-       `forced-stats`, `alt-item-despawn-rate-items`) y no sabe listar los mundos. Antes de usarlo en
-       el servidor hay que darle acceso a las tablas (`ConfigFile.raw()` las tiene) y a la lista de
-       `[worlds.*]`, o construir un `TomlSettings` de los archivos cargados y los overrides del modo
-       `server.properties`. Sin eso, un servidor con generadores o alias propios los pierde.
-     - **Recarga**: `ServerConfig.load()`, `ServerProperties.reconcile()` y volver a construir los
-       objetos de la etapa 4, en ese orden.
-     - **Escrituras**: `ServerConfig.set` y `ServerProperties.set` ya editan el texto del TOML sin
-       reescribirlo; no hace falta nada más para conservar los comentarios.
-
-     Lo que la etapa 5 tiene que enganchar del modo `server.properties` (etapa 2):
-     - **Arranque**, en `Main` (parche que hoy llama a `ServerConfig.load()`, línea ~127 de
-       `net/minecraft/server/Main.java`): `ServerConfig.load()`, después el importador de la etapa 3, y
-       después `ServerProperties.reconcile()`. Ese orden importa: hoy `config/server.properties` es el
-       archivo vanilla completo, y si `reconcile()` lo viera tal cual borraría las líneas que valen el
-       default y avisaría de las claves vanilla que no están en el catálogo. Además,
-       `DedicatedServerProperties` no debe volver a leer ni guardar ese archivo (`forceSave()` lo
-       reescribe entero): tiene que alimentarse del `Properties` en memoria de la etapa 4.
-     - **Recarga**: `ServerConfig.load()` y luego `ServerProperties.reconcile()`, siempre juntos
-       (`load()` descarta los overrides).
-     - **Comando** `/legacyfolia properties on|off|status`: `ServerProperties.enable()`,
-       `disable()` y `status()`; los dos primeros guardan el interruptor y devuelven un `Report`.
-     - **Escrituras en caliente**: cada `MutableValue` de `DedicatedServerProperties` (`/difficulty`,
-       `/whitelist on`, `setMaxPlayers`, `/defaultgamemode`...) llama a
-       `ServerProperties.set("server.difficulty", "hard")` con la ruta TOML y el valor como lo tendría
-       el TOML (`String` para los enum, `Integer`, `Boolean`). Los 19 ajustes `mutable` del catálogo
-       son los candidatos. Vale desde cualquier hilo de región: el valor se ve al volver y el archivo
-       se escribe en un hilo propio.
-     - **Parada**: `ServerProperties.flush()` antes de salir, para que la última escritura llegue al
-       disco.
+1. **Fase de enganche. TERMINADA (2026-10-31, `v0.15.0`).** Etapas 1 a 5b (§2). Dos matices que el
+   usuario conoce: `/difficulty` no escribe `server.properties`, porque en vanilla y en Paper cambia
+   la dificultad del mundo y no el ajuste (regla de upstream; el ejemplo correcto es `/whitelist
+   on`), y `help.yml` y `permissions.yml` siguen leyéndose del directorio de trabajo, como antes. El
+   plan detallado con el que se hizo está en `SETTINGS-MAP.md` §4.1 y §6.
 2. **Daño de las armas de 1.8. HECHO (2026-10-31, `v0.16.0`).** El último de los nueve enganches
    del PvP. Sacado de `ItemSword`, `ItemTool` y `EnumToolMaterial` de 1.8.8: base por tipo (espada
    4, hacha 3, pico 2, pala 1) más el bonus del material, sobre el 1 del jugador. Las espadas y los
@@ -284,8 +254,8 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    al enviar (parche 0036) y la quita al decodificar lo que manda un cliente en creativo, así que
    ningún objeto guardado cambia; detalles en `PVP-1.8.md`. Claves:
    `legacy-weapon-damage` y `sword-`, `axe-`, `pickaxe-` y `shovel-base-damage`; sustituyen a
-   `legacy-sword-damage`, que no leía nada y queda olvidada en los `combat.toml` existentes (el
-   merge no borra claves). Comprobado en un servidor con un plugin de prueba (cifras en `PVP-1.8.md`).
+   `legacy-sword-damage`, que no leía nada; desde `v0.19.0` `ConfigFile` la renombra a
+   `legacy-weapon-damage` al arrancar (punto 4). Comprobado en un servidor con un plugin de prueba (cifras en `PVP-1.8.md`).
 3. **Locator bar idéntica a vanilla y Paper. HECHO (2026-10-31, `v0.18.0`).** Paper no cambia la
    lógica de vanilla (solo añade `canSee`, la distancia al cuadrado y no hacer nada con la regla
    apagada). Diferencias encontradas y corregidas (parche 0037 y `waypoint/`):
@@ -337,14 +307,10 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    Lo que no se pudo igualar (hitbox agachado, camas/miel/carga de viento, animación de bloqueo en
    cliente moderno; la caña en el agua y clavada mantiene la lógica moderna) está en `PVP-1.8.md`.
    Probado con 325 tests y arrancando el servidor (`Done (`).
-   **Sin comprobar con clientes reales**, y conviene hacerlo antes de la release: golpes, combos y
-   knockback entre dos jugadores; bloqueo con espada y su animación; el indicador de cooldown
-   oculto; alcance a través de hierba; caña, perlas y flechas; explosiones de TNT y creeper; pociones
-   y manzana de Notch; reaparecer y recibir un golpe al momento; el tooltip de `v0.17.0` en un
-   cliente moderno y en uno 1.8 vía ViaVersion.
-5. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto. Los puntos 3 y 4
-   ya están; el usuario decide cuándo se hace.
-6. **`/init`** para generar `CLAUDE.md`, y un último commit.
+   **Sin comprobar con clientes reales**: es lo primero del punto 1 de arriba.
+5. **Actualización de upstream a Paper `804dd0c3`. HECHO (2026-10-31).** Detalles en §7.
+6. **`/init`. HECHO (2026-10-31).** Documentación entera revisada contra el código; desde ahora
+   `/init` significa eso (`CLAUDE.md`, «Talking to the user»).
 
 ## 6. Decisiones del usuario (decididas)
 
@@ -403,10 +369,7 @@ en el catálogo `config/catalog/`; desde la etapa 5b el servidor las lee todas):
 `ip = "127.0.0.1"` y `password-file = "rcon.secret"` en lugar de `password`, y los mensajes de
 `[server.messages]` en MiniMessage con `translate:`.
 
-**Verificaciones manuales pendientes:** el prompt del EULA en Linux con una TTY real; la locator bar
-(`v0.18.0`) con dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con cabeza
-puesta; y
-cómo se siente el PvP 1.8 comparado con un servidor 1.8 real.
+**Verificaciones manuales pendientes:** están en §5, punto 1.
 
 ## 7. Upstream
 
@@ -443,12 +406,13 @@ Lo que se encontró:
   yet"), que no soporta 26.3; hay 5.12.1. No es del servidor. Los errores de oshi (contadores de
   Windows) ya salían en 26.2.
 
-Pendiente de esta actualización, para la fase siguiente: comparar los defaults de los 430 ajustes
-con las clases de configuración de `c927bd34` y refrescar los números de línea de `SETTINGS-MAP.md`.
-Las versiones de 26.2 de `DedicatedServerProperties`, `Main`, `DedicatedServer`, `ServerLevel`,
-`GlobalConfiguration`, `WorldConfiguration`, `SpigotConfig` y `SpigotWorldConfig` se guardaron
-fuera del repo para esa comparación; en `DedicatedServerProperties` la única diferencia de default
-es `white-list`.
+La comparación de defaults con las clases de configuración de 26.3 se hizo en `bfe9616` ("Apply the
+26.3 configuration defaults"): `chunks.min-chunk-unload-count` y `min-chunk-unload-fraction` nuevos
+en `[chunks]`, recuentos de `SETTINGS-MAP.md` al día, y en `DedicatedServerProperties` la única
+diferencia de default es `white-list`. Además, los tests de `config/bridge/` comparan cada objeto
+en memoria con lo que el servidor original escribe en una instalación nueva, así que un default que
+cambie en upstream rompe un test. Para los números de línea que cita `SETTINGS-MAP.md`, ver el aviso
+al principio de ese documento.
 
 **Orden decidido:** primero la actualización (hecha) y solo entonces el enganche, que crea parches
 justo sobre `Main`, `DedicatedServer`, `CraftServer`, `ServerLevel` y `SpigotConfig`.
@@ -474,4 +438,34 @@ del fork. Lo que nos tocó:
   canales de plugin configurable con `-Dpaper.pluginMessageChannelLimit` (`e8a1f8fd6`, propiedad del
   sistema, no ajuste) y regeneración de los ajustes de generación del mundo desde
   `server.properties` (`e3ba7b1dc`), que con nuestro parche 0032 los toma de los TOML.
-- 325 tests propios en verde; `runDevServer` llega a `Done (`.
+- Resolución del 0017: el primer intento dejó marcas de conflicto por los finales de línea CRLF; se
+  arregló con un commit `fixup` dentro del árbol generado, `rebuildMinecraftFeaturePatches` y un
+  `applyAllPatches` completo limpio. Los parches de upstream quedan idénticos a los suyos.
+- 325 tests propios en verde (10445 en total, 71 omitidos de upstream); `runDevServer` llega a
+  `Done (` con solo los errores ya conocidos (oshi en Windows y ViaVersion 5.11.0).
+
+## 8. Diferencias con Folia y Paper
+
+LegacyFolia mantiene el modelo de hilos por regiones de Folia sin tocarlo; los parches de Folia
+(minecraft 0001–0011, paper 0001–0006) son los de upstream. Lo que cambia para quien lo usa:
+- **Archivos:** no hay `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-global.yml`,
+  `paper-world-defaults.yml`, `paper-world.yml` ni `eula.txt`. Los ocho TOML de `config/` son la
+  fuente, y los objetos que leen los plugins (`YamlConfiguration` de Bukkit y Spigot, nodos de
+  Configurate de Paper, `DedicatedServerProperties`) se construyen en memoria (paper 0010–0012,
+  minecraft 0032). `/paper reload`, `/spigot reload` y el reload de Bukkit releen los TOML.
+- **`server.properties`** es opcional y vive en `config/`: solo lo que difiere del default, y manda
+  sobre los TOML (§6, decisión 6). Whitelist, bans, ops y secretos en `config/`, la caché de usuarios
+  en `cache/` (minecraft 0018–0019).
+- **Migración** automática desde vanilla, Spigot, Paper o Folia en el primer arranque (§6,
+  decisión 7).
+- **Defaults distintos:** whitelist apagada (26.3 la enciende), spawn protection 0 (vanilla 16),
+  RCON encendido solo en `127.0.0.1` con clave generada (vanilla lo trae apagado), combate 1.8
+  encendido.
+- **Jugabilidad:** PvP 1.8 (`PVP-1.8.md`), locator bar que funciona con regiones, interruptores de
+  dimensiones, lobby, techo del Nether, distancia de visión adaptativa.
+- **API:** `getAllowNether/End` responden desde `[dimensions]` (paper 0007); el secreto de Velocity
+  sale de `config/forwarding.secret` (paper 0008); `canSee` por id de entidad (paper 0009); con el
+  combate 1.8 encendido, `Player.canCriticalAttack` de NMS, que Paper hizo público para su API,
+  sigue la regla de 1.8; el tooltip de las armas solo cambia en lo que se envía al cliente. Comando
+  propio `/legacyfolia` (paper 0013).
+
