@@ -66,6 +66,7 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param legacyFishingRod whether the fishing rod casts, hits, pulls and wears as in 1.8
  * @param legacyExplosions whether explosions hurt and push as in 1.8
  * @param legacyPotions whether splash potions, potion durations and effects work as in 1.8
+ * @param legacyNotchApple whether the enchanted golden apple gives 1.8's effects and has its recipe
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -93,7 +94,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            boolean legacyStrength, double damageExhaustion,
                            boolean legacyReach, boolean legacyProjectiles,
                            boolean legacyFishingRod, boolean legacyExplosions,
-                           boolean legacyPotions) {
+                           boolean legacyPotions, boolean legacyNotchApple) {
 
     private static final String PREFIX = "combat.";
 
@@ -112,7 +113,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 0.3,
             true, true,
             true, true,
-            true);
+            true, true);
     }
 
     /** The module off, for before the configuration exists. */
@@ -183,6 +184,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getBoolean(PREFIX + "legacy-projectiles", defaults.legacyProjectiles()),
             ServerConfig.getBoolean(PREFIX + "legacy-fishing-rod", defaults.legacyFishingRod()),
             ServerConfig.getBoolean(PREFIX + "legacy-explosions", defaults.legacyExplosions()),
-            ServerConfig.getBoolean(PREFIX + "legacy-potions", defaults.legacyPotions()));
+            ServerConfig.getBoolean(PREFIX + "legacy-potions", defaults.legacyPotions()),
+            ServerConfig.getBoolean(PREFIX + "legacy-notch-apple", defaults.legacyNotchApple()));
     }
 }

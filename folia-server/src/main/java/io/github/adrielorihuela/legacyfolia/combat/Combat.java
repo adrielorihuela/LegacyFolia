@@ -337,6 +337,80 @@ public final class Combat {
     }
 
     /**
+     * Whether the enchanted golden apple is 1.8's.
+     *
+     * @return whether the old apple applies
+     */
+    public static boolean legacyNotchApple() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyNotchApple();
+    }
+
+    /**
+     * 1.8's enchanted golden apple, from {@code ItemGoldenApple.c}, in the order it applied them.
+     * A class of its own so the effects are built on first use, after the registries exist.
+     */
+    private static final class NotchApple {
+        private static final java.util.List<net.minecraft.world.effect.MobEffectInstance> EFFECTS = java.util.List.of(
+        new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.ABSORPTION, 2400, 0),
+        new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.REGENERATION, 600, 4),
+        new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.RESISTANCE, 6000, 0),
+        new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.FIRE_RESISTANCE, 6000, 0));
+
+        private NotchApple() {
+        }
+    }
+
+    /**
+     * The effects eating something gives, with the enchanted golden apple's swapped for 1.8's:
+     * Absorption I for two minutes, Regeneration V for 30 seconds, and Resistance and Fire
+     * Resistance for five minutes. The modern apple gives Absorption IV and Regeneration II for 20
+     * seconds. An apple a plugin or command gave effects of its own keeps them.
+     *
+     * @param stack what was eaten
+     * @param modern the effects it would give
+     * @return the effects to give
+     */
+    public static java.util.List<net.minecraft.world.effect.MobEffectInstance> consumeEffects(
+        final net.minecraft.world.item.ItemStack stack,
+        final java.util.List<net.minecraft.world.effect.MobEffectInstance> modern) {
+        if (legacyNotchApple() && stack.is(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE)
+            && !stack.hasNonDefault(net.minecraft.core.component.DataComponents.CONSUMABLE)) {
+            return NotchApple.EFFECTS;
+        }
+        return modern;
+    }
+
+    /**
+     * Adds 1.8's recipe for the enchanted golden apple, eight blocks of gold around an apple,
+     * which the modern game removed. Called whenever the recipes are loaded, so a change to the
+     * setting takes effect on the next {@code /minecraft:reload} or restart.
+     *
+     * @param recipes the recipes being loaded
+     */
+    public static void addLegacyRecipes(final net.minecraft.world.item.crafting.RecipeMap recipes) {
+        if (!legacyNotchApple()) {
+            return;
+        }
+        final net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> key =
+            net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE,
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("legacyfolia", "enchanted_golden_apple"));
+        if (recipes.byKey.containsKey(key)) {
+            return;
+        }
+        recipes.addRecipe(new net.minecraft.world.item.crafting.RecipeHolder<>(key,
+            new net.minecraft.world.item.crafting.ShapedRecipe(
+                new net.minecraft.world.item.crafting.Recipe.CommonInfo(true),
+                new net.minecraft.world.item.crafting.CraftingRecipe.CraftingBookInfo(
+                    net.minecraft.world.item.crafting.CraftingBookCategory.MISC, ""),
+                net.minecraft.world.item.crafting.ShapedRecipePattern.of(java.util.Map.of(
+                        '#', net.minecraft.world.item.crafting.Ingredient.of(net.minecraft.world.item.Items.GOLD_BLOCK),
+                        'X', net.minecraft.world.item.crafting.Ingredient.of(net.minecraft.world.item.Items.APPLE)),
+                    "###", "#X#", "###"),
+                new net.minecraft.world.item.ItemStackTemplate(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE))));
+    }
+
+    /**
      * Whether explosions hurt and push the way 1.8's did.
      *
      * @return whether the old explosions apply

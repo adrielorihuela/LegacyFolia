@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:55:14 -0500
+Subject: [PATCH] Put back 1.8's enchanted golden apple
+
+
+diff --git a/net/minecraft/world/item/consume_effects/ApplyStatusEffectsConsumeEffect.java b/net/minecraft/world/item/consume_effects/ApplyStatusEffectsConsumeEffect.java
+index 8b67e85893b21f1b2752e24691cf1a46d9d99381..9b7a3d809f7a0ea6d72113b0ca13a354cb034c04 100644
+--- a/net/minecraft/world/item/consume_effects/ApplyStatusEffectsConsumeEffect.java
++++ b/net/minecraft/world/item/consume_effects/ApplyStatusEffectsConsumeEffect.java
+@@ -53,7 +53,7 @@ public record ApplyStatusEffectsConsumeEffect(List<MobEffectInstance> effects, f
+ 
+         boolean anyApplied = false;
+ 
+-        for (MobEffectInstance effect : this.effects) {
++        for (MobEffectInstance effect : io.github.adrielorihuela.legacyfolia.combat.Combat.consumeEffects(stack, this.effects)) { // LegacyFolia - 1.8's enchanted golden apple
+             if (user.addEffect(new MobEffectInstance(effect), cause)) { // CraftBukkit
+                 anyApplied = true;
+             }
+diff --git a/net/minecraft/world/item/crafting/RecipeManager.java b/net/minecraft/world/item/crafting/RecipeManager.java
+index f30349dacbc58bf88c594c84a1cc63ffce29325c..905379af999f091a0c21c118c5591e4888336b35 100644
+--- a/net/minecraft/world/item/crafting/RecipeManager.java
++++ b/net/minecraft/world/item/crafting/RecipeManager.java
+@@ -56,6 +56,7 @@ public class RecipeManager implements RecipeAccess {
+     public RecipeManager(final HolderLookup.Provider registries) {
+         HolderLookup.RegistryLookup<Recipe<?>> recipeRegistries = registries.lookupOrThrow(Registries.RECIPE);
+         this.recipes = RecipeMap.create(recipeRegistries);
++        io.github.adrielorihuela.legacyfolia.combat.Combat.addLegacyRecipes(this.recipes); // LegacyFolia - 1.8's enchanted golden apple recipe
+         this.learnableRecipes = this.recipes.values().stream().filter(r -> !r.value().isSpecial()).collect(Collectors.toUnmodifiableList());
+     }
+ 

@@ -247,6 +247,15 @@ splash-radius = 4.0
 #    costs 0.025 exhaustion a tick a level, five times what it does now.
 legacy-potions = true
 
+# The enchanted golden apple as 1.8 had it.
+#
+# Absorption I for 2:00, Regeneration V for 0:30, and Resistance and Fire
+# Resistance for 5:00, where the modern apple gives Absorption IV and
+# Regeneration II for 0:20. And it can be crafted again, from eight blocks of
+# gold around an apple. The recipe follows this setting at start-up and on
+# /minecraft:reload.
+legacy-notch-apple = true
+
 # Right-clicking with a sword blocks, halving incoming damage.
 #
 # Note that this is a reimplementation rather than a restoration: swords have

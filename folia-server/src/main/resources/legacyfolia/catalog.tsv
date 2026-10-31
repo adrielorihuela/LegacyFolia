@@ -359,6 +359,7 @@ combat.instant-damage-base	INT	false	NONE	-	-	-	false	false	-	6	-
 combat.instant-heal-base	INT	false	NONE	-	-	-	false	false	-	4	-
 combat.splash-radius	DOUBLE	false	NONE	-	-	-	false	false	-	4.0	-
 combat.legacy-potions	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.legacy-notch-apple	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.sword-blocking	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.sword-blocking-reduction	DOUBLE	false	NONE	-	-	-	false	false	-	0.5	-
 combat.legacy-projectiles	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
