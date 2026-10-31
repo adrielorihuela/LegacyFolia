@@ -3,7 +3,7 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-18 · **Último tag publicado:** `v0.14.0` · **Base:** Folia
+**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.14.0` · **Base:** Folia
 `ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
@@ -74,12 +74,13 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 189 en `LegacyFoliaTestSuite` (23 clases; 184 propios más las 5 suites vacías de upstream
-que Gradle también cuenta), sin fallos ni omitidos (verificado el 2026-10-30, contando los XML de
-`build/test-results`). Antes de la etapa 1 de la fase de enganche eran 129; tras ella, 150. La
-etapa 2 añade `ServerPropertiesTest`, `PropertiesDocumentTest`, `TomlTextTest` y un caso en
-`ConfigFileMergeTest`, y hace que corra `BundledTomlParseTest`, que con su nombre anterior
-(`...TestSuite`) el filtro de JUnit dejaba fuera.
+**Tests:** 269 en `LegacyFoliaTestSuite` (35 archivos de resultados, contando las 5 suites vacías de
+upstream que Gradle también cuenta), sin fallos ni omitidos (verificado el 2026-10-31, contando los
+XML de `folia-server/build/test-results/test`). Antes de la etapa 1 de la fase de enganche eran 129;
+tras ella, 150; tras la etapa 2, 189. La etapa 3 aporta 35 (224 al fusionarla), la etapa 4 otros 38
+(262) y la etapa 5a otros 7: `LegacyCoverageTest` (2), cuatro casos nuevos en `ConfigFileMergeTest`
+y uno en `SettingReadersTest`. La etapa 2 había hecho que corriera `BundledTomlParseTest`, que con su
+nombre anterior (`...TestSuite`) el filtro de JUnit dejaba fuera.
 
 **Etapa 2 del enganche (hecha, 2026-10-30): el modo `server.properties`** (decisión 6 de §6).
 - `config/ServerProperties.java`: `reconcile()`, `enable()`, `disable()`, `status()`, `isEnabled()`,
@@ -94,6 +95,36 @@ etapa 2 añade `ServerPropertiesTest`, `PropertiesDocumentTest`, `TomlTextTest` 
   de `worlds.toml` y re-indenta. Por eso `TomlText`.
 - Arreglado de paso en `ConfigFile.merge`: no rellenaba desde la plantilla las tablas de datos
   (`plugins.commands.aliases`...), así que un alias por defecto borrado volvía en cada arranque.
+
+**Etapa 3 del enganche (hecha, fusionada el 2026-10-31): el importador**, en `config/migration/`.
+`LegacyImport.runIfNeeded(raíz, contenedor de mundos)` detecta un vanilla, Spigot, Paper o Folia,
+lee sus archivos (también el `paper-world.yml` de cada mundo, en la raíz o en `config/`), resuelve
+las colisiones como el servidor original (`ImportPlanner`), escribe los TOML, mueve los originales a
+`config/legacy-backup/<fecha>/` con un `import-report.txt`, y si se interrumpe lo termina en el
+siguiente arranque (un marcador en la carpeta de copia). Los secretos van a sus archivos, nunca a un
+TOML.
+
+**Etapa 4 del enganche (hecha, fusionada el 2026-10-31): los objetos en memoria**, en `config/bridge/`.
+`ServerPropertiesBridge.build` da el `Properties` de `DedicatedServerProperties`;
+`SpigotBridge.build`/`addWorld` el `YamlConfiguration` de `SpigotConfig`; `BukkitBridge.bukkit` y
+`commands` los de `bukkit.yml` y `commands.yml`; `PaperBridge.global`, `worldDefaults` y `world` los
+nodos de Configurate de Paper. Con los TOML por defecto, cada uno da exactamente lo que el servidor
+original escribe en una instalación nueva (hay un test por objeto que lo compara). Además
+`config/RconSecret` (clave de RCON en `config/rcon.secret`, 32 caracteres de `SecureRandom`).
+
+**Etapa 5a del enganche (hecha, 2026-10-31): la preparación.**
+- Fusionadas las etapas 3 y 4 (`ConfigFile.open(Path, String)` existía en las dos con el mismo
+  cuerpo; queda una). Ramas y worktrees borrados.
+- **94 claves heredadas sin sitio, catalogadas** (`SETTINGS-MAP.md` §8.1): el catálogo pasa de 482 a
+  576 claves. Lo que queda fuera a propósito está en `config/catalog/LegacyExclusions` y en §8, y
+  `LegacyCoverageTest` falla si aparece una clave heredada sin catalogar ni excluir.
+- **Ningún TOML se reescribe con night-config.** `ConfigFile` (merge al arrancar y `set`, que usa
+  `Dimensions` vía `ServerConfig.set`) y el importador editan el texto con `TomlText`; una clave o
+  tabla nueva se inserta con su comentario sacado de la plantilla, en su sitio. Actualizar los
+  archivos de la versión anterior da exactamente las plantillas nuevas, byte a byte.
+- `SettingReaders.legacyMessage`: un `translate:` en un campo `String` de Spigot o Bukkit se
+  renderiza en el idioma del servidor (inglés), que es lo que el jugador habría leído; el javadoc
+  ya lo dice.
 
 **Importante:** los 430 ajustes **todavía no los lee el servidor**. Hoy los TOML se generan y se
 documentan, pero los valores efectivos siguen saliendo de `server.properties`, `bukkit.yml`,
@@ -125,8 +156,10 @@ su tipo, su default, su origen heredado y su nombre en `server.properties`) con 
 de `config/types/SettingReaders`.
 
 **La etapa 2 está hecha** (2026-10-30, §2): el modo `server.properties` en
-`config/ServerProperties.java`, con sus tests, todavía **sin enganchar** al arranque. La siguiente es
-la etapa 3 (importador). Lo que la etapa 5 tendrá que enganchar está en §5.
+`config/ServerProperties.java`, con sus tests, todavía **sin enganchar** al arranque. **Las etapas 3
+(importador), 4 (objetos en memoria) y 5a (preparación) también están hechas** (2026-10-31, §2) y
+en `main`. La siguiente es la **etapa 5b**: conectarlo todo al servidor, en serie porque toca los
+árboles generados. Lo que tiene que enganchar está en §5.
 
 La comprobación de arranque que quedó pendiente en `v0.13.0` está hecha, ya sobre 26.3: con
 `run/config/*.toml` borrados, `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo
@@ -138,18 +171,42 @@ dos valores editados a mano (`motd` en `server.toml` y `jump-walk-exhaustion` en
 Las etapas van **en fila**: cada una empieza cuando la anterior termina y está subida.
 
 1. **Fase de enganche.** Plan detallado en `SETTINGS-MAP.md` §4.1 y §6, y decisiones en §6 de este
-   documento. Las etapas 1 (catálogo de claves y lectores de tipos) y 2 (modo `server.properties`,
-   `config/ServerProperties`) están hechas. Quedan:
-   - **Etapa 3: importador.** Leer vanilla, Spigot, Paper o Folia, incluido el `paper-world.yml` de
-     cada mundo, resolver las colisiones como el servidor original y hacer copia de los originales en
-     `config/legacy-backup/<fecha>/`.
-   - **Etapa 4: objetos en memoria.** `Properties` para `DedicatedServerProperties`, `YamlConfiguration`
-     para `SpigotConfig`, `bukkit.yml` y `commands.yml`, y `ConfigurationNode` para Paper global y
-     por mundo. Además la clave de RCON en `config/rcon.secret` y los mensajes MiniMessage.
-   - **Etapa 5: conexión al servidor**, en serie porque toca los árboles generados. Los cinco puntos de
-     inyección, el comando `/legacyfolia properties on|off|status`, las escrituras en caliente
+   documento. Hechas: la etapa 1 (catálogo de claves y lectores de tipos), la 2 (modo
+   `server.properties`, `config/ServerProperties`), la 3 (importador, `config/migration/`), la 4
+   (objetos en memoria, `config/bridge/`, y `config/RconSecret`) y la 5a (fusión, las 94 claves que
+   faltaban, la escritura de los TOML sin night-config y `legacyMessage`). Queda:
+   - **Etapa 5b: conexión al servidor**, en serie porque toca los árboles generados. Los cinco puntos
+     de inyección, el comando `/legacyfolia properties on|off|status`, las escrituras en caliente
      (`/whitelist on`, `/difficulty`...), el lobby configurable (`world.lobby-spawn-world`), el EULA
      como clave y el borrado de los yml.
+
+     Lo que la etapa 5b tiene que enganchar de las etapas 3, 4 y 5a:
+     - **Importador**, en `Main`, después de leer la línea de comandos y antes de `ServerConfig.load()`:
+       `LegacyImport.runIfNeeded(raíz, contenedor)`, con `--universe` como contenedor si se dio. Su
+       javadoc explica por qué ese orden.
+     - **`DedicatedServerProperties`** se construye con `new DedicatedServerProperties(
+       ServerPropertiesBridge.build(ajustes, RconSecret.resolve(ServerPropertiesBridge.rconPasswordFile(ajustes))), null)`
+       en lugar de leer `server.properties`, y no vuelve a guardar el archivo (`forceSave()`).
+     - **`SpigotConfig.config`** = `SpigotBridge.build(ajustes, SpigotBridge.vanillaWorldKeys(levelName))`
+       antes de `readConfig`, sin cargar ni guardar `spigot.yml`; cada mundo que no sea uno de los
+       tres de vanilla se añade al cargarse con `SpigotBridge.addWorld`.
+     - **`CraftServer`**: `configuration` = `BukkitBridge.bukkit(ajustes)` y `commandsConfiguration`
+       = `BukkitBridge.commands(ajustes)`, en el constructor y en `reload()`; las plantillas siguen
+       debajo como defaults. `Main` lee `settings.world-container` de `bukkit.yml` antes de que
+       exista `CraftServer`: tiene que pasar a leer `world.storage.world-container` del TOML.
+     - **Paper**: en `PaperConfigurations`, el nodo global, el de defaults de mundo y el de cada mundo
+       se copian de `PaperBridge.global`, `worldDefaults` y `world` a un nodo del loader de Paper
+       (`loader.createNode().from(nodo)`) y no se guardan.
+     - **De dónde salen los ajustes**: `ServerConfigSettings` lee `ServerConfig`, pero devuelve las
+       tablas como ausentes (`world.generators`, `world.biome-providers`, los alias de comandos,
+       `forced-stats`, `alt-item-despawn-rate-items`) y no sabe listar los mundos. Antes de usarlo en
+       el servidor hay que darle acceso a las tablas (`ConfigFile.raw()` las tiene) y a la lista de
+       `[worlds.*]`, o construir un `TomlSettings` de los archivos cargados y los overrides del modo
+       `server.properties`. Sin eso, un servidor con generadores o alias propios los pierde.
+     - **Recarga**: `ServerConfig.load()`, `ServerProperties.reconcile()` y volver a construir los
+       objetos de la etapa 4, en ese orden.
+     - **Escrituras**: `ServerConfig.set` y `ServerProperties.set` ya editan el texto del TOML sin
+       reescribirlo; no hace falta nada más para conservar los comentarios.
 
      Lo que la etapa 5 tiene que enganchar del modo `server.properties` (etapa 2):
      - **Arranque**, en `Main` (parche que hoy llama a `ServerConfig.load()`, línea ~127 de
