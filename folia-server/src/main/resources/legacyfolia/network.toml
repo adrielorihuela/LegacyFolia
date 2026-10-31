@@ -184,9 +184,6 @@ enabled = false
 # limit worth the name. It has full console authority: whoever gets in can run
 # any command. That is why it is on but bound to loopback by default (ip,
 # below): tools on this machine can reach it and nothing else can.
-#
-# NOT READ YET. Until the hook-up lands enable-rcon in server.properties
-# decides, as before.
 enabled = true
 
 # The port RCON listens on.
@@ -206,9 +203,6 @@ ip = "127.0.0.1"
 # the file and a new one is generated; write your own into it and yours is
 # used. The password is never written to the log, which only says where the
 # file is. It is never written to server.properties either.
-#
-# NOT READ YET. Until the hook-up lands rcon.password in server.properties
-# is used, as before.
 password-file = "rcon.secret"
 
 # ----------------------------------------------------------------------------

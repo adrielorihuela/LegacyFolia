@@ -1,13 +1,12 @@
 package io.github.adrielorihuela.legacyfolia.eula;
 
 import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
+import io.github.adrielorihuela.legacyfolia.config.ServerProperties;
+import io.github.adrielorihuela.legacyfolia.config.catalog.SettingEntry;
 import io.github.adrielorihuela.legacyfolia.eula.EulaPrompt.Decision;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jline.terminal.Attributes;
@@ -16,6 +15,10 @@ import org.jline.terminal.TerminalBuilder;
 
 /**
  * Puts the EULA question on the console and writes down the answer.
+ *
+ * <p>The answer is {@code eula} in {@code config/server.toml}, which replaced {@code eula.txt}. It
+ * is written there whatever the server.properties mode says: an agreement never goes into
+ * {@code server.properties}, a file people copy from one server to another.</p>
  *
  * <p>This is the half that touches a real terminal; {@link EulaPrompt} is the half that decides
  * what an answer means. They are separate because one of them can be tested and the other cannot.
@@ -28,6 +31,9 @@ public final class EulaConsole {
     private static final String EULA_URL = "https://aka.ms/MinecraftEULA";
 
     private static final String TIMEOUT_KEY = "server.eula-prompt-timeout-seconds";
+
+    /** Where the agreement lives, for the messages. */
+    private static final String WHERE = "eula = true in config/server.toml";
     private static final int DEFAULT_TIMEOUT_SECONDS = 120;
 
     private EulaConsole() {
@@ -41,13 +47,12 @@ public final class EulaConsole {
      * would be an invisible hang rather than a question — so it stops with the same message
      * upstream prints.</p>
      *
-     * @param eulaFile the {@code eula.txt} to update on agreement
      * @return whether the server may continue
      */
-    public static boolean askAndRecord(final Path eulaFile) {
+    public static boolean askAndRecord() {
         if (!interactive()) {
-            LOGGER.info("You need to agree to the EULA in order to run the server. "
-                + "Go to eula.txt for more info.");
+            LOGGER.info("You need to agree to the EULA ({}) in order to run the server. "
+                + "Set {} to agree.", EULA_URL, WHERE);
             return false;
         }
 
@@ -62,29 +67,29 @@ public final class EulaConsole {
             // same line, which is exactly how the bug that made this branch fire every time went
             // unnoticed: there was no way to tell "nobody is watching" from "the question broke".
             LOGGER.warn("Could not ask about the EULA at the console: {}", e.toString());
-            LOGGER.warn("Agree by hand instead: set eula=true in {}.", eulaFile);
+            LOGGER.warn("Agree by hand instead: set {}.", WHERE);
             LOGGER.debug("Could not ask at the console", e);
             return false;
         }
 
         switch (decision) {
             case ACCEPTED -> {
-                if (!record(eulaFile)) {
-                    LOGGER.error("Could not write {}, so your agreement was not saved. "
-                        + "Set eula=true in it by hand.", eulaFile);
+                if (!record()) {
+                    LOGGER.error("Could not write config/server.toml, so your agreement was not saved. "
+                        + "Set {} by hand.", WHERE);
                     return false;
                 }
-                LOGGER.info("Agreed. {} now says eula=true; you will not be asked again.", eulaFile);
+                LOGGER.info("Agreed. config/server.toml now says eula = true; you will not be asked again.");
                 return true;
             }
             case TIMED_OUT -> {
                 LOGGER.info("Nobody answered, so nothing was agreed to. Start the server again, or "
-                    + "set eula=true in {} by hand.", eulaFile);
+                    + "set {} by hand.", WHERE);
                 return false;
             }
             default -> {
-                LOGGER.info("Not agreed, so the server will not start. {} still says eula=false.",
-                    eulaFile);
+                LOGGER.info("Not agreed, so the server will not start. config/server.toml still says "
+                    + "eula = false.");
                 return false;
             }
         }
@@ -165,7 +170,7 @@ public final class EulaConsole {
             + "  " + EULA_URL + newline
             + newline
             + "  Press ENTER to agree, or ESC to stop the server. "
-            + "(Agreeing writes eula=true to eula.txt.)" + newline;
+            + "(Agreeing writes eula = true to config/server.toml.)" + newline;
     }
 
     /** How long to wait, from the unified configuration, or the default before it is loaded. */
@@ -177,18 +182,15 @@ public final class EulaConsole {
     }
 
     /**
-     * Rewrites {@code eula.txt} with the agreement recorded, keeping the comment Mojang's file
-     * carries so the file still explains itself.
+     * Writes the agreement to {@code server.eula}, waiting until it is on disk so that a crash right
+     * after does not ask again.
      */
-    private static boolean record(final Path eulaFile) {
-        try (OutputStream output = Files.newOutputStream(eulaFile)) {
-            final Properties properties = new Properties();
-            properties.setProperty("eula", "true");
-            properties.store(output, "By setting the value below to TRUE you are indicating your "
-                + "agreement to our EULA (" + EULA_URL + "). Agreed to at the server console.");
+    private static boolean record() {
+        try {
+            ServerProperties.set(SettingEntry.EULA, true).join();
             return true;
-        } catch (final IOException e) {
-            LOGGER.debug("Could not write {}", eulaFile, e);
+        } catch (final RuntimeException e) {
+            LOGGER.debug("Could not write the EULA agreement", e);
             return false;
         }
     }

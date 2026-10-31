@@ -36,7 +36,8 @@ eula-prompt-timeout-seconds = 120
 # to config/legacy-backup/. Answering ENTER at the prompt above writes true
 # here for you.
 #
-# NOT READ YET. Until the hook-up lands the server still asks eula.txt.
+# It always lives here, never in server.properties: that file gets copied
+# from one server to another, and a copy must not agree on your behalf.
 eula = false
 
 # Keep a server.properties beside this configuration, for panels such as
@@ -57,8 +58,6 @@ eula = false
 #
 # The console command /legacyfolia properties on|off|status changes this at
 # once and saves it here.
-#
-# NOT READ YET. Until the hook-up lands server.properties is read as before.
 use-server-properties = true
 
 # The radius, in blocks, of the area around the world spawn that only

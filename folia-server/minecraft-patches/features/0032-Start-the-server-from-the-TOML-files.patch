@@ -1,0 +1,177 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:13:05 -0500
+Subject: [PATCH] Start the server from the TOML files
+
+Main now imports an older server's configuration, reads the TOML files
+and reconciles server.properties before anything reads a setting, and
+stops the server if that fails rather than start it half-configured.
+
+From there every object the server and its plugins read is built in
+memory: DedicatedServerProperties from the settings, with the RCON
+password from config/rcon.secret, and never read from or saved to
+server.properties, which belongs to the server.properties mode now;
+Bukkit's and Spigot's configurations in Main and in DedicatedServer;
+each world's Spigot section as the world loads, because Spigot names a
+world by its dimension key and worlds.toml by its folder, and only then
+are both known; and Paper's world configuration, which is told the
+world's name to find its section.
+
+The EULA is the eula key of server.toml. eula.txt is neither read nor
+created; the importer has already copied its answer and moved it to
+the backup, which is why this has to land together with the importer,
+or a migrated server would be asked again. --initSettings writes the
+TOML files and stops, since there is no bukkit.yml or commands.yml to
+create any more.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 3059e7d902e577f1a2fc34e528ffdceac7bb0a06..fd12bc05b75ae65be1aa5c48a4ac46955ea0dff0 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -121,14 +121,20 @@ public class Main {
+             // Paper end - Perf: Init DataConverter asynchronously
+             Util.startTimerHackThread();
+             // LegacyFolia start - unified configuration
+-            // Loaded here, before anything reads a setting: it overrides the settings inherited
+-            // from Bukkit, Spigot and Paper. Loaded exactly once, because settings that migrate
+-            // into it on first use need to know whether this run is the one that created it.
+-            io.github.adrielorihuela.legacyfolia.config.ServerConfig.load();
++            // Here, before anything reads a setting. An older server's files are imported into the
++            // TOML files first, so that what is read next is what that server used; then the TOML
++            // files are read and server.properties is reconciled with them. A failed import stops
++            // the server rather than start it on a half-imported configuration; the next start
++            // resumes it.
++            try {
++                io.github.adrielorihuela.legacyfolia.config.ConfigHooks.start(Path.of(""), options.has("universe") ? ((File) options.valueOf("universe")).toPath() : null);
++            } catch (IOException e) {
++                LOGGER.error("Could not set up the configuration in config/, so the server will not start. Nothing was deleted; fix the cause and start again.", e);
++                return;
++            }
+             io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
+             io.github.adrielorihuela.legacyfolia.combat.Combat.reload();
+             // LegacyFolia end - unified configuration
+-            Path settingsFile = Paths.get("server.properties");
+             DedicatedServerSettings settings = new DedicatedServerSettings(options); // CraftBukkit - CLI argument support
+             settings.forceSave();
+             // Paper start
+@@ -138,27 +144,15 @@ public class Main {
+             }
+             // Paper end
+             RegionFileVersion.configure(settings.getProperties().regionFileComression);
+-            Path eulaFile = io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolvePath("eula.txt"); // LegacyFolia - the EULA is configuration too
+-            Eula eula = new Eula(eulaFile);
+             // Paper start - load config files early for access below if needed
+-            org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("bukkit-settings"));
+-            org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("spigot-settings"));
++            // LegacyFolia start - built in memory from the TOML files
++            org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.bukkit();
++            org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.github.adrielorihuela.legacyfolia.config.ConfigHooks.spigot(Optional.ofNullable((String) options.valueOf("world")).orElse(settings.getProperties().levelName));
++            // LegacyFolia end - built in memory from the TOML files
+             // Paper end - load config files early for access below if needed
+             if (options.has("initSettings")) { // CraftBukkit
+-                // CraftBukkit start - SPIGOT-5761: Create bukkit.yml and commands.yml if not present
+-                File configFile = (File) options.valueOf("bukkit-settings");
+-                org.bukkit.configuration.file.YamlConfiguration configuration = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
+-                configuration.options().copyDefaults(true);
+-                configuration.setDefaults(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/bukkit.yml"), java.nio.charset.StandardCharsets.UTF_8)));
+-                configuration.save(configFile);
+-
+-                File commandFile = (File) options.valueOf("commands-settings");
+-                org.bukkit.configuration.file.YamlConfiguration commandsConfiguration = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(commandFile);
+-                commandsConfiguration.options().copyDefaults(true);
+-                commandsConfiguration.setDefaults(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/commands.yml"), java.nio.charset.StandardCharsets.UTF_8)));
+-                commandsConfiguration.save(commandFile);
+-                // CraftBukkit end
+-                LOGGER.info("Initialized '{}' and '{}'", settingsFile.toAbsolutePath(), eulaFile.toAbsolutePath());
++                // LegacyFolia - the configuration is the TOML files in config/, written above; there is no bukkit.yml or commands.yml to create
++                LOGGER.info("Initialized the configuration in '{}'", io.github.adrielorihuela.legacyfolia.config.ConfigFile.DIRECTORY.toAbsolutePath());
+                 return;
+             }
+ 
+@@ -168,14 +162,14 @@ public class Main {
+                 LOGGER.warn("You have used the Paper command line EULA agreement flag.");
+                 LOGGER.warn("By using this setting you are indicating your agreement to Mojang's EULA (https://aka.ms/MinecraftEULA).");
+                 LOGGER.warn("If you do not agree to the above EULA please stop your server and remove this flag immediately.");
+-            } else if (!eula.hasAgreedToEULA()) {
++            } else if (!io.github.adrielorihuela.legacyfolia.config.ServerConfig.getBoolean(io.github.adrielorihuela.legacyfolia.config.catalog.SettingEntry.EULA, false)) { // LegacyFolia - eula in config/server.toml replaces eula.txt
+                 // Paper end - eula system property
+                 // LegacyFolia start - ask at the console rather than stopping
+                 // Stopping a brand new server to go and edit a file is the most common reason a
+                 // first start looks like a failure. Asking where the operator already is costs one
+                 // keypress. Nothing is assumed: no console means no question, and the server stops
+                 // exactly as it did before.
+-                if (!io.github.adrielorihuela.legacyfolia.eula.EulaConsole.askAndRecord(eulaFile)) {
++                if (!io.github.adrielorihuela.legacyfolia.eula.EulaConsole.askAndRecord()) {
+                     return;
+                 }
+                 // LegacyFolia end - ask at the console rather than stopping
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index a557ae45b2ee76eb0bcfe669f611a7f0a58d209c..a01b8a111709dfddaace9a4b94e829a2ac513978 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -231,7 +231,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+ 
+         // Spigot start
+         this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
+-        org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
++        org.spigotmc.SpigotConfig.init(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.spigot(this.storageSource.getLevelId())); // LegacyFolia - built in memory from the TOML files
+         org.spigotmc.SpigotConfig.registerCommands();
+         // Spigot end
+         // Paper start - initialize global and world-defaults configuration
+diff --git a/net/minecraft/server/dedicated/DedicatedServerSettings.java b/net/minecraft/server/dedicated/DedicatedServerSettings.java
+index 842b81a94c538b30c42d1eb101919669f17fe989..2bca7282db1e5edfb9b4e665e3a25ba7a689fc8a 100644
+--- a/net/minecraft/server/dedicated/DedicatedServerSettings.java
++++ b/net/minecraft/server/dedicated/DedicatedServerSettings.java
+@@ -10,7 +10,7 @@ public class DedicatedServerSettings {
+     // CraftBukkit start
+     public DedicatedServerSettings(joptsimple.OptionSet options) {
+         this.source = ((java.io.File) options.valueOf("config")).toPath();
+-        this.properties = DedicatedServerProperties.fromFile(this.source, options);
++        this.properties = new DedicatedServerProperties(io.github.adrielorihuela.legacyfolia.config.ConfigHooks.serverProperties(), options); // LegacyFolia - built from the TOML files and the server.properties mode, never read from the file
+         // CraftBukkit end
+     }
+ 
+@@ -18,12 +18,14 @@ public class DedicatedServerSettings {
+         return this.properties;
+     }
+ 
++    // LegacyFolia start - server.properties belongs to the server.properties mode now; a change
++    // made while running is saved where it lives by Settings.MutableValue#update
+     public void forceSave() {
+-        this.properties.store(this.source);
+     }
+ 
+     public DedicatedServerSettings update(final UnaryOperator<DedicatedServerProperties> mutator) {
+-        (this.properties = mutator.apply(this.properties)).store(this.source);
++        this.properties = mutator.apply(this.properties);
+         return this;
+     }
++    // LegacyFolia end
+ }
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 3d352bb9b0606236d789a70897d7bec12bcf6846..ce6a01b7c4d3c9f22bb44dd2585b9eb3c5d900b5 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -596,7 +596,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         savedDataStorage.set(io.papermc.paper.world.saveddata.PaperWorldPDC.TYPE, loadedWorldData.pdc() == null ? io.papermc.paper.world.saveddata.PaperWorldPDC.TYPE.constructor().get() : loadedWorldData.pdc());
+         final GameRules gameRules = new GameRules(server.getWorldData().enabledFeatures(), savedDataStorage.computeIfAbsent(net.minecraft.world.level.gamerules.GameRuleMap.TYPE));
+         this.gameRules = gameRules;
+-        super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates(), loadedWorldData.bukkitName(), gen, biomeProvider, env, spigotConfig -> server.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(server.storageSource.getDimensionPath(dimension), dimension.identifier(), spigotConfig, server.registryAccess(), gameRules)), executor); // Paper - create paper world configs // Paper - Anti-Xray - Pass executor
++        super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates(), loadedWorldData.bukkitName(), gen, biomeProvider, env, spigotConfig -> server.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(server.storageSource.getDimensionPath(dimension), dimension.identifier(), spigotConfig, server.registryAccess(), gameRules, loadedWorldData.bukkitName())), executor); // LegacyFolia - pass the world's name // Paper - create paper world configs // Paper - Anti-Xray - Pass executor
+         this.weatherData = savedDataStorage.computeIfAbsent(WeatherData.TYPE);
+         this.weatherData.setLevel(this);
+         this.typeKey = typeKey;
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 706338fd94cd491450c09ab8cc4dcb4639dff4fd..2c4b444a5ca9c86ceb5d1a887a3b73508c5f7396 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -886,6 +886,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         this.sectionsCount = this.maxSectionY - this.minSectionY + 1;
+         // Paper end - getblock optimisations - cache world height/sections
+         final org.bukkit.NamespacedKey worldKey = CraftNamespacedKey.fromMinecraft(dimension.identifier()); // Paper
++        io.github.adrielorihuela.legacyfolia.config.ConfigHooks.addSpigotWorld(org.spigotmc.SpigotConfig.config, bukkitName, worldKey.asString()); // LegacyFolia - Spigot names a world by its dimension key, worlds.toml by its folder
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(bukkitName, worldKey); // Spigot
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
+         this.generator = generator;
