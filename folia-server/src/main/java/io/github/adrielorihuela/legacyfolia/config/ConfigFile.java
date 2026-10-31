@@ -77,8 +77,25 @@ public final class ConfigFile {
      * @throws IOException if it could not be read or created
      */
     public static ConfigFile open(final String fileName) throws IOException {
-        Files.createDirectories(DIRECTORY);
-        final Path path = DIRECTORY.resolve(fileName);
+        return open(DIRECTORY, fileName);
+    }
+
+    /**
+     * Reads one file from a given configuration directory, creating it from its template when it
+     * is not there.
+     *
+     * <p>The same as {@link #open(String)} for a directory other than the working directory's
+     * {@code config/}: the importer of older servers works on a server root it is handed, and its
+     * tests on temporary directories.</p>
+     *
+     * @param directory the configuration directory
+     * @param fileName the file's name within it
+     * @return the loaded file
+     * @throws IOException if it could not be read or created
+     */
+    public static ConfigFile open(final Path directory, final String fileName) throws IOException {
+        Files.createDirectories(directory);
+        final Path path = directory.resolve(fileName);
 
         final boolean created = !Files.exists(path);
         if (created) {
