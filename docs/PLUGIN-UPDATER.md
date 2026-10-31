@@ -116,7 +116,8 @@ and any whose name contains `sources` or `javadoc` is ignored.
 **The token is optional.** Without one GitHub allows sixty requests an hour per address, which is
 plenty unless the server restarts constantly; with one it is five thousand. Put it in
 `config/github.token`, on one line. A `GITHUB_TOKEN` environment variable overrides the file. With
-GitHub entries and no token, the log says once that the low limit applies.
+GitHub entries and an empty `github.token`, the log says once that the low limit applies; it says
+so even when `GITHUB_TOKEN` is set, which is then the token actually used.
 
 The token is also what lets this reach a private repository, and a public one belonging to an
 account GitHub has flagged, where `github.com` paths answer 404 to everybody while the API keeps
