@@ -78,10 +78,10 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
   (Paper global 88, Paper por mundo 182, Spigot 35, Spigot por mundo 105, Bukkit 30, `commands.yml`
   3, `server.properties` 69, `eula.txt` 1); las 80 restantes son propias. Por archivo: gameplay 207,
   performance 132 (`[chunks]` 31 y `[performance.*]` 101), server 76, combat 62, network 45, world
-  38 (`[dimensions]` 3 y `[world.*]` 35), plugins 31; `worlds.toml` solo tiene ejemplos.
+  40 (`[dimensions]` 3 y `[world.*]` 37), plugins 31; `worlds.toml` solo tiene ejemplos.
 - **Tests:** 325 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
   (2026-10-31, tras el merge de Paper `804dd0c3`). La ejecución completa de `:folia-server:test`
-  da 10445 tests con 71 omitidos, todos de upstream.
+  da 10461 tests con 86 omitidos, todos de upstream.
 - El jar que sale de `./build.sh` es `folia-server/build/libs/legacyfolia-paperclip-<versión>.jar`;
   la versión la pone `settings.gradle.kts` (`26.3.local-SNAPSHOT` sin `BUILD_NUMBER`), es decir, la
   de Minecraft y no la de LegacyFolia.
@@ -146,8 +146,9 @@ original escribe en una instalación nueva (hay un test por objeto que lo compar
 **Etapa 5a del enganche (hecha, 2026-10-31): la preparación.**
 - Fusionadas las etapas 3 y 4 (`ConfigFile.open(Path, String)` existía en las dos con el mismo
   cuerpo; queda una). Ramas y worktrees borrados.
-- **94 claves heredadas sin sitio, catalogadas** (`SETTINGS-MAP.md` §8.1): el catálogo pasa de 482 a
-  576 claves. Lo que queda fuera a propósito está en `config/catalog/LegacyExclusions` y en §8, y
+- **94 claves heredadas sin sitio, catalogadas** (`SETTINGS-MAP.md` §8): el catálogo pasa de 482 a
+  576 claves. Lo que queda fuera a propósito está en `config/catalog/LegacyExclusions` y en
+  `SETTINGS-MAP.md` §8, y
   `LegacyCoverageTest` falla si aparece una clave heredada sin catalogar ni excluir.
 - **Ningún TOML se reescribe con night-config.** `ConfigFile` (merge al arrancar y `set`, que usa
   `Dimensions` vía `ServerConfig.set`) y el importador editan el texto con `TomlText`; una clave o
@@ -239,8 +240,9 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 1. **Fase de enganche. TERMINADA (2026-10-31, `v0.15.0`).** Etapas 1 a 5b (§2). Dos matices que el
    usuario conoce: `/difficulty` no escribe `server.properties`, porque en vanilla y en Paper cambia
    la dificultad del mundo y no el ajuste (regla de upstream; el ejemplo correcto es `/whitelist
-   on`), y `help.yml` y `permissions.yml` siguen leyéndose del directorio de trabajo, como antes. El
-   plan detallado con el que se hizo está en `SETTINGS-MAP.md` §4.1 y §6.
+   on`), y `help.yml` y `permissions.yml` siguen leyéndose del directorio de trabajo, como antes. Cómo
+   quedó (orden de arranque, recarga, modo `server.properties` y migración) está en
+   `SETTINGS-MAP.md` §4 a §6.
 2. **Daño de las armas de 1.8. HECHO (2026-10-31, `v0.16.0`).** El último de los nueve enganches
    del PvP. Sacado de `ItemSword`, `ItemTool` y `EnumToolMaterial` de 1.8.8: base por tipo (espada
    4, hacha 3, pico 2, pala 1) más el bonus del material, sobre el 1 del jugador. Las espadas y los
@@ -316,7 +318,7 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 
 Son del usuario y son definitivas (2026-10-18). Sustituyen a las tres preguntas abiertas que había
 aquí (mensajes traducibles, `rcon.password` y lobby en multimundo) y a las recomendaciones de
-`SETTINGS-MAP.md` §9, que quedan resueltas así:
+`SETTINGS-MAP.md` (hoy §11), que quedan resueltas así:
 
 1. **Whitelist DESACTIVADA por defecto.** Es una excepción a la regla de prioridad de upstream
    (punto 2), porque 26.3 la activa. Ya está aplicado en el parche 0031.
@@ -441,7 +443,7 @@ del fork. Lo que nos tocó:
 - Resolución del 0017: el primer intento dejó marcas de conflicto por los finales de línea CRLF; se
   arregló con un commit `fixup` dentro del árbol generado, `rebuildMinecraftFeaturePatches` y un
   `applyAllPatches` completo limpio. Los parches de upstream quedan idénticos a los suyos.
-- 325 tests propios en verde (10445 en total, 71 omitidos de upstream); `runDevServer` llega a
+- 325 tests propios en verde (10461 en total, 86 omitidos de upstream); `runDevServer` llega a
   `Done (` con solo los errores ya conocidos (oshi en Windows y ViaVersion 5.11.0).
 
 ## 8. Diferencias con Folia y Paper
