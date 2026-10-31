@@ -25,11 +25,51 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * respawnData.pos())}, which already spreads the arrival across the {@code spawnRadius} gamerule
  * and already finds a safe block. No new placement code is added, and none is wanted: the
  * first-join path is the one that has always been exercised.</p>
+ *
+ * <p><b>Which world.</b> {@code world.lobby-spawn-world} decides whose spawn that is.
+ * {@code logout-world}, the default, keeps the world the player left from and uses its spawn, so
+ * somebody who logged out in the Nether arrives at the Nether's spawn. {@code main-world} also
+ * forgets the world, so the server falls through to the world its spawn is in, the main one, as it
+ * does for a first join: a lobby with several worlds wants everybody back in the lobby world. A
+ * second line in {@code PrepareSpawnTask#start()} does that.</p>
  */
 public final class Lobby {
 
     /** The setting, in {@code config/world.toml}. */
     private static final String FORCE_WORLD_SPAWN_KEY = "world.always-spawn-at-world-spawn";
+
+    /** Which world's spawn, in {@code config/world.toml}. */
+    private static final String SPAWN_WORLD_KEY = "world.lobby-spawn-world";
+
+    /** The two values of {@code world.lobby-spawn-world}. */
+    public enum SpawnWorld {
+        /** The spawn of the world the player logged out in. */
+        LOGOUT_WORLD("logout-world"),
+        /** The spawn of the main world, whatever world the player logged out in. */
+        MAIN_WORLD("main-world");
+
+        private final String value;
+
+        SpawnWorld(final String value) {
+            this.value = value;
+        }
+
+        /** The value as written in the TOML file. */
+        public String value() {
+            return this.value;
+        }
+
+        /**
+         * Reads a configured value. Anything that is not {@code main-world} is the default,
+         * {@code logout-world}: an unknown word must not move every player to another world.
+         *
+         * @param value the configured text, or {@code null}
+         * @return the mode
+         */
+        public static SpawnWorld parse(final String value) {
+            return value != null && MAIN_WORLD.value.equalsIgnoreCase(value.trim()) ? MAIN_WORLD : LOGOUT_WORLD;
+        }
+    }
 
     private Lobby() {
     }
@@ -44,5 +84,38 @@ public final class Lobby {
      */
     public static boolean forceWorldSpawn() {
         return ServerConfig.isLoaded() && ServerConfig.getBoolean(FORCE_WORLD_SPAWN_KEY, false);
+    }
+
+    /**
+     * Which world's spawn a forced spawn uses.
+     *
+     * @return the configured mode, {@link SpawnWorld#LOGOUT_WORLD} before the configuration is read
+     */
+    public static SpawnWorld spawnWorld() {
+        return ServerConfig.isLoaded()
+            ? SpawnWorld.parse(ServerConfig.getString(SPAWN_WORLD_KEY, SpawnWorld.LOGOUT_WORLD.value()))
+            : SpawnWorld.LOGOUT_WORLD;
+    }
+
+    /**
+     * Whether a joining player's saved world should be forgotten too, so that they arrive in the
+     * main world.
+     *
+     * @return whether to send them to the main world's spawn
+     */
+    public static boolean sendToMainWorld() {
+        return sendToMainWorld(forceWorldSpawn(), spawnWorld());
+    }
+
+    /**
+     * The decision itself: only a forced spawn in {@code main-world} mode changes the world;
+     * {@code lobby-spawn-world} means nothing while {@code always-spawn-at-world-spawn} is off.
+     *
+     * @param force {@code world.always-spawn-at-world-spawn}
+     * @param spawnWorld {@code world.lobby-spawn-world}
+     * @return whether to forget the saved world
+     */
+    public static boolean sendToMainWorld(final boolean force, final SpawnWorld spawnWorld) {
+        return force && spawnWorld == SpawnWorld.MAIN_WORLD;
     }
 }

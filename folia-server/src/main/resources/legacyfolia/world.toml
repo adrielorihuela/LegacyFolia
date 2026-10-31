@@ -67,8 +67,6 @@ always-spawn-at-world-spawn = false
 #                  several worlds wants
 #
 # Only read while always-spawn-at-world-spawn is on.
-#
-# NOT READ YET. Until the hook-up lands it behaves as logout-world.
 lobby-spawn-world = "logout-world"
 
 # Stop players building on top of the Nether roof.

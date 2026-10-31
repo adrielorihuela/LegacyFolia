@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:17:46 -0500
+Subject: [PATCH] Send a lobby's players to the main world when asked to
+
+With world.always-spawn-at-world-spawn on, a returning player was put at
+the spawn of the world they logged out in. world.lobby-spawn-world now
+chooses: logout-world keeps that, and main-world also forgets the saved
+world, so the server falls through to its own first-join path and puts
+the player at the spawn of the main world, the world the server's spawn
+is in. Nothing is erased: the saved world and position stay in the
+player's data, so turning either setting off restores the ordinary
+behaviour on the next join.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/network/config/PrepareSpawnTask.java b/net/minecraft/server/network/config/PrepareSpawnTask.java
+index b9df82e1ed6c646e5af76a019d643eb6aa44a9a9..6b73ac669f04e11e394ace3abf714bcd8baa7d95 100644
+--- a/net/minecraft/server/network/config/PrepareSpawnTask.java
++++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
+@@ -91,6 +91,12 @@ public class PrepareSpawnTask implements ConfigurationTask {
+                 : loadedData.<ServerPlayer.SavedPosition>flatMap(tag -> tag.read(ServerPlayer.SavedPosition.MAP_CODEC))
+                 .orElse(ServerPlayer.SavedPosition.EMPTY);
+             // LegacyFolia end - a lobby puts everybody at the world spawn
++            // LegacyFolia start - lobby-spawn-world = "main-world" forgets the saved world as well,
++            // so the world spawn below is the main world's, as on a first join
++            if (io.github.adrielorihuela.legacyfolia.world.Lobby.sendToMainWorld()) {
++                resourceKey = null;
++            }
++            // LegacyFolia end - lobby-spawn-world = "main-world" forgets the saved world as well
+             LevelData.RespawnData respawnData = this.server.getWorldData().overworldData().getRespawnData();
+             if (resourceKey == null) { // only run the vanilla logic if we haven't found a world from the bukkit data
+                 // Below is the vanilla way of getting the dimension, this is for migration from vanilla servers
