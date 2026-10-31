@@ -383,7 +383,8 @@ public final class ServerConfig {
     }
 
     /**
-     * Sets a value and writes its file back out, comments and all.
+     * Sets a value and writes it to its file, changing only the text of that value: every comment
+     * and every other line stays as it was ({@link ConfigFile#set}).
      *
      * @param path the dotted path
      * @param value the value to store
@@ -391,7 +392,6 @@ public final class ServerConfig {
     public static void set(final String path, final Object value) {
         final ConfigFile file = fileFor(path);
         file.set(path, value);
-        file.save();
         final Overrides current = overrides;
         if (current != null && current.global().containsKey(path)) {
             final Map<String, Object> global = new HashMap<>(current.global());

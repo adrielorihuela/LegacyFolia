@@ -199,7 +199,6 @@ class LegacyImportCollisionsTest {
     void replacesStaleTomlValues(@TempDir final Path root) throws IOException {
         final ConfigFile gameplay = ConfigFile.open(root.resolve("config"), "gameplay.toml");
         gameplay.set("gameplay.items.item-despawn-rate", 1234);
-        gameplay.save();
         write(root, "spigot.yml", "world-settings:\n  default:\n    item-despawn-rate: 6000\n");
         run(root).orElseThrow();
         assertEquals(6000, toml(root, "gameplay.toml", "gameplay.items.item-despawn-rate"));

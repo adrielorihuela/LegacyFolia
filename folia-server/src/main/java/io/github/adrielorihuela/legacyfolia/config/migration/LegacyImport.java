@@ -1,12 +1,13 @@
 package io.github.adrielorihuela.legacyfolia.config.migration;
 
 import com.electronwill.nightconfig.core.CommentedConfig;
-import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.io.ParsingMode;
 import com.electronwill.nightconfig.toml.TomlParser;
 import io.github.adrielorihuela.legacyfolia.config.ConfigFile;
 import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingEntry;
+import io.github.adrielorihuela.legacyfolia.config.properties.TomlLiterals;
+import io.github.adrielorihuela.legacyfolia.config.properties.TomlText;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -48,8 +49,8 @@ import org.jspecify.annotations.Nullable;
  * in {@code Main.main} just ahead of the {@code ServerConfig.load()} call the "unified
  * configuration" block of patch 0030 placed before {@code new DedicatedServerSettings}, and after
  * the command line has been parsed so that {@code --universe} can be passed as the world container.
- * Three reasons. The importer writes the TOML files, and {@code ServerConfig} keeps them in memory
- * and writes its own copy back on {@code set}, which would undo the import if it had loaded first.
+ * Three reasons. The importer writes the TOML files, and {@code ServerConfig} keeps what it read in
+ * memory, so it would go on answering with the values from before the import if it had loaded first.
  * The server.properties mode, which runs inside or right after {@code load()}, has to see the
  * imported values to move them into server.properties. And everything after that line, from
  * {@code ConfigPaths.resolve("server.properties")} to Paper's configuration setup, would otherwise
@@ -213,6 +214,7 @@ public final class LegacyImport {
     private static void apply(final Path configDirectory, final ImportPlan plan, final Marker marker,
                               final ImportReport report, final Checkpoint checkpoint) throws IOException {
         final Map<String, ConfigFile> files = new LinkedHashMap<>();
+        final Map<String, TomlText> texts = new LinkedHashMap<>();
         final Map<String, Map<List<String>, Written>> written = new LinkedHashMap<>();
 
         for (final ImportPlan.Planned planned : plan.global.values()) {
@@ -228,7 +230,8 @@ public final class LegacyImport {
                 }
                 continue;
             }
-            write(file, path, entry, current, planned, entry.tomlFile() + "  " + entry.tomlPath(), report, written);
+            write(file, texts, List.of(), path, entry, current, planned, entry.tomlFile() + "  " + entry.tomlPath(),
+                report, written);
         }
 
         for (final Map.Entry<String, Map<String, ImportPlan.Planned>> world : plan.worlds.entrySet()) {
@@ -243,8 +246,8 @@ public final class LegacyImport {
                 final boolean useNested = file.raw().get(quoted) == null && file.raw().get(nested) != null;
                 final List<String> path = useNested ? nested : quoted;
                 final Object current = file.raw().get(path);
-                write(file, path, entry, current, planned, ServerConfig.WORLDS + "  [worlds." + world.getKey() + "] \""
-                    + entry.tomlPath() + "\"", report, written);
+                write(file, texts, List.of("worlds", world.getKey()), path, entry, current, planned,
+                    ServerConfig.WORLDS + "  [worlds." + world.getKey() + "] \"" + entry.tomlPath() + "\"", report, written);
             }
         }
 
@@ -252,11 +255,10 @@ public final class LegacyImport {
             secret(configDirectory, files, planned, report);
         }
 
+        // Written as text, each value replaced or inserted where it belongs, so every comment and
+        // every commented-out example in the files survives the import as it was.
         for (final String name : written.keySet()) {
-            final Path path = configDirectory.resolve(name);
-            final String trailing = trailingComments(Files.readString(path, StandardCharsets.UTF_8));
-            files.get(name).save();
-            restoreTrailingComments(path, trailing);
+            files.get(name).write(texts.get(name));
             checkpoint.reached("saved:" + name);
         }
 
@@ -277,15 +279,27 @@ public final class LegacyImport {
     private record Written(SettingEntry entry, Object value) {
     }
 
-    private static void write(final ConfigFile file, final List<String> path, final SettingEntry entry,
-                              final @Nullable Object current, final ImportPlan.Planned planned, final String where,
-                              final ImportReport report, final Map<String, Map<List<String>, Written>> written) {
+    /**
+     * Records one value in the file's text.
+     *
+     * @param prefix the exact leading segments of the path: none for a global setting,
+     *     {@code worlds.<world>} for a world's override, whose setting is then written as one quoted
+     *     key unless the file already writes it as nested tables
+     */
+    private static void write(final ConfigFile file, final Map<String, TomlText> texts, final List<String> prefix,
+                              final List<String> path, final SettingEntry entry, final @Nullable Object current,
+                              final ImportPlan.Planned planned, final String where, final ImportReport report,
+                              final Map<String, Map<List<String>, Written>> written) throws IOException {
         if (current != null && LegacyValues.same(entry, current, planned.value())
             || current == null && LegacyValues.same(entry, entry.defaultValue(), planned.value()) && !path.get(0).equals("worlds")) {
             report.unchanged++;
             return;
         }
-        file.raw().set(path, tomlValue(file.raw(), planned.value()));
+        TomlText text = texts.get(file.fileName());
+        if (text == null) {
+            text = file.text();
+        }
+        texts.put(file.fileName(), text.set(prefix, entry.tomlPath(), TomlLiterals.render(planned.value()), !prefix.isEmpty()));
         written.computeIfAbsent(file.fileName(), ignored -> new LinkedHashMap<>()).put(path, new Written(entry, planned.value()));
         report.imported.add(where + " = " + LegacyValues.describe(planned.value()) + "   <- " + planned.from());
         if (current != null && !LegacyValues.same(entry, current, entry.defaultValue())) {
@@ -295,11 +309,8 @@ public final class LegacyImport {
     }
 
     /**
-     * The comment block at the very end of a file, after its last key or table header.
-     *
-     * <p>night-config keeps a comment by attaching it to the key that follows, so a comment with
-     * no key after it is dropped on save. {@code worlds.toml} ends with such a block, its worked
-     * examples, and the import would otherwise delete them from every server it runs on.</p>
+     * The comment block at the very end of a file, after its last key or table header: in
+     * {@code worlds.toml}, the worked examples.
      */
     static String trailingComments(final String text) {
         final List<String> lines = text.lines().toList();
@@ -313,31 +324,6 @@ public final class LegacyImport {
         }
         final String block = String.join("\n", lines.subList(start, lines.size())).strip();
         return block.isEmpty() ? "" : block + "\n";
-    }
-
-    private static void restoreTrailingComments(final Path path, final String trailing) throws IOException {
-        if (trailing.isEmpty()) {
-            return;
-        }
-        final String saved = Files.readString(path, StandardCharsets.UTF_8);
-        if (trailingComments(saved).equals(trailing)) {
-            return;
-        }
-        Files.writeString(path, saved.stripTrailing() + "\n\n" + trailing, StandardCharsets.UTF_8);
-    }
-
-    private static Object tomlValue(final Config parent, final Object value) {
-        if (value instanceof final Map<?, ?> map) {
-            final Config table = parent.createSubConfig();
-            for (final Map.Entry<?, ?> entry : map.entrySet()) {
-                table.set(List.of(String.valueOf(entry.getKey())), tomlValue(table, entry.getValue()));
-            }
-            return table;
-        }
-        if (value instanceof final List<?> list) {
-            return new ArrayList<>(list);
-        }
-        return value;
     }
 
     /**

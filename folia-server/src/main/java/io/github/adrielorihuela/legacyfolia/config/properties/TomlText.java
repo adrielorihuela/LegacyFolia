@@ -17,10 +17,12 @@ import java.util.regex.Pattern;
  *
  * <p>The configuration files are mostly comments: a header, an explanation above every key, and in
  * {@code worlds.toml} a page of commented-out examples. night-config keeps the comments it can attach
- * to a key and loses the others when it saves, and it re-indents what is left. That is acceptable
- * when a file is first created; it is not when the server.properties mode resets a value to its
- * default at every start-up. So this class edits the text: it finds the line that holds a key and
- * replaces the value on it, and every other byte of the file stays where it was.</p>
+ * to a key and loses the others when it saves, and it re-indents what is left. So nothing writes
+ * these files through night-config: every write, from the server.properties mode, from
+ * {@code ConfigFile} when a release adds keys or a setting is changed, and from the importer, goes
+ * through this class, which edits the text. It finds the line that holds a key and replaces the
+ * value on it, or inserts a new key or table with its comment copied from the template, and every
+ * other byte of the file stays where it was.</p>
  *
  * <p>It understands enough TOML to find keys reliably: table headers, bare, quoted and dotted keys,
  * strings of all four kinds, and arrays and inline tables spanning lines. It is only ever given
@@ -173,6 +175,147 @@ public final class TomlText {
         return current;
     }
 
+    /**
+     * Adds a key or a table that this file lacks, copied from a template together with the comment
+     * that explains it, and puts it where the template has it.
+     *
+     * <p>A key is copied with the comment lines right above it and lands after the nearest key
+     * that comes before it in the template and that this file already has under the same table
+     * header, or right after the header when there is none. A table is copied with its banner (the
+     * comment lines right above its header) and everything under it, down to the next table that
+     * is not inside it, and lands before the first table that follows it in the template and that
+     * this file has, or at the end. Either way the text is copied byte for byte, only adopting this
+     * file's line endings, and nothing else in the file moves.</p>
+     *
+     * @param template the template's text
+     * @param path the key's or the table's path, as exact segments
+     * @return the edited file, or {@code null} when the template has no line of its own for the
+     *     path (a table that only exists through its sub-tables) or this file has nowhere to put
+     *     it (the key's table is written here in another form); the caller decides what to do
+     */
+    public TomlText addFromTemplate(final TomlText template, final List<String> path) {
+        final int tableIndex = template.headerIndex(path);
+        if (tableIndex != -1) {
+            return this.addTable(template, tableIndex);
+        }
+        for (final KeyLine key : template.keys) {
+            if (key.path.equals(path)) {
+                return this.addKey(template, key);
+            }
+        }
+        return null;
+    }
+
+    private TomlText addKey(final TomlText template, final KeyLine key) {
+        final List<String> table = key.header == -1 ? List.of() : template.headers.get(key.header).path;
+        final int here = table.isEmpty() ? -1 : this.headerIndex(table);
+        if (!table.isEmpty() && here == -1) {
+            return null;
+        }
+        int at = here == -1 ? 0 : this.headers.get(here).lineEnd;
+        // The nearest earlier sibling in the template that this file has, under the same header.
+        for (int i = template.keys.indexOf(key) - 1; i >= 0; i--) {
+            final KeyLine sibling = template.keys.get(i);
+            if (sibling.header != key.header) {
+                continue;
+            }
+            final KeyLine mine = this.key(sibling.path, here);
+            if (mine != null) {
+                at = mine.lineEnd;
+                break;
+            }
+        }
+        final String block = this.adopt(template.text.substring(template.commentStart(key.lineStart), key.lineEnd));
+        if (at == 0) {
+            return this.replace(0, 0, block + this.newline);
+        }
+        final String lead = this.text.substring(0, at).endsWith("\n") ? "" : this.newline;
+        return this.replace(at, at, lead + this.newline + block);
+    }
+
+    private TomlText addTable(final TomlText template, final int index) {
+        final Header header = template.headers.get(index);
+        int end = template.text.length();
+        int following = -1;
+        for (int i = index + 1; i < template.headers.size(); i++) {
+            final Header next = template.headers.get(i);
+            if (!startsWith(next.path, header.path) || next.path.size() == header.path.size()) {
+                end = template.commentStart(next.lineStart);
+                following = i;
+                break;
+            }
+        }
+        final String block = this.adopt(stripTrailingBlankLines(
+            template.text.substring(template.commentStart(header.lineStart), end)));
+        // Before the first table that follows it in the template and that this file has.
+        if (following != -1) {
+            for (int i = following; i < template.headers.size(); i++) {
+                final int mine = this.headerIndex(template.headers.get(i).path);
+                if (mine != -1) {
+                    final int at = this.commentStart(this.headers.get(mine).lineStart);
+                    return this.replace(at, at, block + this.newline);
+                }
+            }
+        }
+        final String normal = this.text.replace("\r\n", "\n");
+        final String lead = normal.isEmpty() || normal.endsWith("\n\n") ? ""
+            : normal.endsWith("\n") ? this.newline : this.newline + this.newline;
+        return this.replace(this.text.length(), this.text.length(), lead + block);
+    }
+
+    /** The index of the {@code [table]} header written for exactly this path, or -1. */
+    private int headerIndex(final List<String> path) {
+        for (int i = 0; i < this.headers.size(); i++) {
+            if (!this.headers.get(i).array && this.headers.get(i).path.equals(path)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private KeyLine key(final List<String> path, final int header) {
+        for (final KeyLine key : this.keys) {
+            if (key.header == header && key.path.equals(path)) {
+                return key;
+            }
+        }
+        return null;
+    }
+
+    /** Where the run of comment lines right above a line begins; the line itself if there is none. */
+    private int commentStart(final int lineStart) {
+        int start = lineStart;
+        while (start > 0) {
+            // The previous line runs from just after the newline before it up to its own newline.
+            int previousEnd = start - 1;
+            if (previousEnd > 0 && this.text.charAt(previousEnd - 1) == '\r') {
+                previousEnd--;
+            }
+            final int previousStart = this.text.lastIndexOf('\n', start - 2) + 1;
+            if (previousStart > previousEnd || !this.text.substring(previousStart, previousEnd).strip().startsWith("#")) {
+                break;
+            }
+            start = previousStart;
+        }
+        return start;
+    }
+
+    /** A block from another file with this file's line endings, ending in exactly one of them. */
+    private String adopt(final String block) {
+        final String normal = block.replace("\r\n", "\n");
+        final String ended = normal.endsWith("\n") ? normal : normal + "\n";
+        return "\n".equals(this.newline) ? ended : ended.replace("\n", this.newline);
+    }
+
+    /** A block cut at the end of its last line that is not blank. */
+    private static String stripTrailingBlankLines(final String block) {
+        int end = block.length();
+        while (end > 0 && Character.isWhitespace(block.charAt(end - 1))) {
+            end--;
+        }
+        return block.substring(0, end) + "\n";
+    }
+
     /** The {@code [table]} header written for exactly this path, if the file writes it that way. */
     private Header header(final List<String> prefix, final String rest) {
         for (final Header header : this.headers) {
@@ -274,6 +417,19 @@ public final class TomlText {
                 relative = rest.substring(dot + 1);
             }
         }
+        // A new table goes after the last thing the file says, but before a block of comments that
+        // closes the file, such as the worked examples at the end of worlds.toml, which would
+        // otherwise end up reading as if they introduced it.
+        final int contentEnd = this.contentEnd();
+        if (contentEnd > 0 && contentEnd < this.text.length() && !table.isEmpty()) {
+            final StringBuilder out = new StringBuilder(this.newline).append('[');
+            for (int i = 0; i < table.size(); i++) {
+                out.append(i == 0 ? "" : ".").append(segment(table.get(i)));
+            }
+            out.append(']').append(this.newline);
+            out.append(key(relative, quoteRest)).append(" = ").append(literal).append(this.newline);
+            return this.replace(contentEnd, contentEnd, out.toString());
+        }
         final StringBuilder out = new StringBuilder();
         if (!this.text.isEmpty() && !this.text.endsWith("\n")) {
             out.append(this.newline);
@@ -287,6 +443,24 @@ public final class TomlText {
         }
         out.append(key(relative, quoteRest)).append(" = ").append(literal).append(this.newline);
         return this.replace(this.text.length(), this.text.length(), out.toString());
+    }
+
+    /**
+     * Where the last key or table header ends, when only comments and blank lines follow it and
+     * there is at least one comment among them; otherwise -1.
+     */
+    private int contentEnd() {
+        int end = 0;
+        for (final KeyLine key : this.keys) {
+            end = Math.max(end, key.lineEnd);
+        }
+        for (final Header header : this.headers) {
+            end = Math.max(end, header.lineEnd);
+        }
+        if (end == 0 || end >= this.text.length() || this.text.indexOf('#', end) == -1) {
+            return -1;
+        }
+        return end;
     }
 
     private static String key(final String dotted, final boolean quoted) {

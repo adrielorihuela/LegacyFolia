@@ -2,21 +2,29 @@ package io.github.adrielorihuela.legacyfolia.config;
 
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.Config;
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.io.ParsingException;
 import com.electronwill.nightconfig.core.io.ParsingMode;
 import com.electronwill.nightconfig.toml.TomlFormat;
 import com.electronwill.nightconfig.toml.TomlParser;
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingKind;
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingsCatalog;
+import io.github.adrielorihuela.legacyfolia.config.properties.AtomicFiles;
+import io.github.adrielorihuela.legacyfolia.config.properties.TomlLiterals;
+import io.github.adrielorihuela.legacyfolia.config.properties.TomlText;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,6 +34,10 @@ import org.apache.logging.log4j.Logger;
  * <p>Each file is created from a template that carries a comment on every key. On upgrade, keys the
  * template has gained are merged in with their comments while keys the administrator has set are
  * left alone, so a new release explains its new options without discarding anybody's edits.</p>
+ *
+ * <p>The file is only ever written as text: new keys are inserted and changed values replaced in
+ * place, so the comments, the commented-out examples, the blank lines and the way each value is
+ * written all stay exactly as they were. Nothing here saves the parsed values back.</p>
  *
  * <p>{@link ServerConfig} is what the rest of the server talks to; this is the piece it is built
  * out of. Which file a setting lives in is decided there, not here.</p>
@@ -39,13 +51,17 @@ public final class ConfigFile {
 
     private final String fileName;
 
-    private final CommentedFileConfig config;
+    private final Path path;
+
+    /** The parsed values, replaced whole whenever the file is written, so a reader never sees half a change. */
+    private volatile CommentedConfig config;
 
     /** Whether this run is the one that created the file, for settings that migrate on first use. */
     private final boolean created;
 
-    ConfigFile(final String fileName, final CommentedFileConfig config, final boolean created) {
+    ConfigFile(final String fileName, final Path path, final CommentedConfig config, final boolean created) {
         this.fileName = fileName;
+        this.path = path;
         this.config = config;
         this.created = created;
     }
@@ -107,49 +123,101 @@ public final class ConfigFile {
             }
         }
 
-        // The format is named rather than inferred: night-config picks a parser from the file
-        // extension, and it should not matter what these are called.
-        final CommentedFileConfig config = CommentedFileConfig.builder(path, TomlFormat.instance())
-            .preserveInsertionOrder()
-            .sync()
-            .build();
+        final String text = AtomicFiles.read(path);
+        final CommentedConfig parsed = parse(text, fileName);
+        final Merged merged;
         try {
-            config.load();
-        } catch (final ParsingException e) {
-            throw new IOException("config/" + fileName + " is not valid TOML: " + e.getMessage(), e);
+            merged = merge(text, parsed, readTemplate(fileName));
+        } catch (final IllegalArgumentException | IllegalStateException e) {
+            throw new IOException("config/" + fileName + " could not be brought up to date with its template: "
+                + e.getMessage(), e);
         }
-
-        final List<String> added = merge(config, readTemplate(fileName));
-        if (!added.isEmpty()) {
-            config.save();
-            LOGGER.info("Added {} new setting(s) to config/{}: {}",
-                added.size(), fileName, String.join(", ", added));
+        if (merged.added().isEmpty()) {
+            return new ConfigFile(fileName, path, parsed, created);
         }
-
-        return new ConfigFile(fileName, config, created);
+        AtomicFiles.write(path, merged.text());
+        LOGGER.info("Added {} new setting(s) to config/{}: {}",
+            merged.added().size(), fileName, String.join(", ", merged.added()));
+        return new ConfigFile(fileName, path, parse(merged.text(), fileName), created);
     }
 
     /**
-     * Sets a value, leaving its comment in place.
+     * Sets a value and writes the file at once, changing only the text of that value.
+     *
+     * <p>The file is edited as text rather than saved from the parsed values: saving through
+     * night-config drops every comment that is not directly above a key, such as the worked
+     * examples at the end of {@code worlds.toml}, and re-indents and reflows what is left. The
+     * edit is made to the file as it is on disk now, so a change something else wrote since it was
+     * read, such as the server.properties mode, is kept.</p>
      *
      * @param path the dotted path
-     * @param value the value to store
+     * @param value the value to store: a boolean, a number, a string, a list or a map
+     * @throws UncheckedIOException if the file could not be read or written; it is then untouched
      */
     public void set(final String path, final Object value) {
-        this.config.set(path, value);
+        this.edit(text -> text.set(List.of(), path, TomlLiterals.render(value), false));
     }
 
-    /** Writes the file back out, comments and all. */
-    public void save() {
-        this.config.save();
-    }
-
-    private static CommentedConfig readTemplate(final String fileName) throws IOException {
-        final CommentedConfig parsed = CommentedConfig.inMemory();
-        try (InputStream in = openTemplate(fileName)) {
-            new TomlParser().parse(in, parsed, ParsingMode.REPLACE);
+    /**
+     * Applies an edit to the file's text and writes it, in one step.
+     *
+     * @param edit the change, made to the file as it is on disk now
+     * @throws UncheckedIOException if the file could not be read or written; it is then untouched
+     */
+    public synchronized void edit(final UnaryOperator<TomlText> edit) {
+        try {
+            final TomlText before = this.text();
+            final TomlText after = edit.apply(before);
+            if (!after.text().equals(before.text())) {
+                this.write(after);
+            }
+        } catch (final IOException e) {
+            throw new UncheckedIOException("could not write config/" + this.fileName, e);
         }
+    }
+
+    /**
+     * The file's text as it is on disk now, for an edit made in several steps and written with
+     * {@link #write(TomlText)}.
+     *
+     * @return the parsed outline of the text
+     * @throws IOException if it could not be read
+     */
+    public TomlText text() throws IOException {
+        return TomlText.parse(AtomicFiles.read(this.path));
+    }
+
+    /**
+     * Writes text produced by editing {@link #text()}, and reads the values from it.
+     *
+     * @param text the edited text
+     * @throws IOException if it could not be written; the file is then untouched
+     */
+    public synchronized void write(final TomlText text) throws IOException {
+        final CommentedConfig parsed = parse(text.text(), this.fileName);
+        AtomicFiles.write(this.path, text.text());
+        this.config = parsed;
+    }
+
+    private static CommentedConfig parse(final String text, final String fileName) throws IOException {
+        try {
+            return parse(text);
+        } catch (final ParsingException e) {
+            throw new IOException("config/" + fileName + " is not valid TOML: " + e.getMessage(), e);
+        }
+    }
+
+    /** Parses TOML text keeping its keys in the order the text has them. */
+    static CommentedConfig parse(final String text) {
+        final CommentedConfig parsed = CommentedConfig.of(LinkedHashMap::new, TomlFormat.instance());
+        new TomlParser().parse(new StringReader(text), parsed, ParsingMode.REPLACE);
         return parsed;
+    }
+
+    private static String readTemplate(final String fileName) throws IOException {
+        try (InputStream in = openTemplate(fileName)) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     private static InputStream openTemplate(final String fileName) throws IOException {
@@ -161,54 +229,108 @@ public final class ConfigFile {
         return in;
     }
 
+    /** The outcome of a merge: the new text, and the dotted paths that were added to it. */
+    record Merged(String text, List<String> added) {
+    }
+
     /**
-     * Copies keys the file does not have from the template, along with their comments.
+     * Copies the keys a file does not have from its template, each with the comment that explains
+     * it, by inserting their text where the template has them.
      *
      * <p>Only missing keys are written. A value somebody set is never replaced by the default, and
      * a key the template no longer has is never deleted — an unknown key is far more likely to come
-     * from a newer build than to be worth throwing away.</p>
+     * from a newer build than to be worth throwing away. Every byte that was in the file before is
+     * still there afterwards, in the same order: new keys and tables are inserted between them,
+     * never written over them. The one exception is a value that is not a table standing where the
+     * template has a table, which is replaced by the table.</p>
      *
-     * @param target the loaded configuration
-     * @param source the template
-     * @return the dotted paths that were added
+     * @param text the file's text
+     * @param template the template's text
+     * @return the merged text and the dotted paths added; a wholly missing table is one path
      */
-    static List<String> merge(final CommentedConfig target, final CommentedConfig source) {
-        final List<String> added = new ArrayList<>();
-        merge(target, source, "", added);
-        return added;
+    static Merged merge(final String text, final String template) {
+        return merge(text, parse(text), template);
     }
 
-    private static void merge(final CommentedConfig target, final CommentedConfig source,
-                              final String prefix, final List<String> added) {
-        for (final CommentedConfig.Entry entry : source.entrySet()) {
-            final String key = entry.getKey();
-            final List<String> at = List.of(key);
-            final String path = prefix.isEmpty() ? key : prefix + "." + key;
+    private static Merged merge(final String text, final CommentedConfig parsed, final String template) {
+        final List<String> added = new ArrayList<>();
+        final Document document = new Document(TomlText.parse(text), TomlText.parse(template));
+        merge(document, parsed, parse(template), List.of(), added);
+        return new Merged(document.text.text(), List.copyOf(added));
+    }
+
+    /** The file being merged, and the template it is merged from. */
+    private static final class Document {
+
+        private TomlText text;
+
+        private final TomlText template;
+
+        Document(final TomlText text, final TomlText template) {
+            this.text = text;
+            this.template = template;
+        }
+    }
+
+    private static void merge(final Document document, final UnmodifiableConfig target, final UnmodifiableConfig source,
+                              final List<String> prefix, final List<String> added) {
+        for (final UnmodifiableConfig.Entry entry : source.entrySet()) {
+            final List<String> path = append(prefix, entry.getKey());
+            final String dotted = String.join(".", path);
             final Object value = entry.getValue();
+            final Object existing = target.get(List.of(entry.getKey()));
 
             // A table whose keys are data, such as the command aliases, is one setting: the
             // operator's table replaces the template's rather than being topped up from it, or a
             // deleted default alias would come back at every start.
-            if (value instanceof final CommentedConfig section && !isDataTable(path)) {
-                if (!(target.get(at) instanceof final CommentedConfig existing)) {
-                    target.set(at, section);
-                    target.setComment(at, entry.getComment());
-                    added.add(path);
+            if (value instanceof final UnmodifiableConfig section && !isDataTable(dotted)) {
+                if (existing instanceof final UnmodifiableConfig mine) {
+                    merge(document, mine, section, path, added);
                     continue;
                 }
-                if (target.getComment(at) == null) {
-                    target.setComment(at, entry.getComment());
+                if (existing != null) {
+                    // Something that is not a table stands where a table belongs: it goes, and the
+                    // table is rebuilt from the template.
+                    document.text = document.text.remove(prefix, String.join(".", entry.getKey()));
                 }
-                merge(existing, section, path, added);
+                add(document, section, path);
+                added.add(dotted);
                 continue;
             }
 
-            if (!target.contains(at)) {
-                target.set(at, value);
-                target.setComment(at, entry.getComment());
-                added.add(path);
+            if (existing == null) {
+                add(document, value, path);
+                added.add(dotted);
             }
         }
+    }
+
+    /** Adds one missing key or table, with its comment, from the template. */
+    private static void add(final Document document, final Object value, final List<String> path) {
+        final TomlText edited = document.text.addFromTemplate(document.template, path);
+        if (edited != null) {
+            document.text = edited;
+            return;
+        }
+        if (value instanceof final UnmodifiableConfig section && !isDataTable(String.join(".", path))) {
+            // A table the template only writes through its sub-tables, such as [performance]
+            // above [performance.entities]: each of those is added in turn.
+            for (final UnmodifiableConfig.Entry entry : section.entrySet()) {
+                add(document, entry.getValue(), append(path, entry.getKey()));
+            }
+            return;
+        }
+        // The key's table is written in this file in a form the template's text cannot be slotted
+        // into, such as dotted keys under a parent table: the value goes in on its own, without
+        // its comment.
+        document.text = document.text.set(List.of(), String.join(".", path), TomlLiterals.render(value), false);
+    }
+
+    private static List<String> append(final List<String> prefix, final String key) {
+        final List<String> path = new ArrayList<>(prefix.size() + 1);
+        path.addAll(prefix);
+        path.add(key);
+        return List.copyOf(path);
     }
 
     private static boolean isDataTable(final String path) {
