@@ -357,9 +357,9 @@ disable-totems = true
 #    not, as 1.8's did.
 #  - An iron golem throws whatever it hits 0.4 upward, whatever its
 #    knockback resistance.
-#  - A player who joins or respawns is protected from everything but the
-#    void for three seconds, as in 1.8, rather than until their client says
-#    it has loaded the world.
+#  - A player who joins is protected from everything but the void for three
+#    seconds, as in 1.8, rather than until their client says it has loaded
+#    the world. As on Spigot 1.8.8, a respawn does not protect them again.
 
 # ----------------------------------------------------------------------------
 #  Attribute limits - the highest value an attribute may take

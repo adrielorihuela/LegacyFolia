@@ -608,7 +608,7 @@ class LegacyCombatTest {
         assertEquals(1, LegacyCombat.thornsDamage(3, bound -> 0));
         assertEquals(4, LegacyCombat.thornsDamage(3, bound -> bound - 1));
         assertEquals(5, LegacyCombat.thornsDamage(15, bound -> 0), "level - 10 above ten");
-        assertEquals(60, LegacyCombat.SPAWN_INVULNERABLE_TICKS, "three seconds after a respawn");
+        assertEquals(60, LegacyCombat.SPAWN_INVULNERABLE_TICKS, "three seconds after joining");
     }
 
     @Test

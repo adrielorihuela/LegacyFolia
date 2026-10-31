@@ -622,10 +622,12 @@ public final class Combat {
     }
 
     /**
-     * Whether a player is still protected after joining or respawning, from 1.8's
-     * {@code EntityPlayer}: for 60 ticks every kind of damage but the void is refused. The modern
-     * game protects a player instead until their client says it has loaded the world, which can
-     * be shorter or longer, and from the void too.
+     * Whether a player is still protected after joining, from CraftBukkit 1.8.8's
+     * {@code EntityPlayer}: for 60 ticks every kind of damage but the void is refused. The timer
+     * started when the player object was made, at login; a respawn or leaving the End reused the
+     * same object and did not start it again. The modern game protects a player instead after
+     * every join and respawn until their client says it has loaded the world, at most 60 ticks,
+     * and from the void too.
      *
      * @param player who is hit
      * @param source what hits them

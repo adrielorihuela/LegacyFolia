@@ -323,8 +323,8 @@ in water, 0.025 a block broken; peaceful mode gives no saturation.
 
 Fall damage rounds up (3.5 blocks hurts for 1) and hay bales do not soften a fall. Standing in fire
 holds a player at eight seconds of burning. An iron golem throws what it hits 0.4 up whatever its
-knockback resistance. A player who joins or respawns is protected from everything but the void for
-three seconds.
+knockback resistance. A player who joins is protected from everything but the void for three
+seconds; as on Spigot 1.8.8, a respawn or leaving the End does not protect them again.
 
 ### What could not be made identical
 
