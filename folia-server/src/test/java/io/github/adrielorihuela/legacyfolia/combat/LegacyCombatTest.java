@@ -467,7 +467,7 @@ class LegacyCombatTest {
     @DisplayName("fire aspect burns for a second, and the velocity restore is on")
     void fireAspectAndVelocity() {
         assertEquals(1, LegacyCombat.fireAspectSeconds(VANILLA),
-            "one flat second, against four a level in modern combat");
+            "one second before the hit; a landed hit then sets four a level, as now");
         assertTrue(VANILLA.fireAspectBeforeDamage(), "1.8 ignited before resolving the hit");
         assertTrue(LegacyCombat.restoresVelocity(VANILLA));
         Combat.use(VANILLA);

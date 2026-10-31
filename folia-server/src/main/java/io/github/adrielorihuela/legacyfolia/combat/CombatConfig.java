@@ -44,7 +44,8 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param pickaxeBaseDamage what a pickaxe's tier bonus is added to, 2.0 in 1.8 against 1.0 now
  * @param shovelBaseDamage what a shovel's tier bonus is added to, 1.0 in 1.8 against 1.5 now
  * @param fireAspectBeforeDamage whether fire aspect ignites before the hit is resolved
- * @param fireAspectSeconds how long fire aspect sets the target alight for, 1 in 1.8
+ * @param fireAspectSeconds how long fire aspect sets the target alight for before the hit, 1 in
+ *     1.8
  * @param legacyRegeneration whether health regeneration uses 1.8's single slow track
  * @param regenIntervalTicks how many ticks between regenerated hearts, 80 in 1.8
  * @param regenFoodThreshold the food level regeneration needs, 18 in 1.8

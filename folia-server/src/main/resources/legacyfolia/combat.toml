@@ -131,12 +131,14 @@ legacy-strength-and-weakness = true
 legacy-sharpness = true
 sharpness-per-level = 1.25
 
-# Fire aspect ignites the target for one second, before the hit is resolved.
+# Fire aspect lights the target for a second before the hit is resolved.
 #
-# 1.8 set the target alight and then dealt the damage, so a hit that was fully
-# blocked, or that landed inside the invulnerability window and did nothing,
-# still set them on fire. Modern combat ignites after the damage is confirmed
-# and burns for four seconds per level rather than one flat second.
+# 1.8 set a living target that was not already burning alight for one second
+# and then dealt the damage, so the fire was already burning as the hit
+# landed. A hit that landed then set four seconds a level, as now, and never
+# cut short a fire that had longer to go. A hit that did not land, inside the
+# invulnerability window for instance, put the one second out again. The
+# setting below is that first second.
 fire-aspect-before-damage = true
 fire-aspect-seconds = 1
 

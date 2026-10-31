@@ -751,7 +751,8 @@ public final class Combat {
     }
 
     /**
-     * How long this weapon's fire aspect should set a target alight for, before the hit.
+     * How long this weapon's fire aspect sets a target alight for before the hit; see
+     * {@link LegacyCombat#fireAspectSeconds}.
      *
      * @param weapon the weapon in hand
      * @return the duration in seconds, or zero when the old behaviour does not apply

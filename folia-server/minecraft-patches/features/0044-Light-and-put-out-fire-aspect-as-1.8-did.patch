@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:26:37 -0500
+Subject: [PATCH] Light and put out fire aspect as 1.8 did
+
+
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index 0bb8f8a5d6e9c939c2d558457faea5156c877699..eff0346ad0faa433ef5f8677f49de4f8d4fe8586 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1069,12 +1069,18 @@ public abstract class Player extends Avatar implements ContainerUser {
+ 
+                     Vec3 oldMovement = entity.getDeltaMovement();
+                     // LegacyFolia start - 1.8 lit the target before resolving the hit
+-                    // A hit that is fully blocked, or that lands inside the invulnerability window
+-                    // and does nothing at all, still set the target on fire.
++                    // Only a living target that was not already burning, for a second; if the hit
++                    // then did not land, the fire was put out again.
+                     final int legacyFireSeconds =
+                         io.github.adrielorihuela.legacyfolia.combat.Combat.fireAspectSeconds(attackingItemStack);
+-                    if (legacyFireSeconds > 0) {
+-                        entity.igniteForSeconds(legacyFireSeconds);
++                    boolean legacyLit = false;
++                    if (legacyFireSeconds > 0 && entity instanceof LivingEntity && !entity.isOnFire()) {
++                        final org.bukkit.event.entity.EntityCombustByEntityEvent legacyCombust =
++                            new org.bukkit.event.entity.EntityCombustByEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), (float) legacyFireSeconds);
++                        if (legacyCombust.callEvent()) {
++                            legacyLit = true;
++                            entity.igniteForSeconds(legacyCombust.getDuration(), false);
++                        }
+                     }
+                     // LegacyFolia end - 1.8 lit the target before resolving the hit
+                     boolean wasHurt = entity.hurtOrSimulate(damageSource, totalDamage);
+@@ -1097,16 +1103,10 @@ public abstract class Player extends Avatar implements ContainerUser {
+                         this.attackVisualEffects(entity, criticalAttack, sweepAttack, fullStrengthAttack, false, magicBoost);
+                         this.setLastHurtMob(entity);
+                         this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);
+-                        // LegacyFolia start - fire aspect burned for one flat second in 1.8
+-                        // The enchantment's own post-attack effect has just run and set four
+-                        // seconds per level; take it back down to what the old duration was.
+-                        if (legacyFireSeconds > 0) {
+-                            entity.setRemainingFireTicks(Math.min(entity.getRemainingFireTicks(), legacyFireSeconds * 20));
+-                        }
+-                        // LegacyFolia end - fire aspect burned for one flat second in 1.8
+                         this.damageStatsAndHearts(entity, oldLivingEntityHealth);
+                         this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.attackExhaustion(this.level().spigotConfig.combatExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's attack cost
+                     } else {
++                        if (legacyLit) entity.clearFire(); // LegacyFolia - 1.8 put out the fire a missed hit had lit
+                         this.playServerSideSound(SoundEvents.PLAYER_ATTACK_NODAMAGE);
+                     }
+                 }

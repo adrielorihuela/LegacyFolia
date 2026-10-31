@@ -482,13 +482,13 @@ public final class LegacyCombat {
     }
 
     /**
-     * How long fire aspect sets a target alight for, from {@code EntityHuman.attack}.
+     * How long fire aspect sets a target alight for before the hit, from {@code EntityHuman.attack}.
      *
-     * <p>One second, and — the part worth restoring — 1.8 lit the target <em>before</em> calling
-     * {@code damageEntity}. Two things follow. A hit that is entirely blocked, or that lands inside
-     * the invulnerability window and does nothing at all, still sets the target on fire. And the
-     * burning starts before the hit resolves rather than after. Modern combat ignites once the
-     * damage is confirmed, and for four seconds per level rather than one flat second.</p>
+     * <p>1.8 lit a living target that was not already burning for one second <em>before</em>
+     * calling {@code damageEntity}, so the fire was burning as the hit resolved. If the hit landed,
+     * the enchantment then set four seconds a level, as it still does, never shortening a longer
+     * fire. If it did not land, inside the invulnerability window for instance, the second it had
+     * lit was put out again.</p>
      *
      * @param config the duration to use
      * @return the duration in seconds
