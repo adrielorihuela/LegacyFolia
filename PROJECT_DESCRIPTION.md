@@ -1,1 +1,1 @@
-Fork of Folia that restores 1.8 PvP, fixes the locator bar, replaces the scattered configuration with one commented file, and keeps plugins up to date on its own.
+Fork of Folia, the multithreaded Minecraft 26.3 server, with 1.8 PvP, a working locator bar, eight commented TOML files in place of the YAML configuration (with an optional server.properties for panels), automatic migration from vanilla, Spigot, Paper or Folia, and plugin auto-updates.
