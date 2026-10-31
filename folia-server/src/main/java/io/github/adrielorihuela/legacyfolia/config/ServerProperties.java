@@ -325,6 +325,12 @@ public final class ServerProperties {
         return on;
     }
 
+    /** Forgets the mode after waiting for pending writes, for tests, beside {@link ServerConfig#unload()}. */
+    static void forget() {
+        drainWrites();
+        enabled = null;
+    }
+
     /** Where server.properties is, or would be. */
     public static Path file() {
         return ServerConfig.directory().resolve(FILE_NAME);
@@ -753,7 +759,11 @@ public final class ServerProperties {
         for (final SettingEntry entry : SettingsCatalog.get().all()) {
             global.put(entry.tomlPath(), fileValue(entry));
         }
-        ServerConfig.setOverrides(ServerConfig.Overrides.of(global, worldsToml(false)));
+        // Off, worlds.toml is the whole per-world layer: the catalogued overrides and the rest.
+        final Map<String, Map<String, Object>> worlds = worldsToml(false);
+        worldsToml(true).forEach((world, values) ->
+            worlds.computeIfAbsent(world, name -> new LinkedHashMap<>()).putAll(values));
+        ServerConfig.setOverrides(ServerConfig.Overrides.of(global, worlds));
         enabled = false;
         return report.build(false);
     }

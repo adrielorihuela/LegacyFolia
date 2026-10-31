@@ -104,7 +104,11 @@ public final class TomlText {
      * @return the edited file
      */
     public TomlText set(final List<String> prefix, final String rest, final String literal, final boolean quoteRest) {
-        TomlText current = this.removeUnder(prefix, rest);
+        if (literal.trim().startsWith("{") && this.header(prefix, rest) != null
+            && parseValue(literal) instanceof final Map<?, ?> table) {
+            return this.setTable(prefix, rest, table);
+        }
+        TomlText current = this.removeUnder(prefix, rest, false);
         for (final KeyLine key : current.keys) {
             if (matches(key.path, prefix, rest)) {
                 if (current.text.substring(key.valueStart, key.valueEnd).equals(literal)) {
@@ -124,7 +128,7 @@ public final class TomlText {
      * @return the edited file
      */
     public TomlText remove(final List<String> prefix, final String rest) {
-        TomlText current = this.removeUnder(prefix, rest);
+        TomlText current = this.removeUnder(prefix, rest, false);
         for (int i = current.keys.size() - 1; i >= 0; i--) {
             final KeyLine key = current.keys.get(i);
             if (matches(key.path, prefix, rest)) {
@@ -169,14 +173,39 @@ public final class TomlText {
         return current;
     }
 
-    private TomlText removeUnder(final List<String> prefix, final String rest) {
+    /** The {@code [table]} header written for exactly this path, if the file writes it that way. */
+    private Header header(final List<String> prefix, final String rest) {
+        for (final Header header : this.headers) {
+            if (!header.array && matches(header.path, prefix, rest)) {
+                return header;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Replaces the body of a table the file writes under its own header, keeping the header where
+     * it is, as the templates write {@code [plugins.commands.aliases]} and {@code [world.generators]}.
+     */
+    private TomlText setTable(final List<String> prefix, final String rest, final Map<?, ?> table) {
+        final TomlText current = this.removeUnder(prefix, rest, true);
+        final Header header = current.header(prefix, rest);
+        final StringBuilder body = new StringBuilder();
+        for (final Map.Entry<?, ?> entry : table.entrySet()) {
+            body.append(segment(String.valueOf(entry.getKey()))).append(" = ")
+                .append(TomlLiterals.render(entry.getValue())).append(this.newline);
+        }
+        return current.replace(header.lineEnd, header.lineEnd, body.toString());
+    }
+
+    private TomlText removeUnder(final List<String> prefix, final String rest, final boolean keepHeader) {
         TomlText current = this;
         boolean again = true;
         while (again) {
             again = false;
             // A table header at the path or under it goes, with its own key lines.
             for (final Header header : current.headers) {
-                if (matches(header.path, prefix, rest) || under(header.path, prefix, rest)) {
+                if (!keepHeader && matches(header.path, prefix, rest) || under(header.path, prefix, rest)) {
                     int end = current.text.length();
                     for (final Header next : current.headers) {
                         if (next.lineStart > header.lineStart) {

@@ -170,6 +170,17 @@ public final class ServerConfig {
         return files != null;
     }
 
+    /**
+     * Forgets the configuration, as if it had never been read. Only tests have a use for this: it
+     * keeps one test's temporary configuration from leaking into the next.
+     */
+    static void unload() {
+        files = null;
+        overrides = null;
+        directory = ConfigFile.DIRECTORY;
+        WORLD_VIEWS.invalidate();
+    }
+
     /** The directory the files were read from: {@code config/} on a real server. */
     public static Path directory() {
         return directory;

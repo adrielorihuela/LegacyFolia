@@ -106,15 +106,23 @@ class TomlTextTest {
     }
 
     @Test
-    @DisplayName("setting a table value replaces a table header written for it")
-    void tableFormReplaced() {
-        final String text = "[plugins.commands]\nx = 1\n\n[plugins.commands.aliases]\nfoo = [\"bar\"]\n\n[other]\ny = 2\n";
+    @DisplayName("a table written under its own header keeps the header; only its body changes")
+    void tableFormKept() {
+        final String text = "[plugins.commands]\nx = 1\n\n[plugins.commands.aliases]\nfoo = [\"bar\"]\n"
+            + "[plugins.commands.aliases.deeper]\nz = 1\n\n[other]\ny = 2\n";
         final TomlText edited = TomlText.parse(text).set(List.of(), "plugins.commands.aliases",
             TomlLiterals.render(Map.of("icanhasbukkit", List.of("version $1-"))), false);
-        final CommentedConfig parsed = parse(edited.text());
-        assertEquals(List.of("version $1-"), parsed.get(List.of("plugins", "commands", "aliases", "icanhasbukkit")));
-        assertEquals(2, (int) parsed.get("other.y"));
-        assertFalse(edited.text().contains("[plugins.commands.aliases]"));
+        assertEquals("[plugins.commands]\nx = 1\n\n[plugins.commands.aliases]\nicanhasbukkit = [\"version $1-\"]\n"
+            + "[other]\ny = 2\n", edited.text());
+    }
+
+    @Test
+    @DisplayName("an inline value replaces the same table written as dotted keys")
+    void dottedFormReplaced() {
+        final String text = "[plugins.commands]\naliases.foo = [\"bar\"]\naliases.baz = []\nx = 1\n";
+        final TomlText edited = TomlText.parse(text).set(List.of(), "plugins.commands.aliases", "{}", false);
+        assertEquals("[plugins.commands]\nx = 1\naliases = {}\n", edited.text());
+        assertTrue(parse(edited.text()).get("plugins.commands.aliases") instanceof com.electronwill.nightconfig.core.UnmodifiableConfig);
     }
 
     @Test

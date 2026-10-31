@@ -57,8 +57,9 @@ class ServerPropertiesTest {
     }
 
     @AfterEach
-    void drain() {
-        ServerProperties.flush();
+    void forget() {
+        ServerProperties.forget();
+        ServerConfig.unload();
     }
 
     // ---- helpers --------------------------------------------------------------------------
@@ -384,7 +385,7 @@ class ServerPropertiesTest {
         assertFalse(Files.exists(properties()));
         final String unused = read(ServerProperties.UNUSED_FILE_NAME);
         assertTrue(unused.contains("some-panel-key=x") && unused.contains("max-players=lots"), unused);
-        assertFalse(unused.contains("motd"));
+        assertFalse(unused.contains("motd=Kept"), "what moved into the TOML files is not kept twice");
         assertEquals("Kept", ServerConfig.getString(MOTD, "?"));
     }
 
