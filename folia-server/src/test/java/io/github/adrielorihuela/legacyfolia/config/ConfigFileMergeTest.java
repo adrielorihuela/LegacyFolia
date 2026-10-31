@@ -336,6 +336,24 @@ class ConfigFileMergeTest {
         return true;
     }
 
+    @Test
+    @DisplayName("a renamed key written dotted or quoted takes its new name too")
+    void renamesADottedOrQuotedKey() {
+        for (final String file : List.of(
+            "combat.legacy-sword-damage = false\ncombat.sword-base-damage = 4.0\n",
+            "[combat]\n\"legacy-sword-damage\" = false\nsword-base-damage = 4.0\n")) {
+            final ConfigFile.Merged merged = ConfigFile.merge(file, COMBAT_TEMPLATE);
+            final CommentedConfig parsed = ConfigFile.parse(merged.text());
+
+            assertEquals(Boolean.FALSE, (Object) parsed.get("combat.legacy-weapon-damage"), file);
+            assertFalse(parsed.contains("combat.legacy-sword-damage"), file);
+            assertIterableEquals(List.of("combat.legacy-sword-damage -> combat.legacy-weapon-damage"),
+                merged.renamed());
+            assertEquals(merged.text(), ConfigFile.merge(merged.text(), COMBAT_TEMPLATE).text(),
+                "a second start changes nothing");
+        }
+    }
+
     private static final String COMBAT_TEMPLATE = """
         [combat]
 

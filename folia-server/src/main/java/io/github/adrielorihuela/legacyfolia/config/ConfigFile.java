@@ -287,12 +287,23 @@ public final class ConfigFile {
                 current = replaceOldComment(current, rename, oldKey, "");
                 current = TomlText.parse(current).remove(List.of(), rename.from()).text();
             } else {
-                current = java.util.regex.Pattern.compile("(?m)^([ \\t]*)" + java.util.regex.Pattern.quote(oldKey) + "(?=[ \\t]*=)")
-                    .matcher(current).replaceFirst("$1" + java.util.regex.Matcher.quoteReplacement(newKey));
+                final String before = current;
+                // The key as a table's bare key, quoted, or dotted from the root: "combat.x = ...".
+                final String table = rename.from().substring(0, rename.from().length() - oldKey.length() - 1);
+                current = java.util.regex.Pattern.compile("(?m)^([ \\t]*)((?:" + java.util.regex.Pattern.quote(table)
+                        + "[ \\t]*\\.[ \\t]*)?)([\"']?)" + java.util.regex.Pattern.quote(oldKey) + "\\3(?=[ \\t]*=)")
+                    .matcher(current).replaceFirst("$1$2$3" + java.util.regex.Matcher.quoteReplacement(newKey) + "$3");
                 final String eol = current.contains("\r\n") ? "\r\n" : "\n";
                 final String found = commentAbove(template, newKey);
                 if (found != null) {
                     current = replaceOldComment(current, rename, newKey, found.replace("\n", eol) + eol);
+                }
+                if (!renamedIn(current, rename, parsed.get(rename.from()))) {
+                    // Written some other way, or the first match was another table's key.
+                    LOGGER.warn("Could not rename {} to {}; set {} again by hand.", rename.from(), rename.to(),
+                        rename.to());
+                    current = before;
+                    continue;
                 }
             }
             renamed.add(rename.from() + " -> " + rename.to());
@@ -314,6 +325,17 @@ public final class ConfigFile {
             .replace("\n", "\\E\\r?\\n\\Q");
         return java.util.regex.Pattern.compile("(?m)^" + oldPattern + "\\r?\\n(?=[ \\t]*" + java.util.regex.Pattern.quote(key) + "[ \\t]*=)")
             .matcher(text).replaceFirst(java.util.regex.Matcher.quoteReplacement(replacement));
+    }
+
+    /** Whether {@code text} has the new key with the old value, and no longer the old key. */
+    private static boolean renamedIn(final String text, final Rename rename, final Object value) {
+        final CommentedConfig after;
+        try {
+            after = parse(text);
+        } catch (final ParsingException e) {
+            return false;
+        }
+        return after.get(rename.from()) == null && value.equals(after.get(rename.to()));
     }
 
     private static String lastSegment(final String dotted) {
