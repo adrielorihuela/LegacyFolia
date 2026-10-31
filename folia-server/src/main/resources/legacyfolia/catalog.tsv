@@ -370,6 +370,7 @@ combat.legacy-fishing-rod	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.legacy-explosions	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.disable-shields	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.disable-offhand	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.disable-totems	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.attribute-limits.max-health	DOUBLE	false	SPIGOT	settings.attribute.maxHealth.max	-	-	false	false	-	1024.0	-
 combat.attribute-limits.max-absorption	DOUBLE	false	SPIGOT	settings.attribute.maxAbsorption.max	-	-	false	false	-	2048.0	-
 combat.attribute-limits.movement-speed	DOUBLE	false	SPIGOT	settings.attribute.movementSpeed.max	-	-	false	false	-	1024.0	-

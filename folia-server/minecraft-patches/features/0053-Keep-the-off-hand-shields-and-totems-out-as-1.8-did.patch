@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 11:02:39 -0500
+Subject: [PATCH] Keep the off-hand, shields and totems out as 1.8 did
+
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 3f923df4173b6746240fa35fe47ad9dd038691e4..b90062af95ea1b6f4181784c843bb44f8185b37f 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -885,6 +885,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+     @Override
+     public void tick() {
+         io.github.adrielorihuela.legacyfolia.combat.Combat.syncAttackSpeed(this); // LegacyFolia - no charge indicator with no attack cooldown
++        io.github.adrielorihuela.legacyfolia.combat.Combat.emptyOffhand(this); // LegacyFolia - 1.8 had no off-hand
+         // CraftBukkit start
+         if (this.joining) {
+             this.joining = false;
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index ae69681b69dd36e09a6fcd7a6aa0669b4a4f519c..3c5db1ad5b0c1ed3bc7da8a7e3c9e054a8e76c44 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2225,6 +2225,7 @@ public class ServerGamePacketListenerImpl
+             this.ackBlockChangesUpTo(packet.sequence());
+             ServerLevel level = this.player.level();
+             InteractionHand hand = packet.hand();
++            if (hand == InteractionHand.OFF_HAND && io.github.adrielorihuela.legacyfolia.combat.Combat.offhandDisabled()) return; // LegacyFolia - 1.8 had no off-hand
+             ItemStack itemStack = this.player.getItemInHand(hand);
+             if (itemStack.isItemEnabled(level.enabledFeatures())) {
+                 BlockHitResult blockHit = packet.hitResult();
+@@ -2315,6 +2316,7 @@ public class ServerGamePacketListenerImpl
+             this.ackBlockChangesUpTo(packet.sequence());
+             ServerLevel level = this.player.level();
+             InteractionHand hand = packet.hand();
++            if (hand == InteractionHand.OFF_HAND && io.github.adrielorihuela.legacyfolia.combat.Combat.offhandDisabled()) return; // LegacyFolia - 1.8 had no off-hand
+             ItemStack itemStack = this.player.getItemInHand(hand);
+             this.player.resetLastActionTime();
+             if (!itemStack.isEmpty() && itemStack.isItemEnabled(level.enabledFeatures())) {
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 7ed13920487a5ead08d3a50467efd16ebf591146..f8b3c6a11b42225f391b69ba32b363709e77abac 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -1812,6 +1812,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         if (killingDamage.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+             return false;
+         }
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.totemsDisabled()) return false; // LegacyFolia - 1.8 had no Totem of Undying
+ 
+         ItemStack protectionItem = null;
+         DeathProtection protection = null;
+diff --git a/net/minecraft/world/inventory/InventoryMenu.java b/net/minecraft/world/inventory/InventoryMenu.java
+index 911db526328da69363c36a1ddec51f08f8600138..79fc6a7a38290b3fba360a29f1ee7d95c26a0449 100644
+--- a/net/minecraft/world/inventory/InventoryMenu.java
++++ b/net/minecraft/world/inventory/InventoryMenu.java
+@@ -75,6 +75,13 @@ public class InventoryMenu extends AbstractCraftingMenu {
+             public Identifier getNoItemIcon() {
+                 return InventoryMenu.EMPTY_ARMOR_SLOT_SHIELD;
+             }
++
++            // LegacyFolia start - 1.8 had no off-hand: nothing goes into the slot by click, drag or shift-click
++            @Override
++            public boolean mayPlace(final ItemStack itemStack) {
++                return !io.github.adrielorihuela.legacyfolia.combat.Combat.offhandDisabled() && super.mayPlace(itemStack);
++            }
++            // LegacyFolia end - 1.8 had no off-hand
+         });
+     }
+ 
+diff --git a/net/minecraft/world/item/Item.java b/net/minecraft/world/item/Item.java
+index 520df35ddebe81bac93c8a5334a9a141eaba7786..011ab08a3dbc0bfa426946cc74556677fe2fe778 100644
+--- a/net/minecraft/world/item/Item.java
++++ b/net/minecraft/world/item/Item.java
+@@ -216,7 +216,7 @@ public class Item implements ItemLike, FeatureElement {
+             Equippable equippable = stack.get(DataComponents.EQUIPPABLE);
+             if (equippable != null && equippable.swappable()) {
+                 return equippable.swapWithEquipmentSlot(stack, player);
+-            } else if (stack.has(DataComponents.BLOCKS_ATTACKS)) {
++            } else if (stack.has(DataComponents.BLOCKS_ATTACKS) && !io.github.adrielorihuela.legacyfolia.combat.Combat.shieldDisabled(stack)) { // LegacyFolia - 1.8 had no shields
+                 player.startUsingItem(hand);
+                 return InteractionResult.CONSUME;
+             } else {

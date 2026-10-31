@@ -58,6 +58,22 @@ class LegacyItemsTest {
     }
 
     @Test
+    @DisplayName("shields, the off-hand and totems are refused, each on its own switch")
+    void missingItems() {
+        Combat.use(ON);
+        org.junit.jupiter.api.Assertions.assertTrue(Combat.shieldDisabled(new ItemStack(Items.SHIELD)));
+        org.junit.jupiter.api.Assertions.assertFalse(Combat.shieldDisabled(new ItemStack(Items.DIAMOND_SWORD)));
+        org.junit.jupiter.api.Assertions.assertTrue(Combat.offhandDisabled());
+        org.junit.jupiter.api.Assertions.assertTrue(Combat.totemsDisabled());
+        Combat.use(CombatConfigs.with(ON, "disableTotems", false));
+        org.junit.jupiter.api.Assertions.assertFalse(Combat.totemsDisabled());
+        org.junit.jupiter.api.Assertions.assertTrue(Combat.offhandDisabled());
+        Combat.use(CombatConfig.off());
+        org.junit.jupiter.api.Assertions.assertFalse(Combat.shieldDisabled(new ItemStack(Items.SHIELD)));
+        org.junit.jupiter.api.Assertions.assertFalse(Combat.offhandDisabled());
+    }
+
+    @Test
     @DisplayName("eight blocks of gold around an apple make an enchanted golden apple again")
     void notchAppleRecipe() {
         Combat.use(ON);

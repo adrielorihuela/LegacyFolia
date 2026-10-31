@@ -543,6 +543,58 @@ public final class Combat {
     }
 
     /**
+     * Whether the off-hand is refused, as it did not exist in 1.8: nothing can be put in the slot,
+     * whatever is in it goes back to the inventory, and nothing is used from it.
+     *
+     * @return whether the off-hand is gone
+     */
+    public static boolean offhandDisabled() {
+        final CombatConfig current = config;
+        return current.enabled() && current.disableOffhand();
+    }
+
+    /**
+     * Moves whatever a player holds in the off-hand into their inventory, or drops it when the
+     * inventory is full, while the off-hand is refused. Called every tick, so an item a plugin or
+     * a command puts there, or one a player had before the setting was on, does not stay.
+     *
+     * @param player the player
+     */
+    public static void emptyOffhand(final net.minecraft.server.level.ServerPlayer player) {
+        if (!offhandDisabled() || player.getOffhandItem().isEmpty()) {
+            return;
+        }
+        final net.minecraft.world.item.ItemStack held = player.getOffhandItem();
+        player.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND,
+            net.minecraft.world.item.ItemStack.EMPTY);
+        if (!player.getInventory().add(held)) {
+            player.drop(held, false, net.minecraft.util.Prediction.PREDICTED);
+        }
+    }
+
+    /**
+     * Whether a shield can no longer be raised, as shields did not exist in 1.8.
+     *
+     * @param stack the item in hand
+     * @return whether to refuse raising it
+     */
+    public static boolean shieldDisabled(final net.minecraft.world.item.ItemStack stack) {
+        final CombatConfig current = config;
+        return current.enabled() && current.disableShields()
+            && stack.is(net.minecraft.world.item.Items.SHIELD);
+    }
+
+    /**
+     * Whether a Totem of Undying no longer saves anybody, as it did not exist in 1.8.
+     *
+     * @return whether totems are gone
+     */
+    public static boolean totemsDisabled() {
+        final CombatConfig current = config;
+        return current.enabled() && current.disableTotems();
+    }
+
+    /**
      * Whether a hit that does no damage still lands on a player.
      *
      * <p>Vanilla 1.8 dropped a 0 damage hit on a player, and CraftBukkit 1.8.8 took that filter

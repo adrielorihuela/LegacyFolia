@@ -70,6 +70,7 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param walkExhaustion the exhaustion a metre of walking or sneaking costs, 0.01 in 1.8
  * @param swimExhaustion the exhaustion a metre in water costs, 0.015 in 1.8
  * @param blockBreakExhaustion the exhaustion breaking a block costs, 0.025 in 1.8
+ * @param disableTotems whether a Totem of Undying no longer saves anybody, as it did not exist
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -99,7 +100,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            boolean legacyFishingRod, boolean legacyExplosions,
                            boolean legacyPotions, boolean legacyNotchApple,
                            double walkExhaustion, double swimExhaustion,
-                           double blockBreakExhaustion) {
+                           double blockBreakExhaustion, boolean disableTotems) {
 
     private static final String PREFIX = "combat.";
 
@@ -119,7 +120,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, true,
             true, true,
             true, true,
-            0.01, 0.015, 0.025);
+            0.01, 0.015, 0.025, true);
     }
 
     /** The module off, for before the configuration exists. */
@@ -194,6 +195,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getBoolean(PREFIX + "legacy-notch-apple", defaults.legacyNotchApple()),
             ServerConfig.getDouble(PREFIX + "walk-exhaustion", defaults.walkExhaustion()),
             ServerConfig.getDouble(PREFIX + "swim-exhaustion", defaults.swimExhaustion()),
-            ServerConfig.getDouble(PREFIX + "block-break-exhaustion", defaults.blockBreakExhaustion()));
+            ServerConfig.getDouble(PREFIX + "block-break-exhaustion", defaults.blockBreakExhaustion()),
+            ServerConfig.getBoolean(PREFIX + "disable-totems", defaults.disableTotems()));
     }
 }

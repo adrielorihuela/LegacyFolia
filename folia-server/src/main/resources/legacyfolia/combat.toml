@@ -331,9 +331,17 @@ legacy-fishing-rod = true
 # knocks back away from them, on top of the blast.
 legacy-explosions = true
 
-# Shields and the off-hand slot did not exist in 1.8.
+# Shields, the off-hand slot and the Totem of Undying did not exist in 1.8.
+#
+# With disable-shields a shield cannot be raised and blocks nothing. With
+# disable-offhand nothing can be put in the off-hand, by swapping, clicking,
+# dragging or shift-clicking; whatever is already there goes back into the
+# inventory (or is dropped when it is full); and nothing is used from it.
+# With disable-totems a totem in either hand no longer saves anybody from
+# death.
 disable-shields = true
 disable-offhand = true
+disable-totems = true
 
 # ----------------------------------------------------------------------------
 #  Attribute limits - the highest value an attribute may take
