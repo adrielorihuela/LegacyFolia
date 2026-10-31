@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 08:43:42 -0500
+Subject: [PATCH] Show a weapon's 1.8 damage in its tooltip
+
+A modern client draws a weapon's attack damage from its own copy of the
+item's defaults, so with 1.8 weapon damage on, a diamond sword read 7
+while it hit for 8. The figure is now rewritten on the way out: a stack
+using its default modifiers is encoded with an attribute_modifiers
+component that carries 1.8's amount, and nothing stored changes.
+
+The component is taken back out where the server decodes a stack, which
+covers a creative client sending whole stacks back, bundles included.
+A container click compares the client's hashes with what it was sent,
+and a weapon a creative client made itself is sent back to it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/network/HashedStack.java b/net/minecraft/network/HashedStack.java
+index 6cff7159f20ceac958f133b5eb03b74495eee242..d30c12313cef9eb7bea251609548649432318eee 100644
+--- a/net/minecraft/network/HashedStack.java
++++ b/net/minecraft/network/HashedStack.java
+@@ -50,7 +50,7 @@ public interface HashedStack {
+         public boolean matches(final ItemStack itemStack, final HashedPatchMap.HashGenerator hasher) {
+             return this.count == itemStack.getCount()
+                 && this.item.equals(itemStack.typeHolder())
+-                && this.components.matches(itemStack.getComponentsPatch(), hasher);
++                && this.components.matches(io.github.adrielorihuela.legacyfolia.combat.WeaponTooltips.outgoing(itemStack.typeHolder(), itemStack.getComponentsPatch()), hasher); // LegacyFolia - 1.8 weapon tooltips: compare with what the client was sent
+         }
+     }
+ }
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index ecb1e1289b7e3c6da2c5eee465da38aa972329b7..ea0325e1047b40c8c710235107027f5df0b21c2a 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -3694,7 +3694,7 @@ public class ServerGamePacketListenerImpl
+             // CraftBukkit end
+             if (validSlot && validData) {
+                 this.player.inventoryMenu.getSlot(packet.slotNum()).setByPlayer(itemStack);
+-                this.player.inventoryMenu.setRemoteSlot(packet.slotNum(), itemStack);
++                this.player.inventoryMenu.setRemoteSlot(packet.slotNum(), io.github.adrielorihuela.legacyfolia.combat.WeaponTooltips.rewritten(itemStack) ? ItemStack.EMPTY : itemStack); // LegacyFolia - 1.8 weapon tooltips: send a weapon the client made itself back with the 1.8 figure
+                 this.player.inventoryMenu.broadcastChanges();
+                 if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
+             } else if (drop && validData) {
+diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
+index 34e2f33709007a821025c4efcc25c71bb7210b74..abee71040a6374c9d0ef602135a3e6eff15902e8 100644
+--- a/net/minecraft/world/item/ItemStack.java
++++ b/net/minecraft/world/item/ItemStack.java
+@@ -182,6 +182,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+ 
+                 Holder<Item> item = Item.STREAM_CODEC.decode(input);
+                 DataComponentPatch patch = patchCodec.decode(input);
++                patch = io.github.adrielorihuela.legacyfolia.combat.WeaponTooltips.incoming(item, patch); // LegacyFolia - 1.8 weapon tooltips
+                 return new ItemStack(item, count, patch);
+             }
+ 
+@@ -196,7 +197,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+                     boolean prev = net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.get();
+                     try (final io.papermc.paper.util.SafeAutoClosable ignored = io.papermc.paper.util.sanitizer.ItemObfuscationSession.withContext(c -> c.itemStack(itemStack))) { // pass the itemstack as context to the obfuscation session
+                         net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(true);
+-                    patchCodec.encode(output, itemStack.components.asPatch());
++                    patchCodec.encode(output, io.github.adrielorihuela.legacyfolia.combat.WeaponTooltips.outgoing(itemStack.typeHolder(), itemStack.components.asPatch())); // LegacyFolia - 1.8 weapon tooltips
+                     } finally {
+                         net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(prev);
+                     }
+diff --git a/net/minecraft/world/item/ItemStackTemplate.java b/net/minecraft/world/item/ItemStackTemplate.java
+index c5f50a6cc901e4252c2705b5b195787372e325ca..e9734d7e78939e93ad62a070e2fb13f9c5eb6b25 100644
+--- a/net/minecraft/world/item/ItemStackTemplate.java
++++ b/net/minecraft/world/item/ItemStackTemplate.java
+@@ -34,7 +34,7 @@ public record ItemStackTemplate(Holder<Item> item, @Override int count, DataComp
+         ItemStackTemplate::count,
+         DataComponentPatch.STREAM_CODEC,
+         ItemStackTemplate::components,
+-        ItemStackTemplate::new
++        (item, count, components) -> new ItemStackTemplate(item, count, io.github.adrielorihuela.legacyfolia.combat.WeaponTooltips.incoming(item, components)) // LegacyFolia - 1.8 weapon tooltips
+     );
+ 
+     public ItemStackTemplate(final Item item) {
+diff --git a/net/minecraft/world/item/crafting/display/SlotDisplay.java b/net/minecraft/world/item/crafting/display/SlotDisplay.java
+index f03c04a337b60eb4f690ab884fa5e5ed5e45a27a..b4847a441619e3b46055f2287b2198219066c913 100644
+--- a/net/minecraft/world/item/crafting/display/SlotDisplay.java
++++ b/net/minecraft/world/item/crafting/display/SlotDisplay.java
+@@ -266,7 +266,7 @@ public interface SlotDisplay {
+                 .apply(i, SlotDisplay.ItemStackSlotDisplay::new)
+         );
+         public static final StreamCodec<RegistryFriendlyByteBuf, SlotDisplay.ItemStackSlotDisplay> STREAM_CODEC = StreamCodec.composite(
+-            ItemStackTemplate.STREAM_CODEC, SlotDisplay.ItemStackSlotDisplay::stack, SlotDisplay.ItemStackSlotDisplay::new
++            ItemStackTemplate.STREAM_CODEC, display -> io.github.adrielorihuela.legacyfolia.combat.WeaponTooltips.outgoing(display.stack()), SlotDisplay.ItemStackSlotDisplay::new // LegacyFolia - 1.8 weapon tooltips
+         );
+         public static final SlotDisplay.Type<SlotDisplay.ItemStackSlotDisplay> TYPE = new SlotDisplay.Type<>(MAP_CODEC, STREAM_CODEC);
+ 

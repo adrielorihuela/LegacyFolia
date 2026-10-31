@@ -241,9 +241,10 @@ public final class Combat {
      *
      * <p>Listed by item rather than read from the item tags, because a datapack can put anything
      * in {@code #swords} and a datapack sword has no 1.8 value to go back to. Built on first use,
-     * which is always after the item registry exists.</p>
+     * which is always after the item registry exists. {@link WeaponTooltips} reads the same table,
+     * so the tooltip a client is sent and the damage a hit does come from one place.</p>
      */
-    private static final class Weapons {
+    static final class Weapons {
 
         record Entry(LegacyCombat.WeaponKind kind, double materialBonus,
                      net.minecraft.world.entity.ai.attributes.@org.jspecify.annotations.Nullable AttributeModifier modern) {
@@ -310,6 +311,28 @@ public final class Combat {
                 }
             }
             return null;
+        }
+    }
+
+    /**
+     * Sends every online player their inventory and open container again, so the weapon tooltips
+     * they hold follow a reload that changed them. Each player's resend runs on the thread that
+     * owns that player. Nothing to do at start-up, before there is a server or anybody on it.
+     */
+    private static void resendInventories() {
+        final org.bukkit.Server server = org.bukkit.Bukkit.getServer();
+        if (server == null) {
+            return;
+        }
+        for (final org.bukkit.entity.Player online : server.getOnlinePlayers()) {
+            final org.bukkit.craftbukkit.entity.CraftPlayer craft =
+                (org.bukkit.craftbukkit.entity.CraftPlayer) online;
+            craft.taskScheduler.schedule((final net.minecraft.server.level.ServerPlayer player) -> {
+                player.inventoryMenu.sendAllDataToRemote();
+                if (player.containerMenu != player.inventoryMenu) {
+                    player.containerMenu.sendAllDataToRemote();
+                }
+            }, null, 1L);
         }
     }
 
@@ -447,9 +470,22 @@ public final class Combat {
             && LegacyCombat.restoresVelocity(current);
     }
 
+    /**
+     * Puts settings in force without reading the files, for the tests.
+     *
+     * @param settings the settings to use
+     */
+    static void use(final CombatConfig settings) {
+        config = settings;
+    }
+
     /** Re-reads the settings, at start-up and on reload. */
     public static void reload() {
+        final CombatConfig before = config;
         config = CombatConfig.load();
+        if (WeaponTooltips.differ(before, config)) {
+            resendInventories();
+        }
         if (config.enabled()) {
             LOGGER.info("1.8 combat is on: no attack cooldown, no sweep, and knockback that lifts "
                 + "an airborne target. Every part of it is switchable under [combat] in "

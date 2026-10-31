@@ -26,7 +26,7 @@ import org.mockito.Mockito;
  * nothing in these tests reads). Declare this before {@code @AllFeatures} on every class that
  * uses both, so that whichever of them runs first gets here first.</p>
  */
-final class ItemSanitizerFirst implements BeforeAllCallback, BeforeEachCallback {
+public final class ItemSanitizerFirst implements BeforeAllCallback, BeforeEachCallback {
 
     private static final String SANITIZER = "io.papermc.paper.util.sanitizer.ItemComponentSanitizer";
 
