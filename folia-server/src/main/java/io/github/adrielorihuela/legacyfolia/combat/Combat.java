@@ -547,6 +547,91 @@ public final class Combat {
     }
 
     /**
+     * The exhaustion a player pays for being hurt, from {@code DamageSource.getExhaustionCost}.
+     *
+     * <p>1.8 charged 0.3 for every source except those that ignore armour (falls, burning,
+     * drowning, suffocation, starving, the void, magic, wither), which cost nothing. Modern
+     * damage types charge 0.1 for nearly everything, a third of what a hit used to drain.</p>
+     *
+     * @param source what hurt the player
+     * @return the exhaustion
+     */
+    public static float damageExhaustion(final net.minecraft.world.damagesource.DamageSource source) {
+        final CombatConfig current = config;
+        if (!current.enabled()) {
+            return source.getFoodExhaustion();
+        }
+        return LegacyCombat.damageExhaustion(
+            source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_ARMOR), current);
+    }
+
+    /**
+     * Wears a helmet down the way a falling anvil or block did in 1.8, from CraftBukkit 1.8.8's
+     * {@code EntityLiving.d(DamageSource, float)}.
+     *
+     * <p>{@code (int) (damage * 4 + random * damage * 2)} durability, on any living thing wearing
+     * one, where the damage is what the invulnerability window left and before the hard hat took
+     * its quarter. A 20 damage anvil costs 80 to 119 durability; now it costs 5, and a mob's helmet
+     * never wears at all.</p>
+     *
+     * @param entity who was hit
+     * @param damage the damage after the window, before the hard hat
+     * @return whether the helmet was handled here, false to leave it to the game
+     */
+    public static boolean wearHelmet(final net.minecraft.world.entity.LivingEntity entity,
+                                     final float damage) {
+        if (!config.enabled()) {
+            return false;
+        }
+        final net.minecraft.world.item.ItemStack helmet =
+            entity.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
+        helmet.hurtAndBreak(LegacyCombat.helmetWear(damage, entity.getRandom().nextFloat()), entity,
+            net.minecraft.world.entity.EquipmentSlot.HEAD);
+        return true;
+    }
+
+    /**
+     * Whether a hit on a player is scaled by the difficulty, from 1.8's {@code DamageSource.r()}.
+     *
+     * <p>1.8 looked at the entity that dealt the hit directly: a mob's melee hit scaled, but its
+     * arrow or fireball did not, because the arrow is not a living thing. An explosion scaled
+     * unless a player set it off. The modern rule looks at the entity behind the hit, so a
+     * skeleton's arrows do half again as much on Hard.</p>
+     *
+     * @param source what is hitting the player
+     * @return whether the difficulty changes the damage
+     */
+    public static boolean scalesWithDifficulty(final net.minecraft.world.damagesource.DamageSource source) {
+        if (!config.enabled()) {
+            return source.scalesWithDifficulty();
+        }
+        final boolean always = source.type().scaling()
+            == net.minecraft.world.damagesource.DamageScaling.ALWAYS;
+        if (source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)) {
+            final net.minecraft.world.entity.Entity cause = source.getEntity();
+            return cause == null ? always : livingNonPlayer(cause);
+        }
+        final net.minecraft.world.entity.Entity direct = source.getDirectEntity();
+        return direct == null ? always : livingNonPlayer(direct);
+    }
+
+    private static boolean livingNonPlayer(final net.minecraft.world.entity.Entity entity) {
+        return entity instanceof net.minecraft.world.entity.LivingEntity
+            && !(entity instanceof net.minecraft.world.entity.player.Player);
+    }
+
+    /**
+     * A hit on Easy, from 1.8's {@code EntityHuman.damageEntity}: {@code damage / 2 + 1}, with no
+     * ceiling, so a 1 damage hit does 1.5. The modern rule never raises a hit.
+     *
+     * @param damage the damage before the difficulty
+     * @return the damage on Easy
+     */
+    public static float easyDamage(final float damage) {
+        return config.enabled() ? damage / 2.0F + 1.0F : Math.min(damage / 2.0F + 1.0F, damage);
+    }
+
+    /**
      * The health an instant healing effect restores.
      *
      * <p>The modern game already uses 1.8's {@code 4 << amplifier}; this exists so the base can be

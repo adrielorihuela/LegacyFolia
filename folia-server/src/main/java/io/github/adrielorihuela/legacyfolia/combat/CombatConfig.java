@@ -59,6 +59,7 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param splashRadius the radius over which a splash potion weakens to nothing, 4.0 in 1.8
  * @param legacyStrength whether Strength multiplies the attack damage by {@code 1 + 1.3 * level}
  *     and Weakness takes {@code 0.5 * level} off it, as in 1.8
+ * @param damageExhaustion the exhaustion a player pays for damage that armour stops, 0.3 in 1.8
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -83,7 +84,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            double sprintJumpExhaustion, double jumpExhaustion,
                            boolean legacyInstantPotions, int instantDamageBase,
                            int instantHealBase, double splashRadius,
-                           boolean legacyStrength) {
+                           boolean legacyStrength, double damageExhaustion) {
 
     private static final String PREFIX = "combat.";
 
@@ -99,7 +100,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 80, 18, false,
             0.3, 3.0, 0.8, 0.2,
             true, 6, 4, 4.0,
-            true);
+            true, 0.3);
     }
 
     /** The module off, for before the configuration exists. */
@@ -164,6 +165,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getInt(PREFIX + "instant-damage-base", defaults.instantDamageBase()),
             ServerConfig.getInt(PREFIX + "instant-heal-base", defaults.instantHealBase()),
             ServerConfig.getDouble(PREFIX + "splash-radius", defaults.splashRadius()),
-            ServerConfig.getBoolean(PREFIX + "legacy-strength-and-weakness", defaults.legacyStrength()));
+            ServerConfig.getBoolean(PREFIX + "legacy-strength-and-weakness", defaults.legacyStrength()),
+            ServerConfig.getDouble(PREFIX + "damage-exhaustion", defaults.damageExhaustion()));
     }
 }

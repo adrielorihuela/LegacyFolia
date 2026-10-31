@@ -420,6 +420,23 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("being hurt costs 0.3 unless armour does not stop the damage")
+    void damageExhaustion() {
+        assertEquals(0.3F, LegacyCombat.damageExhaustion(false, VANILLA), 0.0001F);
+        assertEquals(0.0F, LegacyCombat.damageExhaustion(true, VANILLA), 0.0F);
+        assertEquals(0.3, VANILLA.damageExhaustion(), EPSILON);
+    }
+
+    @Test
+    @DisplayName("a falling anvil wears a helmet by four to six times its damage")
+    void helmetWear() {
+        assertEquals(80, LegacyCombat.helmetWear(20.0F, 0.0F), "a 20 damage anvil, worst roll");
+        assertEquals(119, LegacyCombat.helmetWear(20.0F, 0.999F), "best roll");
+        assertEquals(10, LegacyCombat.helmetWear(2.5F, 0.0F));
+        assertEquals(0, LegacyCombat.helmetWear(0.0F, 0.5F));
+    }
+
+    @Test
     @DisplayName("a sprinting jump costs four times a standing one")
     void jumpExhaustion() {
         assertEquals(0.8F, LegacyCombat.jumpExhaustion(true, VANILLA), 0.0001F);

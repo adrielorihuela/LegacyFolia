@@ -352,6 +352,7 @@ combat.attack-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.3	-
 combat.regen-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	3.0	-
 combat.sprint-jump-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.8	-
 combat.jump-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.2	-
+combat.damage-exhaustion	DOUBLE	false	NONE	-	-	-	false	false	-	0.3	-
 combat.legacy-instant-potions	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.instant-damage-base	INT	false	NONE	-	-	-	false	false	-	6	-
 combat.instant-heal-base	INT	false	NONE	-	-	-	false	false	-	4	-

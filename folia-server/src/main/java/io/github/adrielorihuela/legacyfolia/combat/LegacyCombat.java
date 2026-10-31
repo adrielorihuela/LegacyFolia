@@ -319,6 +319,29 @@ public final class LegacyCombat {
     }
 
     /**
+     * The exhaustion a player pays for being hurt, from 1.8's {@code DamageSource}.
+     *
+     * @param ignoresArmor whether the damage is of a kind armour does not stop
+     * @param config the cost of the rest
+     * @return 0 for damage that ignores armour, the configured cost (0.3) otherwise
+     */
+    public static float damageExhaustion(final boolean ignoresArmor, final CombatConfig config) {
+        return ignoresArmor ? 0.0F : (float) config.damageExhaustion();
+    }
+
+    /**
+     * The durability a falling anvil or block takes off a helmet, from CraftBukkit 1.8.8's
+     * {@code EntityLiving.d(DamageSource, float)}.
+     *
+     * @param damage the damage after the invulnerability window, before the hard hat
+     * @param random a {@code nextFloat()}
+     * @return {@code (int) (damage * 4 + random * damage * 2)}
+     */
+    public static int helmetWear(final float damage, final float random) {
+        return (int) (damage * 4.0F + random * damage * 2.0F);
+    }
+
+    /**
      * The four kinds of weapon whose damage 1.8 built as a base plus the material's bonus.
      *
      * <p>{@code ItemSword} added its material's bonus to 4, and {@code ItemTool} to the figure each
