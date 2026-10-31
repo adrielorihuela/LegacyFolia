@@ -3,7 +3,7 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.18.0` · **Base:** Folia
+**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.19.0` · **Base:** Folia
 `ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
@@ -62,6 +62,7 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.16.0 | 10-31 | Daño de las armas de 1.8 (espadas, hachas, picos y palas), el último de los nueve enganches del PvP |
 | v0.17.0 | 10-31 | El tooltip de las armas muestra el daño de 1.8: se reescribe al enviar el objeto y se quita de lo que devuelve un cliente en creativo |
 | v0.18.0 | 10-31 | Locator bar idéntica a la de vanilla: solo la dimensión propia, la máquina de estados de conexiones de vanilla sobre snapshots, todos los paquetes en el hilo del receptor |
+| v0.19.0 | 10-31 | PvP 1.8 idéntico a Spigot 1.8.8: daño, protección, bloqueo, knockback, alcance, proyectiles, caña, explosiones, pociones, comida, invulnerabilidad al entrar; 12 claves nuevas (parches 0038–0057) |
 
 **Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
@@ -78,9 +79,9 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 323 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
-(verificado el 2026-10-31 al cerrar el punto 4 de §5, que aporta 17 casos en `LegacyCombatTest`, 3
-en `LegacyItemsTest`, que es nuevo, y 3 en `ConfigFileMergeTest`; eran 303, en 38 archivos, al
+**Tests:** 325 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
+(verificado el 2026-10-31 al cerrar `v0.19.0`, el punto 4 de §5, que aporta 22 casos entre
+`LegacyCombatTest`, `LegacyItemsTest`, que es nuevo, y `ConfigFileMergeTest`; eran 303, en 38 archivos, al
 cerrar `v0.18.0`, que aporta 14 en `WaypointConnectionsTest` y 1 en
 `WaypointSnapshotTest`; al cerrar `v0.17.0` eran 288, en 37 archivos: esa versión aportó 13 en
 `WeaponTooltipsTest`; al cerrar
@@ -181,11 +182,11 @@ fuente de todo lo que lee el servidor.
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-31), `main` y el tag `v0.18.0` están publicados y `main` es la única rama.
+Al escribir esto (2026-10-31), `main` y el tag `v0.19.0` están publicados y `main` es la única rama.
 **La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. **El punto 2
 (daño de las armas, `v0.16.0`, y su tooltip, `v0.17.0`) también, y el punto 3 (locator bar, `v0.18.0`).**
-**El punto 4 (PvP 1.8 idéntico) también está hecho**, en `main` y sin tag ni push todavía. Lo
-siguiente es el punto 5 (release) y el 6 (`/init`). Lo que sigue en este apartado es el historial de
+**El punto 4 (PvP 1.8 idéntico, `v0.19.0`) también.** Lo siguiente es el punto 6 (`/init`); la
+release (punto 5) espera a que el usuario la pida. Lo que sigue en este apartado es el historial de
 la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
@@ -313,33 +314,36 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    `ServerPlayer`, así que no hay el primer tick que vanilla tiene tras reaparecer; y un
    `remakeConnections` sobre un emisor no seguido (agachado) no conecta a los espectadores como en
    vanilla. **Sin comprobar con un cliente real.**
-4. **PvP 1.8 idéntico al original. HECHO (2026-10-31, sin tag).** Se compararon todas las mecánicas
-   con el código de Spigot/CraftBukkit 1.8.8 y se corrigieron en los parches 0038–0055, cada uno con
+4. **PvP 1.8 idéntico al original. HECHO (2026-10-31, `v0.19.0`).** Se compararon todas las mecánicas
+   con el código de Spigot/CraftBukkit 1.8.8 y se corrigieron en los parches 0038–0057, cada uno con
    su clave o con `enabled`: Fuerza y Debilidad, las cinco protecciones (redondeo hacia abajo, vacío),
    bloqueo como modificador `BLOCKING` (solo jugadores, no contra daño que ignora armadura) y la
    ventana de invulnerabilidad con el daño bruto, golpes de 0 de daño a jugadores, casco, agotamiento,
    dificultad, todo el knockback (dirección, resistencia, empuje extra, precisión, restore solo de
    jugadores), sharpness con smite/bane y en mobs, bane, fire aspect, sonidos/estadística/inclinación/
    críticos, alcance, proyectiles, caña, explosiones, pociones, manzana de Notch (efectos y receta),
-   comida, mano secundaria/escudos/tótems, caídas/fuego/espinas/gólem, invulnerabilidad al aparecer.
-   Claves nuevas (12) y `legacy-sword-damage` renombrada al arrancar. Lo que no se pudo igualar
-   (hitbox agachado, camas/miel/carga de viento, animación de bloqueo en cliente moderno) está en
-   `PVP-1.8.md`. Probado con tests y arrancando el servidor; **sin probar con clientes reales**.
-   El plan con el que se hizo: comparar nuestro combate (`combat/` y los
-   parches 0016, 0017 y 0020–0027) y el código fuente de 1.8.8 (`reference/fetch-1.8.8-source.sh`),
-   cubriendo todas las mecánicas y no solo las fórmulas: orden de los modificadores, knockback, bloqueo
-   con espada, críticos, invulnerabilidad, hambre, pociones y encantamientos. Después corregir hasta
-   que sea **exactamente** igual.
-   Cabos sueltos que ya se conocen para esta revisión:
-   - Fuerza y Debilidad funcionaban de otra forma en 1.8, y el daño de armas de `v0.16.0` no lo cambia.
-   - La ruta de ataque del jugador para el daño de armas solo se probó con mobs, no con un cliente real.
-   - En los `combat.toml` existentes queda una clave huérfana, `legacy-sword-damage` (ahora
-     `legacy-weapon-damage`). El merge no borra claves.
-   - La tabla de ajustes de `docs/PVP-1.8.md` está incompleta: le faltan armadura, regeneración, etc.
-   - Tooltip: resuelto en `v0.17.0`, comprobado con tests y sin cliente real; falta verlo en un
-     cliente moderno y en uno 1.8 vía ViaVersion.
-5. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto. Los puntos 3 y 4 son
-   lo último que se hace antes.
+   comida, mano secundaria/escudos/tótems, caídas/fuego/espinas/gólem, invulnerabilidad al entrar.
+   Claves nuevas (12) y `legacy-sword-damage` renombrada al arrancar (también escrita con punto o
+   entre comillas; si no se puede, avisa en vez de decir que lo hizo). La tabla de ajustes de
+   `PVP-1.8.md` está completa.
+   Tras la revisión del código se corrigieron además: la TNT se empuja desde los pies (0056); los
+   rayos de las explosiones y la línea de visión del alcance se paran en hierba, flores, antorchas y
+   carteles, como `World.rayTrace` de 1.8, con la cabeza agachada a 1,54; una explosión de bola de
+   fuego, cráneo de wither o cristal del End no tiene causante (sin empuje base hacia el ghast, el
+   wither o quien rompió el cristal, y escala con la dificultad); la invulnerabilidad de 3 s solo al
+   entrar al servidor, no al reaparecer ni al salir del End (0057), y deja pasar las caídas en un mundo
+   con PvP. Se rechazó volver a sumar la espera de carga del cliente moderno: vanilla también la corta
+   a los 60 ticks, y 1.8 no la tenía.
+   Lo que no se pudo igualar (hitbox agachado, camas/miel/carga de viento, animación de bloqueo en
+   cliente moderno; la caña en el agua y clavada mantiene la lógica moderna) está en `PVP-1.8.md`.
+   Probado con 325 tests y arrancando el servidor (`Done (`).
+   **Sin comprobar con clientes reales**, y conviene hacerlo antes de la release: golpes, combos y
+   knockback entre dos jugadores; bloqueo con espada y su animación; el indicador de cooldown
+   oculto; alcance a través de hierba; caña, perlas y flechas; explosiones de TNT y creeper; pociones
+   y manzana de Notch; reaparecer y recibir un golpe al momento; el tooltip de `v0.17.0` en un
+   cliente moderno y en uno 1.8 vía ViaVersion.
+5. **Release `v1.0.0`** con el jar `legacyfolia-paperclip-<versión>.jar` adjunto. Los puntos 3 y 4
+   ya están; el usuario decide cuándo se hace.
 6. **`/init`** para generar `CLAUDE.md`, y un último commit.
 
 ## 6. Decisiones del usuario (decididas)
