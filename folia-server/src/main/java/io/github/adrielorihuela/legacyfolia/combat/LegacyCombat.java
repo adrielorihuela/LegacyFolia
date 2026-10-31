@@ -351,6 +351,68 @@ public final class LegacyCombat {
     }
 
     /**
+     * The motion a projectile is launched with, from 1.8's {@code EntityProjectile.shoot} and
+     * {@code EntityArrow.shoot}: the direction divided by its {@code float} length, each axis
+     * nudged by {@code nextGaussian() * 0.0075 * inaccuracy}, then scaled by the speed. The
+     * modern game nudges by a triangle distribution of width {@code 0.0172275 * inaccuracy}.
+     *
+     * @param xd the direction along x
+     * @param yd the direction along y
+     * @param zd the direction along z
+     * @param speed the launch speed
+     * @param inaccuracy the inaccuracy
+     * @param gaussian a {@code nextGaussian()}
+     * @return the motion
+     */
+    public static Vec3 movementToShoot(final double xd, final double yd, final double zd,
+                                       final float speed, final float inaccuracy,
+                                       final java.util.function.DoubleSupplier gaussian) {
+        final float length = (float) Math.sqrt(xd * xd + yd * yd + zd * zd);
+        final double spread = (double) 0.0075F * (double) inaccuracy;
+        final double x = xd / (double) length + gaussian.getAsDouble() * spread;
+        final double y = yd / (double) length + gaussian.getAsDouble() * spread;
+        final double z = zd / (double) length + gaussian.getAsDouble() * spread;
+        return new Vec3(x * (double) speed, y * (double) speed, z * (double) speed);
+    }
+
+    /**
+     * Where a projectile starts, from 1.8's {@code EntityProjectile(World, EntityLiving)}: the
+     * thrower's head less 0.1, moved 0.16 along the axis to its side.
+     *
+     * @param x the thrower's x
+     * @param y the thrower's feet
+     * @param z the thrower's z
+     * @param eyeHeight the thrower's head height
+     * @param yawDegrees which way it faces
+     * @return the position
+     */
+    public static Vec3 projectileOrigin(final double x, final double y, final double z,
+                                        final double eyeHeight, final float yawDegrees) {
+        final float radians = yawDegrees / 180.0F * 3.1415927F;
+        return new Vec3(x - (double) (net.minecraft.util.Mth.cos(radians) * 0.16F),
+            y + eyeHeight - 0.10000000149011612,
+            z - (double) (net.minecraft.util.Mth.sin(radians) * 0.16F));
+    }
+
+    /**
+     * The push of an arrow shot with Punch, from 1.8's {@code EntityArrow}: along its horizontal
+     * motion, {@code level * 0.6} long, with 0.1 up, and no knockback resistance. The horizontal
+     * length is a {@code float} square root.
+     *
+     * @param motion the arrow's motion
+     * @param level the Punch level, or the knockback it adds
+     * @return the push, or null when the arrow has no horizontal motion
+     */
+    public static @org.jspecify.annotations.Nullable Vec3 punch(final Vec3 motion, final double level) {
+        final float horizontal = (float) Math.sqrt(motion.x * motion.x + motion.z * motion.z);
+        if (horizontal <= 0.0F) {
+            return null;
+        }
+        return new Vec3(motion.x * level * 0.6000000238418579 / (double) horizontal, 0.1,
+            motion.z * level * 0.6000000238418579 / (double) horizontal);
+    }
+
+    /**
      * Whether an entity is in reach, from 1.8's {@code PlayerConnection.a(PacketPlayInUseEntity)}:
      * the squared distance between the two positions is below 36 when the player can see the
      * target and below 9 when they cannot.

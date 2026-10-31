@@ -244,6 +244,57 @@ public final class Combat {
     }
 
     /**
+     * Whether thrown and shot projectiles fly the way 1.8's did: Gaussian spread, no motion
+     * inherited from the thrower, a move before drag and gravity, a 0.3 margin from the first tick,
+     * the thrower spared for five ticks, a launch point 0.16 to the side, arrows passing through
+     * creative players, Punch ignoring knockback resistance, and pearls with no cooldown that land
+     * where they were before their last move.
+     *
+     * @return whether the old projectiles apply
+     */
+    public static boolean legacyProjectiles() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyProjectiles();
+    }
+
+    /**
+     * Where a living thing's projectile starts, from 1.8's {@code EntityProjectile} and
+     * {@code EntityArrow} constructors: at its head height less 0.1, moved 0.16 to the side it
+     * faces, with a sneaking player's head at 1.54 as 1.8 had it rather than the 1.27 of today's
+     * crouch.
+     *
+     * @param owner who threw or shot it
+     * @return the position, or null to keep the game's
+     */
+    public static net.minecraft.world.phys.@org.jspecify.annotations.Nullable Vec3 projectileOrigin(
+        final net.minecraft.world.entity.LivingEntity owner) {
+        if (!legacyProjectiles()) {
+            return null;
+        }
+        final double eyeHeight = owner instanceof net.minecraft.world.entity.player.Player player
+            ? (double) (player.isShiftKeyDown() ? 1.62F - 0.08F : 1.62F)
+            : (double) owner.getEyeHeight();
+        return LegacyCombat.projectileOrigin(owner.getX(), owner.getY(), owner.getZ(), eyeHeight,
+            owner.getYRot());
+    }
+
+    /**
+     * Takes away the cooldown the modern ender pearl puts on itself, which 1.8 never had. The
+     * cooldown is applied and then removed so a modern client, which starts its own when it
+     * throws, is told it is over.
+     *
+     * @param used the stack that was used
+     * @param user who used it
+     */
+    public static void clearPearlCooldown(final net.minecraft.world.item.ItemStack used,
+                                          final net.minecraft.world.entity.LivingEntity user) {
+        if (legacyProjectiles() && used.is(net.minecraft.world.item.Items.ENDER_PEARL)
+            && user instanceof net.minecraft.world.entity.player.Player player) {
+            player.getCooldowns().removeCooldown(player.getCooldowns().getCooldownGroup(used));
+        }
+    }
+
+    /**
      * Whether a hit that does no damage still lands on a player.
      *
      * <p>Vanilla 1.8 dropped a 0 damage hit on a player, and CraftBukkit 1.8.8 took that filter

@@ -1,0 +1,168 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:39:17 -0500
+Subject: [PATCH] Throw and shoot the way 1.8 did
+
+
+diff --git a/net/minecraft/world/entity/projectile/Projectile.java b/net/minecraft/world/entity/projectile/Projectile.java
+index a0e2e0f2f4258cf8c714b33df5b1d3dd758215a5..f8b32dac48da6984a2a1673cd0bd750aab913e24 100644
+--- a/net/minecraft/world/entity/projectile/Projectile.java
++++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -172,6 +172,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
+     }
+ 
+     public Vec3 getMovementToShoot(final double xd, final double yd, final double zd, final float pow, final float uncertainty) {
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) return io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.movementToShoot(xd, yd, zd, pow, uncertainty, this.random::nextGaussian); // LegacyFolia - 1.8's spread
+         return new Vec3(xd, yd, zd)
+             .normalize()
+             .add(
+@@ -203,7 +204,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
+         if (!sourceMovement.isFinite()) {
+             sourceMovement = Vec3.ZERO;
+         }
+-        if (!source.level().paperConfig().misc.disableRelativeProjectileVelocity) {
++        if (!source.level().paperConfig().misc.disableRelativeProjectileVelocity && !io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) { // LegacyFolia - 1.8 did not add the thrower's motion
+         this.setDeltaMovement(this.getDeltaMovement().add(sourceMovement.x, source.onGround() ? 0.0 : sourceMovement.y, sourceMovement.z));
+         }
+         // Paper end - allow disabling relative velocity
+@@ -496,6 +497,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
+             }
+         }
+         // Paper end - Cancel hit for vanished entities
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) return owner == null || entity != owner || this.tickCount >= 5; // LegacyFolia - 1.8 spared the thrower for five ticks
+         return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(entity);
+     }
+ 
+diff --git a/net/minecraft/world/entity/projectile/ProjectileUtil.java b/net/minecraft/world/entity/projectile/ProjectileUtil.java
+index 990d4b50edd40757449298640f9ee5e71daa110d..d5fb0d975317dfcee6f31097aba87cdc3abb13bb 100644
+--- a/net/minecraft/world/entity/projectile/ProjectileUtil.java
++++ b/net/minecraft/world/entity/projectile/ProjectileUtil.java
+@@ -151,6 +151,7 @@ public final class ProjectileUtil {
+     }
+ 
+     public static float computeMargin(final Entity source) {
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) return 0.3F; // LegacyFolia - 1.8 grew every projectile by 0.3 from the start
+         return Math.max(0.0F, Math.min(0.3F, (source.tickCount - 2) / 20.0F));
+     }
+ 
+diff --git a/net/minecraft/world/entity/projectile/ThrowableProjectile.java b/net/minecraft/world/entity/projectile/ThrowableProjectile.java
+index e131cd7180b5310f2b4392f0d547f112967b17b4..468c5ad64df9cea852aff7a409e003a867e45d6d 100644
+--- a/net/minecraft/world/entity/projectile/ThrowableProjectile.java
++++ b/net/minecraft/world/entity/projectile/ThrowableProjectile.java
+@@ -48,8 +48,11 @@ public abstract class ThrowableProjectile extends Projectile {
+         }
+         // Folia end - region threading - make sure entities do not move into regions they do not own
+         this.handleFirstTickBubbleColumn();
++        final boolean legacyOrder = io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles(); // LegacyFolia - 1.8 moved first, then slowed and fell
++        if (!legacyOrder) {
+         this.applyGravity();
+         this.applyInertia();
++        }
+         HitResult result = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
+         Vec3 newPosition;
+         if (result.getType() != HitResult.Type.MISS) {
+@@ -60,6 +63,10 @@ public abstract class ThrowableProjectile extends Projectile {
+ 
+         this.setPos(newPosition);
+         this.updateRotation();
++        if (legacyOrder) {
++            this.applyInertia();
++            this.applyGravity();
++        }
+         this.applyEffectsFromBlocks();
+         super.tick();
+         if (result.getType() != HitResult.Type.MISS && this.isAlive()) {
+diff --git a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+index 89a67fa2d9e9939f77b2311f53624c0fb2f2db93..6d7e6c44d61ed34cb3a7ffac96cf8a99f3887a35 100644
+--- a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
++++ b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
+@@ -129,6 +129,8 @@ public abstract class AbstractArrow extends Projectile {
+     ) {
+         this(type, mob.getX(), mob.getEyeY() - 0.1F, mob.getZ(), level, pickupItemStack, firedFromWeapon, mob); // CraftBukkit
+         // this.setOwner(mob); // SPIGOT-7744 - Moved to the above constructor
++        final Vec3 legacyOrigin = mob instanceof Player ? io.github.adrielorihuela.legacyfolia.combat.Combat.projectileOrigin(mob) : null; // LegacyFolia - 1.8 shot a player's arrow from 0.16 to the side
++        if (legacyOrigin != null) this.setPos(legacyOrigin);
+     }
+ 
+     public void setSoundEvent(final SoundEvent soundEvent) {
+@@ -239,7 +241,7 @@ public abstract class AbstractArrow extends Projectile {
+             this.inGroundTime = 0;
+             Vec3 originalPosition = this.position();
+             if (this.isInWater()) {
+-                this.applyInertia(this.getWaterInertia());
++                if (!io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) this.applyInertia(this.getWaterInertia()); // LegacyFolia - 1.8 slowed an arrow in water after its move
+                 this.addBubbleParticles(originalPosition);
+             }
+ 
+@@ -280,6 +282,9 @@ public abstract class AbstractArrow extends Projectile {
+                 this.applyEffectsFromBlocks();
+             }
+ 
++            if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) { // LegacyFolia - 1.8 slowed an arrow in water after its move
++                this.applyInertia(this.isInWater() ? this.getWaterInertia() : this.getAirDrag());
++            } else
+             if (!this.isInWater()) {
+                 this.applyInertia(this.getAirDrag());
+             }
+@@ -558,6 +563,15 @@ public abstract class AbstractArrow extends Projectile {
+         double knockback = this.firedFromWeapon != null && this.level() instanceof ServerLevel serverLevel
+             ? EnchantmentHelper.modifyKnockback(serverLevel, this.firedFromWeapon, mob, damageSource, 0.0F)
+             : 0.0F;
++        // LegacyFolia start - 1.8's Punch ignored knockback resistance
++        if (knockback > 0.0 && io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles()) {
++            final Vec3 legacyPunch = io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.punch(this.getDeltaMovement(), knockback);
++            if (legacyPunch != null) {
++                mob.push(legacyPunch.x, legacyPunch.y, legacyPunch.z, this);
++            }
++            return;
++        }
++        // LegacyFolia end - 1.8's Punch ignored knockback resistance
+         if (knockback > 0.0) {
+             double knockbackResistance = Math.max(0.0, 1.0 - mob.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
+             Vec3 movement = this.getDeltaMovement().multiply(1.0, 0.0, 1.0).normalize().scale(knockback * 0.6 * knockbackResistance);
+@@ -634,6 +648,7 @@ public abstract class AbstractArrow extends Projectile {
+ 
+     @Override
+     protected boolean canHitEntity(final Entity entity) {
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles() && entity instanceof Player invulnerable && invulnerable.getAbilities().invulnerable) return false; // LegacyFolia - 1.8's arrows passed through creative players
+         return !(entity instanceof Player playerEntity && this.getOwner() instanceof Player player && !player.canHarmPlayer(playerEntity))
+             && super.canHitEntity(entity)
+             && (this.piercingIgnoreEntityIds == null || !this.piercingIgnoreEntityIds.contains(entity.getId()));
+diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrowableItemProjectile.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrowableItemProjectile.java
+index a7b1f28c4bbcfe8815cb4c88a4fb21f084142e31..cf987ec02bb51e868cbb40f13f2f5c096adedb09 100644
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrowableItemProjectile.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrowableItemProjectile.java
+@@ -34,6 +34,8 @@ public abstract class ThrowableItemProjectile extends ThrowableProjectile implem
+     ) {
+         this(type, owner.getX(), owner.getEyeY() - 0.1F, owner.getZ(), level, itemStack);
+         this.setOwner(owner);
++        final net.minecraft.world.phys.Vec3 legacyOrigin = io.github.adrielorihuela.legacyfolia.combat.Combat.projectileOrigin(owner); // LegacyFolia - 1.8 threw from 0.16 to the side
++        if (legacyOrigin != null) this.setPos(legacyOrigin);
+     }
+ 
+     public void setItem(final ItemStack source) {
+diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
+index 4516bfad2d1907c6161fbf0bf2105efb5ce5228c..00d39505a0f92df00d69efc09f9e496e24088729 100644
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
+@@ -178,7 +178,7 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+                 }
+                 Entity entity = this.getOwnerRaw();
+                 if (entity != null) {
+-                    attemptTeleport(entity, (ServerLevel)this.level(), this.position());
++                    attemptTeleport(entity, (ServerLevel)this.level(), io.github.adrielorihuela.legacyfolia.combat.Combat.legacyProjectiles() ? this.oldPosition() : this.position()); // LegacyFolia - 1.8 landed where the pearl was before its last move
+                 }
+                 this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
+                 return;
+diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
+index abee71040a6374c9d0ef602135a3e6eff15902e8..bbe437436f764d6a8dcadd8e55cc03395ba4321b 100644
+--- a/net/minecraft/world/item/ItemStack.java
++++ b/net/minecraft/world/item/ItemStack.java
+@@ -554,6 +554,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+ 
+         if (useCooldown != null) {
+             useCooldown.apply(stackBeforeUsing, user);
++            io.github.adrielorihuela.legacyfolia.combat.Combat.clearPearlCooldown(stackBeforeUsing, user); // LegacyFolia - 1.8's pearls had no cooldown
+         }
+ 
+         return result;

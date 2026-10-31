@@ -504,6 +504,30 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("projectiles spread by a Gaussian, start to the side and Punch ignores resistance")
+    void projectiles() {
+        // No spread: the direction normalised by a float length, times the speed.
+        final Vec3 straight = LegacyCombat.movementToShoot(0.0, 0.0, 2.0, 1.5F, 1.0F, () -> 0.0);
+        assertEquals(1.5, straight.z, EPSILON);
+        // A one-sigma nudge on every axis is 0.0075 times the inaccuracy, then scaled.
+        final Vec3 nudged = LegacyCombat.movementToShoot(0.0, 0.0, 1.0, 2.0F, 1.0F, () -> 1.0);
+        assertEquals((double) 0.0075F * 2.0, nudged.x, EPSILON);
+        assertEquals((1.0 + (double) 0.0075F) * 2.0, nudged.z, EPSILON);
+        // Facing south (yaw 0) the launch point moves 0.16 towards -x, and 0.1 below the eyes.
+        final Vec3 origin = LegacyCombat.projectileOrigin(10.0, 64.0, 10.0, 1.62F, 0.0F);
+        assertEquals(10.0 - (double) 0.16F, origin.x, 1.0E-6);
+        assertEquals(64.0 + (double) 1.62F - 0.10000000149011612, origin.y, EPSILON);
+        assertEquals(10.0, origin.z, 1.0E-6);
+        // Punch II on an arrow flying east: 2 * 0.6 along +x, 0.1 up, whatever the resistance.
+        final Vec3 punch = LegacyCombat.punch(new Vec3(3.0, -0.5, 0.0), 2.0);
+        assertEquals(2.0 * 0.6000000238418579, punch.x, EPSILON);
+        assertEquals(0.1, punch.y, EPSILON);
+        assertEquals(null, LegacyCombat.punch(new Vec3(0.0, -1.0, 0.0), 2.0),
+            "an arrow falling straight down pushes nobody sideways");
+        assertTrue(VANILLA.legacyProjectiles());
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);

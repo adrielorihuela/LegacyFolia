@@ -254,6 +254,23 @@ splash-radius = 4.0
 sword-blocking = true
 sword-blocking-reduction = 0.5
 
+# Arrows, snowballs, eggs, ender pearls and splash potions fly as in 1.8.
+#
+#  - They do not take on the thrower's own motion, so a sprinting throw goes
+#    no further than a standing one.
+#  - Spread is Gaussian, 0.0075 times the inaccuracy, not the modern triangle.
+#  - A thrown item moves first and only then slows and falls, and an arrow is
+#    slowed by water after its move, not before.
+#  - They hit with a margin of 0.3 from the first tick, not one that grows
+#    over the first eight ticks, and spare the thrower for five ticks.
+#  - They leave from 0.16 to the side of the thrower's head, at 1.54 for a
+#    sneaking player as in 1.8 rather than today's 1.27.
+#  - Arrows pass through creative players, and Punch ignores knockback
+#    resistance.
+#  - Ender pearls have no cooldown and land where the pearl was before its
+#    last move, in the block it hit rather than on its face.
+legacy-projectiles = true
+
 # Shields and the off-hand slot did not exist in 1.8.
 disable-shields = true
 disable-offhand = true
