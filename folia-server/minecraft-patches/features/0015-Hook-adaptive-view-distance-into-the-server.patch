@@ -14,7 +14,7 @@ thread, and the method it calls touches only volatile fields.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index c3d0787cab8e3cd325398dd353488e188e6c0b5c..13d7c16d9ce9ccd6e496764c7c330d09b0478285 100644
+index cabc6281499f65a35a147f86cfed7b870577e4af..b9998e62dc553284f092c972fb9450b6684fb1d2 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -135,6 +135,7 @@ public class Main {
@@ -46,7 +46,7 @@ index 6bb34d13d6806f93a67b0d8fc63a272e7b4172d2..38554593bb95c7e9f521416535be14f2
          this.canChatColor = information.chatColors();
          this.textFilteringEnabled = information.textFilteringEnabled();
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 35c1a7a250ed43c4bc45fc80835974003ce2a8e0..fcf0111f51b16b1645a1c0adb6a9220ec2cefdf1 100644
+index c6810e37a78ff358d473651fb55a8f0900ce8b3f..be21f32cfc3bb5e5d0a1486d7d2691daed990396 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -1523,6 +1523,7 @@ public class ServerGamePacketListenerImpl

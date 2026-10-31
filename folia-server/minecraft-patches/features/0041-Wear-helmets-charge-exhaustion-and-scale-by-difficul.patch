@@ -29,7 +29,7 @@ index 68bd2a5449c8e3752174297022e2fb3dfa67645d..a441a2496b5a396a621d38b614775705
                          ((net.minecraft.world.entity.player.Player)this).awardStat(Stats.DAMAGE_TAKEN, Math.round(dmg * 10.0F));
                      }
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 8c56c4891df34f45650f654a914b91decc492deb..65cbf4582c1522172d0d623a68fa8fba6cc5b9e7 100644
+index 9c93ab177a377888451424f8491bd3dcbf33b2bf..472f01116d447cdf651bf1bb7a0270f4ed81caaa 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -722,13 +722,13 @@ public abstract class Player extends Avatar implements ContainerUser {

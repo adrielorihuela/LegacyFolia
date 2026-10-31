@@ -23,10 +23,10 @@ index 0b89cfc3a3a66b2c649bd81f15f7cadcb2f4caec..fc8e4da61efe5139b9646748768748e8
  
      @Override
 diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
-index ed37413233afd20769da915e827b09fe154f2b35..53f3f56e8919d69b0b2893b50bbe0be872dc7556 100644
+index 225a52c36ce301541bd86b9a0670cf14080a1733..0ab9e18248800b6f71ecdb111bb2b480aef79775 100644
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -1632,7 +1632,7 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+@@ -1635,7 +1635,7 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
          float dmg = (float)io.github.adrielorihuela.legacyfolia.combat.Combat.attackDamage(this); // LegacyFolia - 1.8 weapon damage
          ItemStack weaponItem = this.getWeaponItem();
          DamageSource damageSource = weaponItem.getDamageSource(this);
@@ -35,7 +35,7 @@ index ed37413233afd20769da915e827b09fe154f2b35..53f3f56e8919d69b0b2893b50bbe0be8
          dmg += weaponItem.getItem().getAttackDamageBonus(target, dmg, damageSource);
          Vec3 oldMovement = target.getDeltaMovement();
          boolean wasHurt = target.hurtServer(level, damageSource, dmg);
-@@ -1642,7 +1642,9 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+@@ -1645,7 +1645,9 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
                  weaponItem.hurtEnemy(livingTarget, this);
              }
  
@@ -46,7 +46,7 @@ index ed37413233afd20769da915e827b09fe154f2b35..53f3f56e8919d69b0b2893b50bbe0be8
              this.playAttackSound();
          }
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 40b71bce2237828a07101d911f8a64675caaee90..0bb8f8a5d6e9c939c2d558457faea5156c877699 100644
+index f37def9e1b091f2a1c43cbbe06dee358b2a615ab..b5fe554577975b174512f2f1087f4e27f710ed9e 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1229,7 +1229,9 @@ public abstract class Player extends Avatar implements ContainerUser {

@@ -11,10 +11,10 @@ asking player's own map.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index aba936a53de0b083b8cc6da3a90149a549621708..94dc2ab7244b93be31b54d30809b95c40f7b13e1 100644
+index 24f7cf40ffd6bbb154dc664bc9f7e6661247f2ac..e4bffe61ee47b9217d73d5339ad30904709b2f9f 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -2100,6 +2100,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
+@@ -2104,6 +2104,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
          return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()); // SPIGOT-7312: Can always see self
      }
  

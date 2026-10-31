@@ -40,7 +40,7 @@ index b90062af95ea1b6f4181784c843bb44f8185b37f..f1fff1d6a463889d0afb5e91e6bd4c66
          // Paper end - disable player cramming
      }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 3c5db1ad5b0c1ed3bc7da8a7e3c9e054a8e76c44..a3e875b3184f09077925a1d7b06f4dd69d7c96dc 100644
+index 93b97499d0d9bfcd0e880b0fcdf58e1b3bd6acd3..a950b9241ae277da2c5b04891f9a4b9e2b5bbb31 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -3162,6 +3162,7 @@ public class ServerGamePacketListenerImpl

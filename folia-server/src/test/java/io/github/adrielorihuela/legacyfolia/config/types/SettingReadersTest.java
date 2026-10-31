@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.adrielorihuela.legacyfolia.config.catalog.SettingsCatalog;
 import io.papermc.paper.configuration.type.BooleanOrDefault;
-import io.papermc.paper.configuration.type.DurationOrDisabled;
+import io.papermc.paper.configuration.type.time.DurationOrDisabled;
 import io.papermc.paper.configuration.type.EngineMode;
 import io.papermc.paper.configuration.type.number.IntOr;
 import java.util.List;

@@ -15,7 +15,7 @@ stopping to tell you to go and edit a file.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index aa7f2ba4d931f98ce15c52dc2b99f07504149582..c3d0787cab8e3cd325398dd353488e188e6c0b5c 100644
+index a6d9b95c42926754acd2e54e7af7ade3f7d2c322..cabc6281499f65a35a147f86cfed7b870577e4af 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -130,6 +130,12 @@ public class Main {

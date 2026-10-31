@@ -18,7 +18,7 @@ index 8b67e85893b21f1b2752e24691cf1a46d9d99381..9b7a3d809f7a0ea6d72113b0ca13a354
                  anyApplied = true;
              }
 diff --git a/net/minecraft/world/item/crafting/RecipeManager.java b/net/minecraft/world/item/crafting/RecipeManager.java
-index f30349dacbc58bf88c594c84a1cc63ffce29325c..905379af999f091a0c21c118c5591e4888336b35 100644
+index d9ac0c84285c96df934d8649ea659ab11925cb9a..ada4ddaf6a9d27c4e0a6346e826de50b603570e4 100644
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
 @@ -56,6 +56,7 @@ public class RecipeManager implements RecipeAccess {

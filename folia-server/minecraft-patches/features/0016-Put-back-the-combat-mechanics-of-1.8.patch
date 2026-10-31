@@ -19,7 +19,7 @@ every time, and that is what lets a combo hold somebody up.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 13d7c16d9ce9ccd6e496764c7c330d09b0478285..15f02ce0c92928af25e7f69368518fc9a32feaec 100644
+index b9998e62dc553284f092c972fb9450b6684fb1d2..76a383048d87989300856eba062dd74b182a3888 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -136,6 +136,7 @@ public class Main {
@@ -57,7 +57,7 @@ index a66f01754046bd9e3946552cac794b2f624214f9..b416aaca3c35a9b482d4ad9057f83a2e
              Vec3 knockback = targetMovement.subtract(deltaMovement);
              io.papermc.paper.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent(this.getBukkitEntity(), attacker, attacker, eventCause, power, knockback);
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 071b026572c140b02d219f94477d94f3f843ef0c..1dcebf5d6bafa5abb503f8c80b371c0fedbe990e 100644
+index 978d6f657f4ff84b773e5c320b3e08fce5ba168e..9865433937c4569d1035dae469c39a328f5f4d3a 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1123,6 +1123,13 @@ public abstract class Player extends Avatar implements ContainerUser {

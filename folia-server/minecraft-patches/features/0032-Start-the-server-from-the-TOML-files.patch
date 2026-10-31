@@ -27,7 +27,7 @@ create any more.
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 3059e7d902e577f1a2fc34e528ffdceac7bb0a06..fd12bc05b75ae65be1aa5c48a4ac46955ea0dff0 100644
+index 933a9705f261a3071313658845287123009eaafb..724dd713f30ee3b9f80af0068befc1f73ac7bcdb 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -121,14 +121,20 @@ public class Main {
@@ -164,7 +164,7 @@ index 3d352bb9b0606236d789a70897d7bec12bcf6846..ce6a01b7c4d3c9f22bb44dd2585b9eb3
          this.weatherData.setLevel(this);
          this.typeKey = typeKey;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 706338fd94cd491450c09ab8cc4dcb4639dff4fd..2c4b444a5ca9c86ceb5d1a887a3b73508c5f7396 100644
+index 8c30af43736b6b12882d4da51b5e330a4246c0d8..c3276f6729ad15feb58dc16137555edb1981fee3 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -886,6 +886,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

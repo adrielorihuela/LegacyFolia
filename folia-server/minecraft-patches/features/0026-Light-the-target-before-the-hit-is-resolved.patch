@@ -11,7 +11,7 @@ burning, and that is a real part of how fire aspect was used.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index d4c6abf2592da0879330108ab35405ab5a0169e8..51f1340814c752041e20fb0154d924c6c401b775 100644
+index 2046e947d06d11ab5448f4e0b93ff2c9bb0e96ce..c6f2ff4887dd7c89240ce74385404e2c89e752c3 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1068,6 +1068,15 @@ public abstract class Player extends Avatar implements ContainerUser {

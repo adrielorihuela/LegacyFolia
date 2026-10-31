@@ -6,7 +6,7 @@ Subject: [PATCH] Keep the user cache in cache/
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 3f102c2ac509bdba07a60bcc6dfe9f1de14a8f36..e6ec8b73ccaf73649931d2f3d3afccbf40c3c82f 100644
+index 91e720ecccb122d4420fff5622762f554784d6cb..4ae9b6cf4e83d25926a45be5c604ef87af3448c7 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -197,7 +197,7 @@ public class Main {

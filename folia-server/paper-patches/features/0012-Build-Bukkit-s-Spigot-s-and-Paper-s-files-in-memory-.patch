@@ -160,10 +160,10 @@ index b2c5e5cc2e798ac10c1c9cded65e1f8171a6cf98..84f606c539af5258c6cc8dda03822db9
      public record ContextKey<T>(TypeToken<T> type, String name) {
  
 diff --git a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
-index de9a78d5b20d13a114591e986e990b4bd973097a..91d77729e0aca1bc4ac36f7a4864b6ae98c92c72 100644
+index 0b42ade71258a53dcc65dab932cc1a48802135fc..932fed4e6fb2bec7d93d7a571967d7564d70eff7 100644
 --- a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
 +++ b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
-@@ -348,7 +348,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+@@ -350,7 +350,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
      }
  
      private static ContextMap createWorldContextMap(ServerLevel level) {
@@ -172,7 +172,7 @@ index de9a78d5b20d13a114591e986e990b4bd973097a..91d77729e0aca1bc4ac36f7a4864b6ae
      }
  
      public static ContextMap createWorldContextMap(final Path dir, final Identifier worldKey, final SpigotWorldConfig spigotConfig, final RegistryAccess registryAccess, final GameRules gameRules) {
-@@ -361,6 +361,19 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+@@ -363,6 +363,19 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
              .build();
      }
  
@@ -192,7 +192,7 @@ index de9a78d5b20d13a114591e986e990b4bd973097a..91d77729e0aca1bc4ac36f7a4864b6ae
      public static PaperConfigurations setup(final Path legacyConfig, final Path configDir, final Path worldFolder, final File spigotConfig) throws Exception {
          final Path legacy = Files.isSymbolicLink(legacyConfig) ? Files.readSymbolicLink(legacyConfig) : legacyConfig;
          if (needsConverting(legacyConfig)) {
-@@ -451,13 +464,13 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+@@ -453,13 +466,13 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
  
      @Deprecated
      public YamlConfiguration createLegacyObject(final MinecraftServer server) {
@@ -227,10 +227,10 @@ index 5741a60faba70da485053599c9370f0e27e868f4..6d50f7f8ef7078d605c35732d2d45756
              return new PluginInitializerManager(pluginDirectory, null);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a84bea7b4 100644
+index 2218b3af170ba63158409c60e455118dc09b1f6e..b9e209d8dcc02727164862ae96a4489f3f8a2de5 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -399,7 +399,7 @@ public final class CraftServer implements Server {
+@@ -401,7 +401,7 @@ public final class CraftServer implements Server {
              this.getLogger().info("Console input is disabled due to --noconsole command argument");
          }
  
@@ -239,7 +239,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
          this.configuration.options().copyDefaults(true);
          YamlConfiguration configurationDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), StandardCharsets.UTF_8));
          this.configuration.setDefaults(configurationDefaults);
-@@ -409,11 +409,10 @@ public final class CraftServer implements Server {
+@@ -411,11 +411,10 @@ public final class CraftServer implements Server {
              legacyAlias = this.configuration.getConfigurationSection("aliases");
              this.configuration.set("aliases", "now-in-commands.yml");
          }
@@ -255,7 +255,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
          this.commandsConfiguration.options().copyDefaults(true);
          // Paper start - don't enforce icanhasbukkit default if alias block exists
          final YamlConfiguration commandsDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/commands.yml"), StandardCharsets.UTF_8));
-@@ -421,7 +420,6 @@ public final class CraftServer implements Server {
+@@ -423,7 +422,6 @@ public final class CraftServer implements Server {
          this.commandsConfiguration.setDefaults(commandsDefaults);
          // Paper end - don't enforce icanhasbukkit default if alias block exists
          this.commandsConfiguration.options().setHeader(commandsDefaults.options().getHeader());
@@ -263,7 +263,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
  
          // Migrate aliases from old file and add previously implicit $1- to pass all arguments
          if (legacyAlias != null) {
-@@ -441,7 +439,6 @@ public final class CraftServer implements Server {
+@@ -443,7 +441,6 @@ public final class CraftServer implements Server {
              }
          }
  
@@ -271,7 +271,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
          this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
          this.overrideSpawnLimits();
-@@ -466,14 +463,6 @@ public final class CraftServer implements Server {
+@@ -468,14 +465,6 @@ public final class CraftServer implements Server {
          return this.overrideAllCommandBlockCommands || this.commandsConfiguration.getStringList("command-block-overrides").contains(command);
      }
  
@@ -286,7 +286,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
      private void overrideSpawnLimits() {
          for (SpawnCategory spawnCategory : SpawnCategory.values()) {
              if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
-@@ -482,22 +471,6 @@ public final class CraftServer implements Server {
+@@ -484,22 +473,6 @@ public final class CraftServer implements Server {
          }
      }
  
@@ -309,7 +309,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
      private void loadCompatibilities() {
          if (true) return; // Paper - Big nope
          ConfigurationSection compatibilities = this.configuration.getConfigurationSection("settings.compatibility");
-@@ -971,8 +944,11 @@ public final class CraftServer implements Server {
+@@ -973,8 +946,11 @@ public final class CraftServer implements Server {
          // Paper end - lifecycle events
          org.spigotmc.WatchdogThread.hasStarted = false; // Paper - Disable watchdog early timeout on reload
          this.reloadCount++;
@@ -323,7 +323,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
  
          this.console.settings = new DedicatedServerSettings(this.console.options);
          DedicatedServerProperties config = this.console.settings.getProperties();
-@@ -999,7 +975,7 @@ public final class CraftServer implements Server {
+@@ -1001,7 +977,7 @@ public final class CraftServer implements Server {
              this.logger.log(Level.WARNING, "Failed to load banned-players.json, " + ex.getMessage());
          }
  
@@ -332,7 +332,7 @@ index bc4dd23416b89c2dcde453f1b26a662153c0f0a0..b53fbce0da6e3e44089a58f22040a93a
          this.console.paperConfigurations.reloadConfigs(this.console);
          for (ServerLevel world : this.console.getAllLevels()) {
              // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
-@@ -2925,15 +2901,15 @@ public final class CraftServer implements Server {
+@@ -2946,15 +2922,15 @@ public final class CraftServer implements Server {
                  .map(key -> key.toLowerCase(java.util.Locale.ENGLISH))
                  .collect(java.util.stream.Collectors.toSet());
          getCommandMap().getKnownCommands().keySet().removeIf(removals::contains);

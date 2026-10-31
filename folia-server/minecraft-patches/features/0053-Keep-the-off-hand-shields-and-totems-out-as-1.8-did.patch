@@ -17,7 +17,7 @@ index 3f923df4173b6746240fa35fe47ad9dd038691e4..b90062af95ea1b6f4181784c843bb44f
          if (this.joining) {
              this.joining = false;
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ae69681b69dd36e09a6fcd7a6aa0669b4a4f519c..3c5db1ad5b0c1ed3bc7da8a7e3c9e054a8e76c44 100644
+index a0a9d1c5001898b6615e749622b059e14896d225..93b97499d0d9bfcd0e880b0fcdf58e1b3bd6acd3 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2225,6 +2225,7 @@ public class ServerGamePacketListenerImpl

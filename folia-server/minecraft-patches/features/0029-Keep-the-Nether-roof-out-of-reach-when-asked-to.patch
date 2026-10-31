@@ -13,7 +13,7 @@ and pistons go through BlockItem, so both are covered.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 1db4d8068dbae952c59008f9d86ec6007772534e..ecb1e1289b7e3c6da2c5eee465da38aa972329b7 100644
+index 46f0d413059b1f5e38813eb76fc78734b32403ca..7c6fc597de635a191984074e1c403fb7b007d7f4 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2241,7 +2241,7 @@ public class ServerGamePacketListenerImpl
@@ -44,7 +44,7 @@ index 68f1e9483b93ef071877a4c99f4bd14e0d363145..860c5ebb6178ca31791aea174013ccc5
              && world.checkEntityCollision(stateForPlacement, player, CollisionContext.placementContext(player), context.getClickedPos(), true); // Paper - Cancel hit for vanished players
          org.bukkit.entity.Player bukkitPlayer = (context.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) context.getPlayer().getBukkitEntity() : null;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index e53890d21c0f81a7b5de2cb7a8668193da9300e1..706338fd94cd491450c09ab8cc4dcb4639dff4fd 100644
+index 7c61b018508c24ae1e338763393dd6a9c5db60d9..8c30af43736b6b12882d4da51b5e330a4246c0d8 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -753,6 +753,24 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

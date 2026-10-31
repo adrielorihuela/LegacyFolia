@@ -56,10 +56,10 @@ index 9c667a09fcea23b4072c0616837b685e256e0462..48ba39e392a4a7314054686df48d6c26
          }
  
 diff --git a/net/minecraft/world/level/block/BaseFireBlock.java b/net/minecraft/world/level/block/BaseFireBlock.java
-index 580fac7e521e635fa1177652a2e6a287585589d2..4f5bbeaff9154a9b44b43c5854c94968ed6d550e 100644
+index d90d1ab4ef150bd4e493246a4f97cab75de59b11..07a72cca1b235fab182db289d88632a3c82f6195 100644
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
-@@ -143,7 +143,7 @@ public abstract class BaseFireBlock extends Block {
+@@ -144,7 +144,7 @@ public abstract class BaseFireBlock extends Block {
          if (!entity.fireImmune()) {
              if (entity.getRemainingFireTicks() < 0) {
                  entity.setRemainingFireTicks(entity.getRemainingFireTicks() + 1);

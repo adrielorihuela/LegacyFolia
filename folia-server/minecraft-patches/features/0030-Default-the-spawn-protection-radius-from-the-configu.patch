@@ -12,7 +12,7 @@ before it.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index e6ec8b73ccaf73649931d2f3d3afccbf40c3c82f..3059e7d902e577f1a2fc34e528ffdceac7bb0a06 100644
+index 4ae9b6cf4e83d25926a45be5c604ef87af3448c7..933a9705f261a3071313658845287123009eaafb 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -120,6 +120,14 @@ public class Main {

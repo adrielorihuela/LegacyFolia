@@ -11,7 +11,7 @@ knockback feels light where modern knockback feels heavy.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 51f1340814c752041e20fb0154d924c6c401b775..f81e5b2d4d712cbc555d5f70815fb51bee6f028c 100644
+index c6f2ff4887dd7c89240ce74385404e2c89e752c3..1e42316632de893f0ab110f16621ab7c82cb4482 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1090,6 +1090,14 @@ public abstract class Player extends Avatar implements ContainerUser {

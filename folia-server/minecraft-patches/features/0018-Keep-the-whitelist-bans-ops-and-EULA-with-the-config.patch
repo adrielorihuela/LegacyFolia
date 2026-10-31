@@ -9,7 +9,7 @@ directory is not where an operator wants to hunt for them.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 15f02ce0c92928af25e7f69368518fc9a32feaec..3f102c2ac509bdba07a60bcc6dfe9f1de14a8f36 100644
+index 76a383048d87989300856eba062dd74b182a3888..91e720ecccb122d4420fff5622762f554784d6cb 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -138,7 +138,7 @@ public class Main {

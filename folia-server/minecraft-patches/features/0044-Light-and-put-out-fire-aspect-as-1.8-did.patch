@@ -5,7 +5,7 @@ Subject: [PATCH] Light and put out fire aspect as 1.8 did
 
 
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 0bb8f8a5d6e9c939c2d558457faea5156c877699..eff0346ad0faa433ef5f8677f49de4f8d4fe8586 100644
+index b5fe554577975b174512f2f1087f4e27f710ed9e..39dafe830bb653f8069cb861256dc6b3b5f8fe93 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1069,12 +1069,18 @@ public abstract class Player extends Avatar implements ContainerUser {

@@ -23,7 +23,7 @@ damage path rather than by inventing a component swords do not have.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index fcf0111f51b16b1645a1c0adb6a9220ec2cefdf1..1db4d8068dbae952c59008f9d86ec6007772534e 100644
+index be21f32cfc3bb5e5d0a1486d7d2691daed990396..46f0d413059b1f5e38813eb76fc78734b32403ca 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2072,6 +2072,16 @@ public class ServerGamePacketListenerImpl
@@ -89,7 +89,7 @@ index b416aaca3c35a9b482d4ad9057f83a2e5d034ec2..ed9bc7b9c6ff219336599b3f65b339a2
          if (blocksAttacks != null) {
              int elapsedTicks = this.useItem.getItem().getUseDuration(this.useItem, this) - this.useItemRemaining;
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 1dcebf5d6bafa5abb503f8c80b371c0fedbe990e..baf3fd4aa1afff98a9dd5f8d1a14cf980e9743a7 100644
+index 9865433937c4569d1035dae469c39a328f5f4d3a..253ba379a6eec62b35b9c1abf04096a24bac3c60 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1052,7 +1052,12 @@ public abstract class Player extends Avatar implements ContainerUser {
@@ -128,7 +128,7 @@ index 1dcebf5d6bafa5abb503f8c80b371c0fedbe990e..baf3fd4aa1afff98a9dd5f8d1a14cf98
 @@ -1112,6 +1125,18 @@ public abstract class Player extends Avatar implements ContainerUser {
      }
  
-     private boolean canCriticalAttack(final Entity entity) {
+     public boolean canCriticalAttack(final Entity entity) {
 +        // LegacyFolia start - 1.8 allowed a sprinting critical
 +        // The last condition below is not in 1.8. Sprinting there did not stop a hit critting,
 +        // which is what makes the sprint-jump critical of that version work at all.

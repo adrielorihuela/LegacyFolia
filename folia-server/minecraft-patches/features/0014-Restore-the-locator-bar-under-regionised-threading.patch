@@ -25,10 +25,10 @@ index 29134b7b3f216c7aabd848a1969ce6dedf516218..5474f208b26f7875925004ccaf9dcf8e
          WorldBorderCommand.register(this.dispatcher);
          if (JvmProfiler.INSTANCE.isAvailable()) {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 8c26b7169276af1b3ea5418ddece3ed6e250d7ad..9a454a5f133864a8883b920063028c7cd4ab9502 100644
+index 7336ed6fce34e0aae96893b18cd142d448e2fcfa..cf23e27ed35314562255dc392a6800143b9b62b3 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -3059,7 +3059,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -3061,7 +3061,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          } else if (rule == GameRules.LOCATOR_BAR) {
              // this.getAllLevels().forEach(level -> { // Paper - per-world game rules
                  ServerWaypointManager waypointManager = level.getWaypointManager();

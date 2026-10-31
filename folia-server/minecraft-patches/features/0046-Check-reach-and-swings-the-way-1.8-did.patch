@@ -5,7 +5,7 @@ Subject: [PATCH] Check reach and swings the way 1.8 did
 
 
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ea0325e1047b40c8c710235107027f5df0b21c2a..ae69681b69dd36e09a6fcd7a6aa0669b4a4f519c 100644
+index 3f13ac0fbc410cf31fd45c6f5e0158a82704b8e1..a0a9d1c5001898b6615e749622b059e14896d225 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2808,6 +2808,13 @@ public class ServerGamePacketListenerImpl

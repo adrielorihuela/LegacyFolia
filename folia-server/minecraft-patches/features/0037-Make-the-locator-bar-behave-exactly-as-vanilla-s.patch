@@ -108,7 +108,7 @@ index a96565139c2ac07c348705c9ba0245cb36f47033..7c4e304a5a844aecc11bf5aeca4dc366
  
      public Set<WaypointTransmitter> transmitters() {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 7b8d9cdb7b0b1bf51b417962625a87afd7d2fa42..0199dcfd9b59885c0c34f85ed9d5cc06de71f96d 100644
+index bfd72a31c1a8c370c7b3bf928abdc484d56a98b1..fb123a940a98112fca35c64ce150b675bc692692 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -309,6 +309,11 @@ public abstract class Entity

@@ -88,7 +88,7 @@ index a441a2496b5a396a621d38b6147757057d164c01..7863650ff9401a990e57e4cbf9cacf7f
                  knockback, Mth.sin(this.getYRot() * Mth.DEG_TO_RAD), -Mth.cos(this.getYRot() * Mth.DEG_TO_RAD), damageSource, damage, comesFromEffect, this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK  // Paper - knockback events
              );
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 65cbf4582c1522172d0d623a68fa8fba6cc5b9e7..40b71bce2237828a07101d911f8a64675caaee90 100644
+index 472f01116d447cdf651bf1bb7a0270f4ed81caaa..f37def9e1b091f2a1c43cbbe06dee358b2a615ab 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -1090,14 +1090,6 @@ public abstract class Player extends Avatar implements ContainerUser {
