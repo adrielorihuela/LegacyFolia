@@ -77,8 +77,23 @@ public final class ConfigFile {
      * @throws IOException if it could not be read or created
      */
     public static ConfigFile open(final String fileName) throws IOException {
-        Files.createDirectories(DIRECTORY);
-        final Path path = DIRECTORY.resolve(fileName);
+        return open(DIRECTORY, fileName);
+    }
+
+    /**
+     * Reads one file from a given directory, creating it from its template when it is not there.
+     *
+     * <p>The server always uses {@link #DIRECTORY}; the tests pass a temporary one so that nothing
+     * they do can reach a real configuration.</p>
+     *
+     * @param directory the configuration directory
+     * @param fileName the file's name within it
+     * @return the loaded file
+     * @throws IOException if it could not be read or created
+     */
+    public static ConfigFile open(final Path directory, final String fileName) throws IOException {
+        Files.createDirectories(directory);
+        final Path path = directory.resolve(fileName);
 
         final boolean created = !Files.exists(path);
         if (created) {
@@ -196,7 +211,7 @@ public final class ConfigFile {
      * @return the configured value
      */
     public boolean getBoolean(final String path, final boolean fallback) {
-        return this.config.get(path) instanceof final Boolean bool ? bool : fallback;
+        return asBoolean(this.config.get(path), fallback);
     }
 
     /**
@@ -207,7 +222,7 @@ public final class ConfigFile {
      * @return the configured value
      */
     public int getInt(final String path, final int fallback) {
-        return this.config.get(path) instanceof final Number number ? number.intValue() : fallback;
+        return asInt(this.config.get(path), fallback);
     }
 
     /**
@@ -218,7 +233,7 @@ public final class ConfigFile {
      * @return the configured value
      */
     public double getDouble(final String path, final double fallback) {
-        return this.config.get(path) instanceof final Number number ? number.doubleValue() : fallback;
+        return asDouble(this.config.get(path), fallback);
     }
 
     /**
@@ -229,7 +244,7 @@ public final class ConfigFile {
      * @return the configured value, trimmed
      */
     public String getString(final String path, final String fallback) {
-        return this.config.get(path) instanceof final String string ? string.trim() : fallback;
+        return asString(this.config.get(path), fallback);
     }
 
     /**
@@ -239,7 +254,30 @@ public final class ConfigFile {
      * @return the configured values, never {@code null}
      */
     public List<String> getStringList(final String path) {
-        if (!(this.config.get(path) instanceof final List<?> list)) {
+        return asStringList(this.config.get(path));
+    }
+
+    // The typed readers below are shared with ServerConfig, which answers some paths from the
+    // server.properties overrides rather than from a file, and must read them exactly the same way.
+
+    static boolean asBoolean(final Object value, final boolean fallback) {
+        return value instanceof final Boolean bool ? bool : fallback;
+    }
+
+    static int asInt(final Object value, final int fallback) {
+        return value instanceof final Number number ? number.intValue() : fallback;
+    }
+
+    static double asDouble(final Object value, final double fallback) {
+        return value instanceof final Number number ? number.doubleValue() : fallback;
+    }
+
+    static String asString(final Object value, final String fallback) {
+        return value instanceof final String string ? string.trim() : fallback;
+    }
+
+    static List<String> asStringList(final Object value) {
+        if (!(value instanceof final List<?> list)) {
             return List.of();
         }
         final List<String> strings = new ArrayList<>(list.size());

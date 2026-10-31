@@ -77,6 +77,61 @@ public final class WorldConfig {
         return new WorldConfig(world, Map.copyOf(resolved));
     }
 
+    /**
+     * Builds the view for one world when the server.properties mode supplies the values.
+     *
+     * <p>The chain is the same; only where the layers come from changes. {@code globalOverrides}
+     * replaces the global values it names, and {@code worlds} stands for the whole
+     * {@code [worlds]} table, already flattened to dotted paths per world.</p>
+     *
+     * @param world the world's name
+     * @param globals the global sections, as for {@link #resolve(String, List, UnmodifiableConfig)}
+     * @param globalOverrides effective global values by dotted path, applied over {@code globals}
+     * @param worlds the per-world layer, by world name and then by dotted path
+     * @return the resolved view
+     */
+    public static WorldConfig resolve(final String world, final List<UnmodifiableConfig> globals,
+                                      final Map<String, Object> globalOverrides,
+                                      final Map<String, Map<String, Object>> worlds) {
+        final Map<String, Object> resolved = new HashMap<>();
+        for (final UnmodifiableConfig global : globals) {
+            flattenInto(global, "", resolved);
+        }
+        layer(globalOverrides, resolved);
+        layer(worlds.getOrDefault(DEFAULT, Map.of()), resolved);
+        if (!DEFAULT.equals(world)) {
+            layer(worlds.getOrDefault(world, Map.of()), resolved);
+        }
+        return new WorldConfig(world, Map.copyOf(resolved));
+    }
+
+    /**
+     * Puts one layer of dotted paths over the resolved values.
+     *
+     * <p>A table value replaces the table it stands for: the paths flattened out of the layer
+     * below are dropped first, so a world's table is that world's table and not a merge of two.</p>
+     */
+    private static void layer(final Map<String, Object> values, final Map<String, Object> resolved) {
+        for (final Map.Entry<String, Object> entry : values.entrySet()) {
+            final String path = entry.getKey();
+            if (entry.getValue() instanceof final Map<?, ?> table) {
+                final String prefix = path + ".";
+                resolved.keySet().removeIf(key -> key.startsWith(prefix));
+                resolved.remove(path);
+                for (final Map.Entry<?, ?> cell : table.entrySet()) {
+                    layer(Map.of(prefix + cell.getKey(), cell.getValue()), resolved);
+                }
+            } else if (entry.getValue() instanceof final UnmodifiableConfig table) {
+                final Map<String, Object> flat = new HashMap<>();
+                flattenInto(table, path, flat);
+                resolved.keySet().removeIf(key -> key.startsWith(path + "."));
+                resolved.putAll(flat);
+            } else {
+                resolved.put(path, entry.getValue());
+            }
+        }
+    }
+
     private static void overlay(final UnmodifiableConfig worlds, final String name,
                                 final Map<String, Object> resolved) {
         if (worlds.get(List.of(name)) instanceof final UnmodifiableConfig section) {

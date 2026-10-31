@@ -2,7 +2,9 @@ package io.github.adrielorihuela.legacyfolia.config;
 
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,11 @@ import org.apache.logging.log4j.Logger;
  * section, which is the same chain Spigot and Paper each implement separately today; see
  * {@link WorldConfig} for why it is flattened rather than walked. Views are cached per world and
  * dropped whole whenever the files are read again.</p>
+ *
+ * <p><b>server.properties.</b> With the server.properties mode on, what that file says wins over
+ * the TOML files. {@link ServerProperties} works out the effective values when it reconciles the
+ * two and hands them to this class as overrides; every getter here, and every world view, answers
+ * from those overrides first. Callers do not change and do not need to know the mode exists.</p>
  */
 public final class ServerConfig {
 
@@ -78,6 +85,44 @@ public final class ServerConfig {
 
     private static volatile Map<String, ConfigFile> files;
 
+    private static volatile Path directory = ConfigFile.DIRECTORY;
+
+    /**
+     * The effective values {@link ServerProperties} worked out, or {@code null} before it has run.
+     *
+     * <p>Replaced whole, never modified, so a reader on any region thread sees one consistent set.</p>
+     */
+    private static volatile Overrides overrides;
+
+    /**
+     * Values that answer before the files do.
+     *
+     * @param global every catalogued setting's effective server-wide value, by TOML path
+     * @param perWorldGlobal the subset of {@code global} that lives in a per-world file, which is
+     *     what a world view layers over the files
+     * @param worlds the whole {@code [worlds]} layer, by world name and then by dotted path; it
+     *     replaces what {@code worlds.toml} says rather than adding to it
+     */
+    record Overrides(Map<String, Object> global, Map<String, Object> perWorldGlobal,
+                     Map<String, Map<String, Object>> worlds) {
+
+        static Overrides of(final Map<String, Object> global, final Map<String, Map<String, Object>> worlds) {
+            final Map<String, Object> perWorld = new HashMap<>();
+            for (final Map.Entry<String, Object> entry : global.entrySet()) {
+                if (isPerWorldFile(fileNameFor(entry.getKey()))) {
+                    perWorld.put(entry.getKey(), entry.getValue());
+                }
+            }
+            final Map<String, Map<String, Object>> copy = new HashMap<>();
+            worlds.forEach((world, values) -> {
+                if (!values.isEmpty()) {
+                    copy.put(world, Map.copyOf(values));
+                }
+            });
+            return new Overrides(Map.copyOf(global), Map.copyOf(perWorld), Map.copyOf(copy));
+        }
+    }
+
     private static final WorldConfigCache WORLD_VIEWS = new WorldConfigCache(ServerConfig::resolve);
 
     private ServerConfig() {
@@ -125,17 +170,76 @@ public final class ServerConfig {
         return files != null;
     }
 
+    /** The directory the files were read from: {@code config/} on a real server. */
+    public static Path directory() {
+        return directory;
+    }
+
+    /**
+     * One loaded file, for {@link ServerProperties}, which compares and rewrites them.
+     *
+     * @param fileName the file's name
+     * @return the file as it was last read
+     */
+    static ConfigFile file(final String fileName) {
+        final Map<String, ConfigFile> loaded = files;
+        if (loaded == null) {
+            throw new IllegalStateException("the configuration has not been read yet");
+        }
+        final ConfigFile file = loaded.get(fileName);
+        if (file == null) {
+            throw new IllegalArgumentException("no configuration file is called " + fileName);
+        }
+        return file;
+    }
+
+    /**
+     * Installs the effective values, dropping every cached world view.
+     *
+     * @param value the overrides, or {@code null} to answer from the files alone
+     */
+    static void setOverrides(final Overrides value) {
+        overrides = value;
+        WORLD_VIEWS.invalidate();
+    }
+
+    /** The effective values in force, or {@code null}. */
+    static Overrides overrides() {
+        return overrides;
+    }
+
+    /** The overriding value of a path, or {@code null} when the file answers. */
+    private static Object overridden(final String path) {
+        final Overrides current = overrides;
+        return current == null ? null : current.global().get(path);
+    }
+
     /**
      * Reads every configuration file, creating the ones that are not there.
      *
      * @throws IOException if a file could not be read or created
      */
     public static void load() throws IOException {
+        load(ConfigFile.DIRECTORY);
+    }
+
+    /**
+     * Reads every configuration file from a given directory, creating the ones that are not there.
+     *
+     * <p>Any server.properties overrides are dropped: they were worked out from the files as they
+     * were, and {@link ServerProperties#reconcile()} has to run again to work them out anew.</p>
+     *
+     * @param configDirectory the directory, {@code config/} on a real server
+     * @throws IOException if a file could not be read or created
+     */
+    public static void load(final Path configDirectory) throws IOException {
         final Map<String, ConfigFile> loaded = new LinkedHashMap<>();
         for (final String fileName : FILES) {
-            loaded.put(fileName, ConfigFile.open(fileName));
+            loaded.put(fileName, ConfigFile.open(configDirectory, fileName));
         }
         files = loaded;
+        directory = configDirectory;
+        overrides = null;
         WORLD_VIEWS.invalidate();
 
         final long created = loaded.values().stream().filter(ConfigFile::wasCreated).count();
@@ -170,6 +274,10 @@ public final class ServerConfig {
         final List<UnmodifiableConfig> globals = new ArrayList<>(PER_WORLD_FILES.size());
         for (final String fileName : PER_WORLD_FILES) {
             globals.add(loaded.get(fileName).raw());
+        }
+        final Overrides current = overrides;
+        if (current != null) {
+            return WorldConfig.resolve(worldName, globals, current.perWorldGlobal(), current.worlds());
         }
         final Object worlds = loaded.get(WORLDS).raw().get(List.of("worlds"));
         return WorldConfig.resolve(worldName, globals,
@@ -212,7 +320,8 @@ public final class ServerConfig {
      * @return the configured value
      */
     public static boolean getBoolean(final String path, final boolean fallback) {
-        return fileFor(path).getBoolean(path, fallback);
+        final Object value = overridden(path);
+        return value != null ? ConfigFile.asBoolean(value, fallback) : fileFor(path).getBoolean(path, fallback);
     }
 
     /**
@@ -223,7 +332,8 @@ public final class ServerConfig {
      * @return the configured value
      */
     public static int getInt(final String path, final int fallback) {
-        return fileFor(path).getInt(path, fallback);
+        final Object value = overridden(path);
+        return value != null ? ConfigFile.asInt(value, fallback) : fileFor(path).getInt(path, fallback);
     }
 
     /**
@@ -234,7 +344,8 @@ public final class ServerConfig {
      * @return the configured value
      */
     public static double getDouble(final String path, final double fallback) {
-        return fileFor(path).getDouble(path, fallback);
+        final Object value = overridden(path);
+        return value != null ? ConfigFile.asDouble(value, fallback) : fileFor(path).getDouble(path, fallback);
     }
 
     /**
@@ -245,7 +356,8 @@ public final class ServerConfig {
      * @return the configured value, trimmed
      */
     public static String getString(final String path, final String fallback) {
-        return fileFor(path).getString(path, fallback);
+        final Object value = overridden(path);
+        return value != null ? ConfigFile.asString(value, fallback) : fileFor(path).getString(path, fallback);
     }
 
     /**
@@ -255,7 +367,8 @@ public final class ServerConfig {
      * @return the configured values, never {@code null}
      */
     public static List<String> getStringList(final String path) {
-        return fileFor(path).getStringList(path);
+        final Object value = overridden(path);
+        return value != null ? ConfigFile.asStringList(value) : fileFor(path).getStringList(path);
     }
 
     /**
@@ -268,5 +381,11 @@ public final class ServerConfig {
         final ConfigFile file = fileFor(path);
         file.set(path, value);
         file.save();
+        final Overrides current = overrides;
+        if (current != null && current.global().containsKey(path)) {
+            final Map<String, Object> global = new HashMap<>(current.global());
+            global.put(path, value);
+            setOverrides(Overrides.of(global, current.worlds()));
+        }
     }
 }
