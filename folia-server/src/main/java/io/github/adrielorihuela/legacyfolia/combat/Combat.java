@@ -75,6 +75,36 @@ public final class Combat {
     }
 
     /**
+     * Whether a hit that does no damage still lands on a player.
+     *
+     * <p>Vanilla 1.8 dropped a 0 damage hit on a player, and CraftBukkit 1.8.8 took that filter
+     * out ({@code if (false && f == 0.0F)} in {@code EntityHuman.damageEntity}), so on the Spigot
+     * servers PvP was played on a snowball, an egg or a fishing hook flashed the player red,
+     * started the invulnerability window and knocked them back. Paper put the filter back; this
+     * takes it out again.</p>
+     *
+     * @return whether 0 damage hits land
+     */
+    public static boolean zeroDamageHitsLand() {
+        return config.enabled();
+    }
+
+    /**
+     * The damage a player's armour is worn by, with a 0 damage hit still costing a point.
+     *
+     * <p>1.8's {@code PlayerInventory.a(float)} divided the damage by four and raised anything
+     * below one to one, so a snowball wore every armour piece by a point. The modern
+     * {@code doHurtEquipment} does nothing for 0, so 0 becomes the smallest positive damage, which
+     * it then rounds up to the same single point.</p>
+     *
+     * @param damage the damage the armour step was given
+     * @return the damage to wear the armour by
+     */
+    public static float armorWear(final float damage) {
+        return config.enabled() && damage <= 0.0F ? Float.MIN_VALUE : damage;
+    }
+
+    /**
      * Whether hits follow 1.8's damage window: the raw damage is compared with the last hit's,
      * only the difference reaches the damage modifiers, and the raw figure is remembered.
      *

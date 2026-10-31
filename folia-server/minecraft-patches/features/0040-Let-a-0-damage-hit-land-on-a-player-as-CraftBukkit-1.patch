@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:10:39 -0500
+Subject: [PATCH] Let a 0 damage hit land on a player, as CraftBukkit 1.8 did
+
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 990def5c983e04723d8d0d2b2864e0b78cdd19f4..68bd2a5449c8e3752174297022e2fb3dfa67645d 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -1528,7 +1528,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             if (!this.actuallyHurt(level, source, (float)event.getFinalDamage(), event)) { // Paper - fix invulnerability reduction in EntityDamageEvent - no longer subtract lastHurt, that is part of the damage event calc now
+                 return false;
+             }
+-            if (this instanceof ServerPlayer && event.getDamage() == 0 && originalDamage == 0) return false; // Paper - revert to vanilla damage - players are not affected by damage that is 0 - skip damage if the vanilla damage is 0 and was not modified by plugins in the event.
++            if (!io.github.adrielorihuela.legacyfolia.combat.Combat.zeroDamageHitsLand() && this instanceof ServerPlayer && event.getDamage() == 0 && originalDamage == 0) return false; // LegacyFolia - CraftBukkit 1.8 let a 0 damage hit land on a player // Paper - revert to vanilla damage - players are not affected by damage that is 0 - skip damage if the vanilla damage is 0 and was not modified by plugins in the event.
+             // CraftBukkit end
+             this.lastHurt = legacyDamageWindow ? legacyRawDamage : damage; // LegacyFolia - 1.8 remembered the raw damage
+             tookFullDamage = false;
+@@ -1541,7 +1541,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             if (!this.actuallyHurt(level, source, (float)event.getFinalDamage(), event)) {
+                 return false;
+             }
+-            if (this instanceof ServerPlayer && event.getDamage() == 0 && originalDamage == 0) return false; // Paper - revert to vanilla damage - players are not affected by damage that is 0 - skip damage if the vanilla damage is 0 and was not modified by plugins in the event.
++            if (!io.github.adrielorihuela.legacyfolia.combat.Combat.zeroDamageHitsLand() && this instanceof ServerPlayer && event.getDamage() == 0 && originalDamage == 0) return false; // LegacyFolia - CraftBukkit 1.8 let a 0 damage hit land on a player // Paper - revert to vanilla damage - players are not affected by damage that is 0 - skip damage if the vanilla damage is 0 and was not modified by plugins in the event.
+             this.lastHurt = legacyDamageWindow ? legacyRawDamage : damage; // LegacyFolia - 1.8 remembered the raw damage
+             this.damageCooldownTime = this.invulnerableDuration; // CraftBukkit - restore use of maxNoDamageTicks
+             // this.actuallyHurt(level, source, damage);
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index b52a9d3bdd9254eef0aa89851e966c480d04d72e..8c56c4891df34f45650f654a914b91decc492deb 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -797,7 +797,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+ 
+     @Override
+     protected void hurtArmor(final DamageSource damageSource, final float damage) {
+-        this.doHurtEquipment(damageSource, damage, EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD);
++        this.doHurtEquipment(damageSource, io.github.adrielorihuela.legacyfolia.combat.Combat.armorWear(damage), EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD); // LegacyFolia - a 0 damage hit still wore armour in 1.8
+     }
+ 
+     @Override
