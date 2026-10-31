@@ -327,8 +327,11 @@ combat.legacy-criticals	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.critical-multiplier	DOUBLE	false	NONE	-	-	-	false	false	-	1.5	-
 combat.invulnerability-ticks	INT	false	NONE	-	-	-	false	false	-	20	-
 combat.damage-overriding	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
-combat.legacy-sword-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.legacy-weapon-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.sword-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	4.0	-
+combat.axe-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	3.0	-
+combat.pickaxe-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	2.0	-
+combat.shovel-base-damage	DOUBLE	false	NONE	-	-	-	false	false	-	1.0	-
 combat.legacy-sharpness	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.sharpness-per-level	DOUBLE	false	NONE	-	-	-	false	false	-	1.25	-
 combat.fire-aspect-before-damage	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-

@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:48:00 -0500
+Subject: [PATCH] Count a weapon at what it was worth in 1.8
+
+1.8 built a weapon's damage from a base for its kind plus the material's
+bonus: 4 for a sword, 3 for an axe, 2 for a pickaxe and 1 for a shovel.
+The bonuses are unchanged, the bases are not, so a diamond sword hit for
+8 there and 7 now, and a diamond axe for 7 there and 9 now.
+
+The swap happens where a melee hit reads the attack damage attribute, for
+players and for mobs alike, as 1.8 applied the same item modifiers to
+both. The item registry is left as it is, so the change follows a reload,
+nothing stored or sent changes, and a weapon with modifiers of its own
+keeps them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
+index 8ba867d1cdc31cc3b59c5a129ae4047ff55c2d76..ed37413233afd20769da915e827b09fe154f2b35 100644
+--- a/net/minecraft/world/entity/Mob.java
++++ b/net/minecraft/world/entity/Mob.java
+@@ -1629,7 +1629,7 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+ 
+     @Override
+     public boolean doHurtTarget(final ServerLevel level, final Entity target) {
+-        float dmg = (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE);
++        float dmg = (float)io.github.adrielorihuela.legacyfolia.combat.Combat.attackDamage(this); // LegacyFolia - 1.8 weapon damage
+         ItemStack weaponItem = this.getWeaponItem();
+         DamageSource damageSource = weaponItem.getDamageSource(this);
+         dmg = EnchantmentHelper.modifyDamage(level, weaponItem, target, damageSource, dmg);
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index f81e5b2d4d712cbc555d5f70815fb51bee6f028c..b52a9d3bdd9254eef0aa89851e966c480d04d72e 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1028,7 +1028,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+ 
+         if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
+         // Paper end - PlayerAttackEntityEvent
+-            float baseDamage = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE);
++            float baseDamage = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : (float)io.github.adrielorihuela.legacyfolia.combat.Combat.attackDamage(this); // LegacyFolia - 1.8 weapon damage
+             ItemStack attackingItemStack = this.getWeaponItem();
+             DamageSource damageSource = this.createAttackSource(attackingItemStack); final DamageSource dmgSourceFinal = damageSource; // Paper - damage events
+             float attackStrengthScale = this.getAttackStrengthScale(0.5F);

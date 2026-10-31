@@ -76,12 +76,29 @@ invulnerability-ticks = 20
 # immune to an axe, which is not how 1.8 played.
 damage-overriding = true
 
-# Sword damage. In 1.8 a sword's attack damage modifier was 4 plus its tier
-# bonus; modern swords are built on a base of 3 with exactly the same tier
-# bonuses (wood 0, stone 1, iron 2, diamond 3, gold 0). Every sword therefore
-# hit for one point more, so a diamond sword's modifier is 7 rather than 6.
-legacy-sword-damage = true
+# Weapon damage. In 1.8 a weapon's attack damage was a base for its kind plus
+# its material's bonus (wood 0, stone 1, iron 2, diamond 3, gold 0), on top of
+# your own 1. The bonuses are the same today; the bases are not:
+#
+#   sword    4 in 1.8, 3 now        a diamond sword hits for 8, not 7
+#   axe      3 in 1.8, 5 to 7 now   a diamond axe hits for 7, not 9
+#   pickaxe  2 in 1.8, 1 now        a diamond pickaxe hits for 6, not 5
+#   shovel   1 in 1.8, 1.5 now      a diamond shovel hits for 5, not 5.5
+#
+# So in 1.8 the axe was weaker than the sword, and now it is the other way
+# round. Copper (bonus 1) and netherite (bonus 4) did not exist; they follow
+# the same rule. Hoes already match and are left alone, as are the trident,
+# the mace and the spears, which have no 1.8 equivalent.
+#
+# A weapon that carries attribute modifiers of its own, from a plugin, a
+# command or a loot table, keeps them. Tooltips still show the modern figure,
+# because the client draws them from its own copy of the item; players on a
+# 1.8 client through ViaVersion see the 1.8 figure.
+legacy-weapon-damage = true
 sword-base-damage = 4.0
+axe-base-damage = 3.0
+pickaxe-base-damage = 2.0
+shovel-base-damage = 1.0
 
 # Sharpness as a flat 1.25 per level, added after the critical multiplier.
 #

@@ -279,25 +279,78 @@ public final class LegacyCombat {
         return damage + sharpnessBonus(sharpnessLevel, config);
     }
 
-    /** The base modern swords are built on, for comparison with {@code swordBaseDamage}. */
-    public static final double MODERN_SWORD_BASE_DAMAGE = 3.0;
+    /**
+     * The four kinds of weapon whose damage 1.8 built as a base plus the material's bonus.
+     *
+     * <p>{@code ItemSword} added its material's bonus to 4, and {@code ItemTool} to the figure each
+     * subclass passed up: 3 for {@code ItemAxe}, 2 for {@code ItemPickaxe}, 1 for
+     * {@code ItemSpade}. {@code ItemHoe} was neither and carried no attack modifier at all, so a hoe
+     * hit for the player's bare 1.0 — which is also what every modern hoe adds up to, so hoes are
+     * not listed.</p>
+     */
+    public enum WeaponKind {
+        /** {@code ItemSword}: 4 plus the material bonus. */
+        SWORD,
+        /** {@code ItemAxe}: 3 plus the material bonus. */
+        AXE,
+        /** {@code ItemPickaxe}: 2 plus the material bonus. */
+        PICKAXE,
+        /** {@code ItemSpade}: 1 plus the material bonus. */
+        SHOVEL
+    }
 
     /**
-     * What a sword's attack damage modifier is, from {@code ItemSword}'s constructor.
+     * The attack damage modifier a weapon carried in 1.8, from {@code ItemSword} and
+     * {@code ItemTool}.
      *
-     * <p>1.8 gave every sword {@code 4.0F + material bonus}; modern swords are built on a base of
-     * 3.0 with the identical tier bonuses (wood 0, stone 1, iron 2, diamond 3, gold 0). So every
-     * sword carries exactly one point more on 1.8 than it does now — a diamond sword's modifier is
-     * 7.0 there against 6.0 today — on top of the player's own base attack damage of 1.0. The tiers
-     * themselves are unchanged, so only the base differs. Netherite has no 1.8 counterpart and
-     * simply follows the same rule.</p>
+     * <p>The material bonuses are the same now as they were ({@code EnumToolMaterial}: wood 0,
+     * stone 1, iron 2, diamond 3, gold 0); what changed is the base each kind adds them to, and for
+     * axes the base now differs per material. The modifier goes on top of the player's own 1.0,
+     * which 1.8 also had and never added to again in {@code EntityHuman.attack}. So a diamond sword
+     * is 1 + 4 + 3 = 8 there against 7 now, and a diamond axe 1 + 3 + 3 = 7 there against 9 now:
+     * the axe hit for less than the sword, which is the larger of the two changes.</p>
      *
-     * @param tierBonus the material's attack damage bonus
-     * @param config the base to add it to
-     * @return the attack damage modifier the sword should carry
+     * <p>Copper and netherite did not exist. Their modern material bonuses (1 and 4) are added to
+     * the same bases, which is what the 1.8 classes would have done with a new material.</p>
+     *
+     * @param kind which of the four
+     * @param materialBonus the material's attack damage bonus
+     * @param config the bases to add it to
+     * @return the attack damage modifier the weapon should carry
      */
-    public static double swordAttackDamage(final double tierBonus, final CombatConfig config) {
-        return config.swordBaseDamage() + tierBonus;
+    public static double weaponAttackDamage(final WeaponKind kind, final double materialBonus,
+                                            final CombatConfig config) {
+        final double base = switch (kind) {
+            case SWORD -> config.swordBaseDamage();
+            case AXE -> config.axeBaseDamage();
+            case PICKAXE -> config.pickaxeBaseDamage();
+            case SHOVEL -> config.shovelBaseDamage();
+        };
+        return base + materialBonus;
+    }
+
+    /**
+     * An attack damage attribute worked out again with the weapon's modifier swapped for another.
+     *
+     * <p>The same arithmetic as {@code AttributeInstance.calculateValue}: the base plus every
+     * {@code ADD_VALUE} modifier, scaled by one plus the sum of the {@code ADD_MULTIPLIED_BASE}
+     * ones, then by each {@code ADD_MULTIPLIED_TOTAL} factor. Recomputing rather than adding the
+     * difference keeps a plugin's multiplying modifier applied to the new figure as it was to the
+     * old. Clamping to the attribute's range is the caller's.</p>
+     *
+     * @param baseValue the attribute's base, 1.0 for a player
+     * @param otherAdditions every {@code ADD_VALUE} modifier except the weapon's, such as Strength
+     * @param weaponModifier the weapon's modifier to use instead of its own
+     * @param multipliedBase the sum of the {@code ADD_MULTIPLIED_BASE} amounts
+     * @param multipliedTotal the product of one plus each {@code ADD_MULTIPLIED_TOTAL} amount
+     * @return the attribute value, before clamping
+     */
+    public static double attackDamageWith(final double baseValue, final double otherAdditions,
+                                          final double weaponModifier,
+                                          final double multipliedBase,
+                                          final double multipliedTotal) {
+        final double base = baseValue + otherAdditions + weaponModifier;
+        return (base + base * multipliedBase) * multipliedTotal;
     }
 
     /**

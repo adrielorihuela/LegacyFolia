@@ -168,6 +168,152 @@ public final class Combat {
     }
 
     /**
+     * The attack damage of a melee hit, with the weapon in hand counted at what it was worth in
+     * 1.8.
+     *
+     * <p>Read where the attack damage attribute is read for a melee hit, so it follows a reload and
+     * leaves the item registry, every stored item and every packet exactly as they are. The
+     * weapon's modifier is swapped only when all of this holds; otherwise the attribute comes back
+     * untouched:</p>
+     * <ul>
+     *   <li>the setting is on;</li>
+     *   <li>the weapon is a sword, axe, pickaxe or shovel of one of the seven materials;</li>
+     *   <li>the stack carries no attribute modifiers of its own. A weapon a plugin, a command or a
+     *       loot table gave modifiers to keeps them, as 1.8 kept an item's
+     *       {@code AttributeModifiers} tag in place of the item's defaults;</li>
+     *   <li>the modifier actually applied to the attacker is that item's own default, so a broken
+     *       weapon, one swapped in this tick, or a modifier somebody put on the entity under the
+     *       same id is left alone.</li>
+     * </ul>
+     * <p>Every other modifier, Strength and Weakness included, is kept, and the value is worked out
+     * the way the attribute works it out and clamped to the attribute's range.</p>
+     *
+     * @param attacker who is swinging
+     * @return the attack damage to use
+     */
+    public static double attackDamage(final net.minecraft.world.entity.LivingEntity attacker) {
+        final double modern = attacker.getAttributeValue(
+            net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+        final CombatConfig current = config;
+        if (!current.enabled() || !current.legacyWeaponDamage()) {
+            return modern;
+        }
+        final net.minecraft.world.item.ItemStack weapon = attacker.getMainHandItem();
+        final Weapons.Entry entry = Weapons.TABLE.get(weapon.getItem());
+        if (entry == null
+            || weapon.hasNonDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS)) {
+            return modern;
+        }
+        final net.minecraft.world.entity.ai.attributes.AttributeInstance instance =
+            attacker.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+        if (instance == null) {
+            return modern;
+        }
+        final net.minecraft.world.entity.ai.attributes.AttributeModifier applied =
+            instance.getModifier(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID);
+        if (applied == null || !applied.equals(entry.modern())) {
+            return modern;
+        }
+
+        double otherAdditions = 0.0;
+        double multipliedBase = 0.0;
+        double multipliedTotal = 1.0;
+        for (final net.minecraft.world.entity.ai.attributes.AttributeModifier modifier
+            : instance.getModifiers()) {
+            if (modifier.id().equals(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID)) {
+                continue;
+            }
+            switch (modifier.operation()) {
+                case ADD_VALUE -> otherAdditions += modifier.amount();
+                case ADD_MULTIPLIED_BASE -> multipliedBase += modifier.amount();
+                case ADD_MULTIPLIED_TOTAL -> multipliedTotal *= 1.0 + modifier.amount();
+            }
+        }
+        final double legacy = LegacyCombat.attackDamageWith(instance.getBaseValue(), otherAdditions,
+            LegacyCombat.weaponAttackDamage(entry.kind(), entry.materialBonus(), current),
+            multipliedBase, multipliedTotal);
+        return net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE.value()
+            .sanitizeValue(legacy);
+    }
+
+    /**
+     * Which items 1.8's weapon rule covers, with their material bonus and their modern modifier.
+     *
+     * <p>Listed by item rather than read from the item tags, because a datapack can put anything
+     * in {@code #swords} and a datapack sword has no 1.8 value to go back to. Built on first use,
+     * which is always after the item registry exists.</p>
+     */
+    private static final class Weapons {
+
+        record Entry(LegacyCombat.WeaponKind kind, double materialBonus,
+                     net.minecraft.world.entity.ai.attributes.@org.jspecify.annotations.Nullable AttributeModifier modern) {
+        }
+
+        static final java.util.Map<net.minecraft.world.item.Item, Entry> TABLE = build();
+
+        private Weapons() {
+        }
+
+        private static java.util.Map<net.minecraft.world.item.Item, Entry> build() {
+            final java.util.Map<net.minecraft.world.item.Item, Entry> table =
+                new java.util.IdentityHashMap<>();
+            put(table, net.minecraft.world.item.ToolMaterial.WOOD,
+                net.minecraft.world.item.Items.WOODEN_SWORD, net.minecraft.world.item.Items.WOODEN_AXE,
+                net.minecraft.world.item.Items.WOODEN_PICKAXE, net.minecraft.world.item.Items.WOODEN_SHOVEL);
+            put(table, net.minecraft.world.item.ToolMaterial.STONE,
+                net.minecraft.world.item.Items.STONE_SWORD, net.minecraft.world.item.Items.STONE_AXE,
+                net.minecraft.world.item.Items.STONE_PICKAXE, net.minecraft.world.item.Items.STONE_SHOVEL);
+            put(table, net.minecraft.world.item.ToolMaterial.COPPER,
+                net.minecraft.world.item.Items.COPPER_SWORD, net.minecraft.world.item.Items.COPPER_AXE,
+                net.minecraft.world.item.Items.COPPER_PICKAXE, net.minecraft.world.item.Items.COPPER_SHOVEL);
+            put(table, net.minecraft.world.item.ToolMaterial.IRON,
+                net.minecraft.world.item.Items.IRON_SWORD, net.minecraft.world.item.Items.IRON_AXE,
+                net.minecraft.world.item.Items.IRON_PICKAXE, net.minecraft.world.item.Items.IRON_SHOVEL);
+            put(table, net.minecraft.world.item.ToolMaterial.GOLD,
+                net.minecraft.world.item.Items.GOLDEN_SWORD, net.minecraft.world.item.Items.GOLDEN_AXE,
+                net.minecraft.world.item.Items.GOLDEN_PICKAXE, net.minecraft.world.item.Items.GOLDEN_SHOVEL);
+            put(table, net.minecraft.world.item.ToolMaterial.DIAMOND,
+                net.minecraft.world.item.Items.DIAMOND_SWORD, net.minecraft.world.item.Items.DIAMOND_AXE,
+                net.minecraft.world.item.Items.DIAMOND_PICKAXE, net.minecraft.world.item.Items.DIAMOND_SHOVEL);
+            put(table, net.minecraft.world.item.ToolMaterial.NETHERITE,
+                net.minecraft.world.item.Items.NETHERITE_SWORD, net.minecraft.world.item.Items.NETHERITE_AXE,
+                net.minecraft.world.item.Items.NETHERITE_PICKAXE, net.minecraft.world.item.Items.NETHERITE_SHOVEL);
+            return java.util.Collections.unmodifiableMap(table);
+        }
+
+        private static void put(final java.util.Map<net.minecraft.world.item.Item, Entry> table,
+                                final net.minecraft.world.item.ToolMaterial material,
+                                final net.minecraft.world.item.Item sword,
+                                final net.minecraft.world.item.Item axe,
+                                final net.minecraft.world.item.Item pickaxe,
+                                final net.minecraft.world.item.Item shovel) {
+            final double bonus = material.attackDamageBonus();
+            table.put(sword, new Entry(LegacyCombat.WeaponKind.SWORD, bonus, defaultModifier(sword)));
+            table.put(axe, new Entry(LegacyCombat.WeaponKind.AXE, bonus, defaultModifier(axe)));
+            table.put(pickaxe, new Entry(LegacyCombat.WeaponKind.PICKAXE, bonus, defaultModifier(pickaxe)));
+            table.put(shovel, new Entry(LegacyCombat.WeaponKind.SHOVEL, bonus, defaultModifier(shovel)));
+        }
+
+        /** The attack damage modifier the item's own default components give it. */
+        private static net.minecraft.world.entity.ai.attributes.@org.jspecify.annotations.Nullable AttributeModifier defaultModifier(
+            final net.minecraft.world.item.Item item) {
+            final net.minecraft.world.item.component.ItemAttributeModifiers modifiers =
+                item.components().get(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS);
+            if (modifiers == null) {
+                return null;
+            }
+            for (final net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry
+                : modifiers.modifiers()) {
+                if (entry.attribute().is(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)
+                    && entry.modifier().id().equals(net.minecraft.world.item.Item.BASE_ATTACK_DAMAGE_ID)) {
+                    return entry.modifier();
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * Whether the modern saturation-driven fast healing track may run.
      *
      * @return whether it may, always true while the module is off

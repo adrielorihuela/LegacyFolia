@@ -125,7 +125,7 @@ class LegacyCombatTest {
     void overridingCanBeTurnedOff() {
         final CombatConfig noOverride = new CombatConfig(true, true, true, true, 0.4, 0.4, 0.4,
             true, 0.5, true, true, 1.5, 20, false, true, 0.5, true, true,
-            true, 25.0, 20, true, 0.75, 25, 20, true, 1.25, true, 4.0, true, 1,
+            true, 25.0, 20, true, 0.75, 25, 20, true, 1.25, true, 4.0, 3.0, 2.0, 1.0, true, 1,
             true, 80, 18, false, 0.3, 3.0, 0.8, 0.2, true, 6, 4, 4.0);
 
         assertEquals(0.0F, LegacyCombat.damageThroughInvulnerability(20.0F, 1.0F, noOverride),
@@ -230,7 +230,7 @@ class LegacyCombatTest {
     @Test
     @DisplayName("a critical multiplies the weapon damage but not the sharpness on top of it")
     void criticalsDoNotAmplifySharpness() {
-        // Diamond sword, Sharpness V, critical: 7 * 1.5 = 10.5, then + 6.25.
+        // A seven-damage weapon, Sharpness V, critical: 7 * 1.5 = 10.5, then + 6.25.
         assertEquals(16.75F, LegacyCombat.attackDamage(7.0F, true, 5, VANILLA), 0.0001F);
         assertEquals(13.25F, LegacyCombat.attackDamage(7.0F, false, 5, VANILLA), 0.0001F);
 
@@ -238,16 +238,89 @@ class LegacyCombatTest {
         assertEquals(19.875F, (7.0F + 6.25F) * 1.5F, 0.0001F);
     }
 
-    @Test
-    @DisplayName("swords carry one point more than they do now, tier bonuses unchanged")
-    void swordDamageIsOneHigher() {
-        assertEquals(4.0, LegacyCombat.swordAttackDamage(0.0, VANILLA), EPSILON, "wood and gold");
-        assertEquals(5.0, LegacyCombat.swordAttackDamage(1.0, VANILLA), EPSILON, "stone");
-        assertEquals(6.0, LegacyCombat.swordAttackDamage(2.0, VANILLA), EPSILON, "iron");
-        assertEquals(7.0, LegacyCombat.swordAttackDamage(3.0, VANILLA), EPSILON, "diamond");
+    /** A player's own attack damage, 1.0 in 1.8 ({@code EntityHuman}) and now. */
+    private static final double FIST = 1.0;
 
-        assertEquals(1.0, VANILLA.swordBaseDamage() - LegacyCombat.MODERN_SWORD_BASE_DAMAGE,
-            EPSILON, "the tiers are identical, only the base differs");
+    @Test
+    @DisplayName("each 1.8 weapon hits for what ItemSword and ItemTool gave it")
+    void weaponsHitFor18Damage() {
+        // Material bonuses from EnumToolMaterial: wood 0, stone 1, iron 2, diamond (EMERALD) 3,
+        // gold 0. Totals as 1.8 computed them: the player's 1.0 plus the item's modifier.
+        final double[] bonus = {0.0, 1.0, 2.0, 0.0, 3.0};
+        final double[] sword = {5.0, 6.0, 7.0, 5.0, 8.0};
+        final double[] axe = {4.0, 5.0, 6.0, 4.0, 7.0};
+        final double[] pickaxe = {3.0, 4.0, 5.0, 3.0, 6.0};
+        final double[] shovel = {2.0, 3.0, 4.0, 2.0, 5.0};
+        final String[] material = {"wood", "stone", "iron", "gold", "diamond"};
+        for (int i = 0; i < bonus.length; i++) {
+            assertEquals(sword[i], FIST + LegacyCombat.weaponAttackDamage(
+                LegacyCombat.WeaponKind.SWORD, bonus[i], VANILLA), EPSILON, material[i] + " sword");
+            assertEquals(axe[i], FIST + LegacyCombat.weaponAttackDamage(
+                LegacyCombat.WeaponKind.AXE, bonus[i], VANILLA), EPSILON, material[i] + " axe");
+            assertEquals(pickaxe[i], FIST + LegacyCombat.weaponAttackDamage(
+                LegacyCombat.WeaponKind.PICKAXE, bonus[i], VANILLA), EPSILON, material[i] + " pickaxe");
+            assertEquals(shovel[i], FIST + LegacyCombat.weaponAttackDamage(
+                LegacyCombat.WeaponKind.SHOVEL, bonus[i], VANILLA), EPSILON, material[i] + " shovel");
+        }
+    }
+
+    @Test
+    @DisplayName("the axe hit for less than the sword in 1.8, the reverse of now")
+    void axesWereWeakerThanSwords() {
+        // 26.3: a diamond sword is 1 + 3 + 3 = 7 and a diamond axe 1 + 5 + 3 = 9.
+        final double sword = FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.SWORD, 3.0, VANILLA);
+        final double axe = FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.AXE, 3.0, VANILLA);
+        assertEquals(8.0, sword, EPSILON, "one more than the modern 7");
+        assertEquals(7.0, axe, EPSILON, "two less than the modern 9");
+        assertTrue(axe < sword);
+    }
+
+    @Test
+    @DisplayName("copper and netherite follow 1.8's rule with their modern material bonus")
+    void newMaterialsFollowTheRule() {
+        assertEquals(6.0, FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.SWORD, 1.0, VANILLA), EPSILON, "copper sword, as stone");
+        assertEquals(9.0, FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.SWORD, 4.0, VANILLA), EPSILON, "netherite sword");
+        assertEquals(8.0, FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.AXE, 4.0, VANILLA), EPSILON, "netherite axe");
+        assertEquals(7.0, FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.PICKAXE, 4.0, VANILLA), EPSILON, "netherite pickaxe");
+        assertEquals(6.0, FIST + LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.SHOVEL, 4.0, VANILLA), EPSILON, "netherite shovel");
+    }
+
+    @Test
+    @DisplayName("the attribute is worked out again with the other modifiers kept")
+    void otherModifiersAreKept() {
+        // Diamond sword, nothing else: 1 + 7.
+        assertEquals(8.0, LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.0, 1.0), EPSILON);
+        // Strength I adds 3 now: 1 + 3 + 7.
+        assertEquals(11.0, LegacyCombat.attackDamageWith(1.0, 3.0, 7.0, 0.0, 1.0), EPSILON);
+        // A plugin's +50% of the base and x2 of the total apply to the new figure, not the old.
+        assertEquals((1.0 + 7.0) * 1.5 * 2.0,
+            LegacyCombat.attackDamageWith(1.0, 0.0, 7.0, 0.5, 2.0), EPSILON);
+    }
+
+    @Test
+    @DisplayName("each base can be changed on its own")
+    void basesAreConfigurable() {
+        final CombatConfig modernSwords = new CombatConfig(true, true, true, true, 0.4, 0.4, 0.4,
+            true, 0.5, true, true, 1.5, 20, true, true, 0.5, true, true,
+            true, 25.0, 20,
+            true, 0.75, 25, 20,
+            true, 1.25,
+            true, 3.0, 3.0, 2.0, 1.0,
+            true, 1,
+            true, 80, 18, false,
+            0.3, 3.0, 0.8, 0.2,
+            true, 6, 4, 4.0);
+        assertEquals(6.0, LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.SWORD, 3.0, modernSwords), EPSILON);
+        assertEquals(6.0, LegacyCombat.weaponAttackDamage(
+            LegacyCombat.WeaponKind.AXE, 3.0, modernSwords), EPSILON, "the axe is untouched");
     }
 
     @Test
@@ -328,6 +401,10 @@ class LegacyCombatTest {
         assertEquals(20, config.protectionRollCap());
         assertEquals(1.25, config.sharpnessPerLevel(), EPSILON);
         assertEquals(4.0, config.swordBaseDamage(), EPSILON);
+        assertEquals(3.0, config.axeBaseDamage(), EPSILON);
+        assertEquals(2.0, config.pickaxeBaseDamage(), EPSILON);
+        assertEquals(1.0, config.shovelBaseDamage(), EPSILON);
+        assertTrue(config.legacyWeaponDamage());
         assertEquals(1, config.fireAspectSeconds());
         assertEquals(80, config.regenIntervalTicks());
         assertEquals(18, config.regenFoodThreshold());

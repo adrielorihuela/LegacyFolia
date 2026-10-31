@@ -38,8 +38,11 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param protectionRollCap the ceiling on the rolled result, 20 in 1.8
  * @param legacySharpness whether sharpness is a flat bonus added after the critical multiplier
  * @param sharpnessPerLevel the damage each level of sharpness adds, 1.25 in 1.8
- * @param legacySwordDamage whether swords use 1.8's base damage
+ * @param legacyWeaponDamage whether swords, axes, pickaxes and shovels hit for 1.8's damage
  * @param swordBaseDamage what a sword's tier bonus is added to, 4.0 in 1.8 against 3.0 now
+ * @param axeBaseDamage what an axe's tier bonus is added to, 3.0 in 1.8
+ * @param pickaxeBaseDamage what a pickaxe's tier bonus is added to, 2.0 in 1.8 against 1.0 now
+ * @param shovelBaseDamage what a shovel's tier bonus is added to, 1.0 in 1.8 against 1.5 now
  * @param fireAspectBeforeDamage whether fire aspect ignites before the hit is resolved
  * @param fireAspectSeconds how long fire aspect sets the target alight for, 1 in 1.8
  * @param legacyRegeneration whether health regeneration uses 1.8's single slow track
@@ -68,7 +71,9 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            boolean legacyProtection, double protectionFactor,
                            int protectionPointsCap, int protectionRollCap,
                            boolean legacySharpness, double sharpnessPerLevel,
-                           boolean legacySwordDamage, double swordBaseDamage,
+                           boolean legacyWeaponDamage, double swordBaseDamage,
+                           double axeBaseDamage, double pickaxeBaseDamage,
+                           double shovelBaseDamage,
                            boolean fireAspectBeforeDamage, int fireAspectSeconds,
                            boolean legacyRegeneration, int regenIntervalTicks,
                            int regenFoodThreshold, boolean saturatedFastRegen,
@@ -86,7 +91,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 25.0, 20,
             true, 0.75, 25, 20,
             true, 1.25,
-            true, 4.0,
+            true, 4.0, 3.0, 2.0, 1.0,
             true, 1,
             true, 80, 18, false,
             0.3, 3.0, 0.8, 0.2,
@@ -136,8 +141,11 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getInt(PREFIX + "protection-roll-cap", defaults.protectionRollCap()),
             ServerConfig.getBoolean(PREFIX + "legacy-sharpness", defaults.legacySharpness()),
             ServerConfig.getDouble(PREFIX + "sharpness-per-level", defaults.sharpnessPerLevel()),
-            ServerConfig.getBoolean(PREFIX + "legacy-sword-damage", defaults.legacySwordDamage()),
+            ServerConfig.getBoolean(PREFIX + "legacy-weapon-damage", defaults.legacyWeaponDamage()),
             ServerConfig.getDouble(PREFIX + "sword-base-damage", defaults.swordBaseDamage()),
+            ServerConfig.getDouble(PREFIX + "axe-base-damage", defaults.axeBaseDamage()),
+            ServerConfig.getDouble(PREFIX + "pickaxe-base-damage", defaults.pickaxeBaseDamage()),
+            ServerConfig.getDouble(PREFIX + "shovel-base-damage", defaults.shovelBaseDamage()),
             ServerConfig.getBoolean(PREFIX + "fire-aspect-before-damage", defaults.fireAspectBeforeDamage()),
             ServerConfig.getInt(PREFIX + "fire-aspect-seconds", defaults.fireAspectSeconds()),
             ServerConfig.getBoolean(PREFIX + "legacy-regeneration", defaults.legacyRegeneration()),
