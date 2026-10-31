@@ -112,9 +112,9 @@ damage-overriding = true
 # the mace and the spears, which have no 1.8 equivalent.
 #
 # A weapon that carries attribute modifiers of its own, from a plugin, a
-# command or a loot table, keeps them. Tooltips still show the modern figure,
-# because the client draws them from its own copy of the item; players on a
-# 1.8 client through ViaVersion see the 1.8 figure.
+# command or a loot table, keeps them. Tooltips show the 1.8 figure: the item
+# is rewritten as it is sent to a client, and the stored item keeps the modern
+# one, so turning this off puts everything back.
 legacy-weapon-damage = true
 sword-base-damage = 4.0
 axe-base-damage = 3.0
