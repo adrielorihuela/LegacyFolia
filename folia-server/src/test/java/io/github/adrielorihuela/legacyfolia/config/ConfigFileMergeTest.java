@@ -201,7 +201,8 @@ class ConfigFileMergeTest {
     @DisplayName("adding keys and changing values leaves every other byte of the file as it was")
     void leavesEverythingElseAlone(@TempDir final Path dir) throws IOException {
         final String template = new String(ConfigFile.class.getClassLoader()
-            .getResourceAsStream("legacyfolia/" + ServerConfig.SERVER).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            .getResourceAsStream("legacyfolia/" + ServerConfig.SERVER).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+            .replace("\r\n", "\n");
         // The operator's file: the template with its own touches, and missing two keys a newer
         // release added: the whole of [server.watchdog] and one key of [server.status].
         final String watchdog = template.substring(template.indexOf("# ----------------------------------------------------------------------------\n#  Watchdog"),
