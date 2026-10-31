@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:44:01 -0500
+Subject: [PATCH] Fish the way 1.8 did
+
+
+diff --git a/net/minecraft/world/entity/projectile/FishingHook.java b/net/minecraft/world/entity/projectile/FishingHook.java
+index 20deed9e67bd4b7e0ed2c5f8fafe58e2ee677844..51184b0dd26e2384f4aa21ec7cba6cc70ae7f40c 100644
+--- a/net/minecraft/world/entity/projectile/FishingHook.java
++++ b/net/minecraft/world/entity/projectile/FishingHook.java
+@@ -117,6 +117,13 @@ public class FishingHook extends Projectile {
+             0.6 / dist + this.random.triangle(0.5, 0.0103365),
+             0.6 / dist + this.random.triangle(0.5, 0.0103365)
+         );
++        // LegacyFolia start - 1.8 cast from 0.16 to the side at 1.5 with a Gaussian spread
++        final Vec3 legacyOrigin = io.github.adrielorihuela.legacyfolia.combat.Combat.hookOrigin(player);
++        if (legacyOrigin != null) {
++            this.snapTo(legacyOrigin.x, legacyOrigin.y, legacyOrigin.z, yRot1, xRot1);
++            newMovement = io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.castMovement(yRot1, xRot1, this.random::nextGaussian);
++        }
++        // LegacyFolia end - 1.8 cast
+         this.setDeltaMovement(newMovement);
+         this.setYRot((float)(Mth.atan2(newMovement.x, newMovement.z) * 180.0F / (float)Math.PI));
+         this.setXRot((float)(Mth.atan2(newMovement.y, newMovement.horizontalDistance()) * 180.0F / (float)Math.PI));
+@@ -253,13 +260,21 @@ public class FishingHook extends Projectile {
+                 }
+             }
+ 
+-            if (!fluidState.is(FluidTags.WATER) && !this.onGround() && this.hookedIn == null) {
++            final boolean legacyFlight = io.github.adrielorihuela.legacyfolia.combat.Combat.legacyFishingRod() && this.currentState == FishingHook.FishHookState.FLYING; // LegacyFolia - 1.8's flight
++            if (!legacyFlight && !fluidState.is(FluidTags.WATER) && !this.onGround() && this.hookedIn == null) {
+                 this.setDeltaMovement(this.getDeltaMovement().add(0.0, -this.getDefaultGravity(), 0.0));
+             }
+ 
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             this.applyEffectsFromBlocks();
+             this.updateRotation();
++            // LegacyFolia start - 1.8 fell by 0.04 after the move and slowed to 0.5 on a collision
++            if (legacyFlight) {
++                this.setDeltaMovement(io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.hookFlight(this.getDeltaMovement(), this.onGround() || this.horizontalCollision || this.verticalCollision));
++                this.reapplyPosition();
++                return;
++            }
++            // LegacyFolia end - 1.8's flight
+             if (this.currentState == FishingHook.FishHookState.FLYING && (this.onGround() || this.horizontalCollision)) {
+                 this.setDeltaMovement(Vec3.ZERO);
+             }
+@@ -297,12 +312,23 @@ public class FishingHook extends Projectile {
+ 
+     @Override
+     protected boolean canHitEntity(final Entity entity) {
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyFishingRod()) return super.canHitEntity(entity); // LegacyFolia - 1.8's hook could not catch a dropped item
+         return super.canHitEntity(entity) || entity.isAlive() && entity instanceof ItemEntity;
+     }
+ 
+     @Override
+     protected void onHitEntity(final EntityHitResult hitResult) {
+         super.onHitEntity(hitResult);
++        // LegacyFolia start - 1.8's hook hurt what it hit for nothing, and caught it only if that landed
++        // The 0 damage hit is what knocked a player back from the angler and started their
++        // invulnerability window: rod PvP.
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyFishingRod() && this.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
++            if (hitResult.getEntity().hurtServer(serverLevel, this.damageSources().thrown(this, this.getOwner()), 0.0F)) {
++                this.setHookedEntity(hitResult.getEntity());
++            }
++            return;
++        }
++        // LegacyFolia end - 1.8's hook hurt what it hit
+         if (!this.level().isClientSide()) {
+             this.setHookedEntity(hitResult.getEntity());
+         }
+@@ -517,8 +543,9 @@ public class FishingHook extends Projectile {
+                 // CraftBukkit end
+                 this.pullEntity(this.hookedIn);
+                 CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)owner, rod, this, Collections.emptyList());
++                if (!io.github.adrielorihuela.legacyfolia.combat.Combat.legacyFishingRod() || !(this.hookedIn instanceof Player)) // LegacyFolia - 1.8 never told a hooked player to move
+                 this.level().broadcastEntityEvent(this, EntityEvent.FISHING_ROD_REEL_IN);
+-                dmg = this.hookedIn instanceof ItemEntity ? 3 : 5;
++                dmg = io.github.adrielorihuela.legacyfolia.combat.Combat.legacyFishingRod() ? 3 : this.hookedIn instanceof ItemEntity ? 3 : 5; // LegacyFolia - 1.8 cost 3 for an entity
+                 } // Paper - re-check to see if there is a hooked entity
+             } else if (this.nibble > 0) {
+                 LootParams params = new LootParams.Builder((ServerLevel)this.level())
+@@ -604,6 +631,12 @@ public class FishingHook extends Projectile {
+     public void pullEntity(final Entity entity) {
+         Entity owner = this.getOwner();
+         if (owner != null && entity.canSimulateMovement()) {
++            // LegacyFolia start - 1.8 lifted what it pulled by the square root of the distance
++            if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyFishingRod()) {
++                entity.setDeltaMovement(entity.getDeltaMovement().add(io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.rodPull(owner.getX() - this.getX(), owner.getY() - this.getY(), owner.getZ() - this.getZ())));
++                return;
++            }
++            // LegacyFolia end - 1.8's pull
+             Vec3 delta = new Vec3(owner.getX() - this.getX(), owner.getY() - this.getY(), owner.getZ() - this.getZ()).scale(0.1);
+             entity.setDeltaMovement(entity.getDeltaMovement().add(delta));
+         }

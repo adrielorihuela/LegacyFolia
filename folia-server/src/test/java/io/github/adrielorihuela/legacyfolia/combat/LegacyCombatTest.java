@@ -528,6 +528,26 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("a fishing hook is cast at 1.5, falls after its move and lifts what it reels in")
+    void fishingRod() {
+        // Looking level and south: 0.4 forward normalised, then 1.5.
+        final Vec3 cast = LegacyCombat.castMovement(0.0F, 0.0F, () -> 0.0);
+        assertEquals(1.5, cast.z, 1.0E-6);
+        assertEquals(0.0, cast.y, 1.0E-6);
+        // In the air: 0.04 down, then 0.92; against a wall, 0.5.
+        final Vec3 air = LegacyCombat.hookFlight(new Vec3(1.0, 0.0, 0.0), false);
+        assertEquals((double) 0.92F, air.x, EPSILON);
+        assertEquals(-0.03999999910593033 * (double) 0.92F, air.y, EPSILON);
+        assertEquals(0.5, LegacyCombat.hookFlight(new Vec3(1.0, 0.0, 0.0), true).x, EPSILON);
+        // Reeling in a mob 16 blocks away on the level: 1.6 towards the angler, and sqrt(16) *
+        // 0.08 = 0.32 up.
+        final Vec3 pull = LegacyCombat.rodPull(16.0, 0.0, 0.0);
+        assertEquals(1.6, pull.x, EPSILON);
+        assertEquals(0.32, pull.y, 1.0E-7);
+        assertTrue(VANILLA.legacyFishingRod());
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);

@@ -271,6 +271,19 @@ sword-blocking-reduction = 0.5
 #    last move, in the block it hit rather than on its face.
 legacy-projectiles = true
 
+# The fishing rod as 1.8 had it, which is what rod PvP was played with.
+#
+# The hook hurts whatever it hits for nothing, so a player is flashed red,
+# starts their invulnerability window and is knocked back from the angler,
+# and it only catches what that hit landed on. It is cast like a thrown item,
+# from 0.16 to the side at 1.5 with a Gaussian spread, and falls by 0.04 and
+# slows to 0.92 (0.5 when it hits something) after each move. It cannot catch
+# dropped items. Reeling in lifts a mob by the square root of the distance as
+# well as pulling it, costs 3 durability rather than 5, and never pulls a
+# hooked player: 1.8 moved them only on the server, so their client never
+# moved.
+legacy-fishing-rod = true
+
 # Shields and the off-hand slot did not exist in 1.8.
 disable-shields = true
 disable-offhand = true

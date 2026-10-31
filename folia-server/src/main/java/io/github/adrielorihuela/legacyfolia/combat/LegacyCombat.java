@@ -376,6 +376,53 @@ public final class LegacyCombat {
     }
 
     /**
+     * The motion a fishing hook is cast with, from 1.8's {@code EntityFishingHook(World,
+     * EntityHuman)}: the facing direction scaled by 0.4, then shot at 1.5 with an inaccuracy of 1.
+     *
+     * @param yawDegrees which way the angler faces
+     * @param pitchDegrees how far up or down they look
+     * @param gaussian a {@code nextGaussian()}
+     * @return the motion
+     */
+    public static Vec3 castMovement(final float yawDegrees, final float pitchDegrees,
+                                    final java.util.function.DoubleSupplier gaussian) {
+        final float yaw = yawDegrees / 180.0F * 3.1415927F;
+        final float pitch = pitchDegrees / 180.0F * 3.1415927F;
+        final double x = (double) (-net.minecraft.util.Mth.sin(yaw) * net.minecraft.util.Mth.cos(pitch) * 0.4F);
+        final double z = (double) (net.minecraft.util.Mth.cos(yaw) * net.minecraft.util.Mth.cos(pitch) * 0.4F);
+        final double y = (double) (-net.minecraft.util.Mth.sin(pitch) * 0.4F);
+        return movementToShoot(x, y, z, 1.5F, 1.0F, gaussian);
+    }
+
+    /**
+     * A flying fishing hook's motion after its move, from 1.8's {@code EntityFishingHook}: 0.04
+     * down, then everything times 0.92, or 0.5 when it ran into something.
+     *
+     * @param motion the motion it moved with
+     * @param collided whether the move hit the ground or a wall
+     * @return the motion for the next tick
+     */
+    public static Vec3 hookFlight(final Vec3 motion, final boolean collided) {
+        final double drag = collided ? 0.5F : 0.92F;
+        return new Vec3(motion.x * drag, (motion.y - 0.03999999910593033) * drag, motion.z * drag);
+    }
+
+    /**
+     * What reeling in adds to a hooked entity's motion, from 1.8's {@code EntityFishingHook.l()}:
+     * a tenth of the way to the angler, and on top of that the square root of the distance times
+     * 0.08 upward, both roots in {@code float}.
+     *
+     * @param dx how far the angler is along x
+     * @param dy how far the angler is along y
+     * @param dz how far the angler is along z
+     * @return the motion to add
+     */
+    public static Vec3 rodPull(final double dx, final double dy, final double dz) {
+        final double distance = (double) (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return new Vec3(dx * 0.1, dy * 0.1 + (double) (float) Math.sqrt(distance) * 0.08, dz * 0.1);
+    }
+
+    /**
      * Where a projectile starts, from 1.8's {@code EntityProjectile(World, EntityLiving)}: the
      * thrower's head less 0.1, moved 0.16 along the axis to its side.
      *

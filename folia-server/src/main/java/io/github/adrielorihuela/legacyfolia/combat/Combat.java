@@ -258,6 +258,19 @@ public final class Combat {
     }
 
     /**
+     * Whether a fishing rod works the way 1.8's did: the hook is cast like a thrown item and
+     * falls and slows as 1.8's did, hurts what it hits for nothing (knocking a player back from
+     * the angler) and catches it only if that landed, cannot catch a dropped item, lifts what it
+     * reels in, costs 3 durability for an entity, and never pulls a hooked player.
+     *
+     * @return whether the old rod applies
+     */
+    public static boolean legacyFishingRod() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyFishingRod();
+    }
+
+    /**
      * Where a living thing's projectile starts, from 1.8's {@code EntityProjectile} and
      * {@code EntityArrow} constructors: at its head height less 0.1, moved 0.16 to the side it
      * faces, with a sneaking player's head at 1.54 as 1.8 had it rather than the 1.27 of today's
@@ -268,9 +281,23 @@ public final class Combat {
      */
     public static net.minecraft.world.phys.@org.jspecify.annotations.Nullable Vec3 projectileOrigin(
         final net.minecraft.world.entity.LivingEntity owner) {
-        if (!legacyProjectiles()) {
-            return null;
-        }
+        return legacyProjectiles() ? legacyOrigin(owner) : null;
+    }
+
+    /**
+     * Where a fishing hook is cast from: the same point as {@link #projectileOrigin}, under
+     * {@code legacy-fishing-rod}.
+     *
+     * @param angler who casts
+     * @return the position, or null to keep the game's
+     */
+    public static net.minecraft.world.phys.@org.jspecify.annotations.Nullable Vec3 hookOrigin(
+        final net.minecraft.world.entity.player.Player angler) {
+        return legacyFishingRod() ? legacyOrigin(angler) : null;
+    }
+
+    private static net.minecraft.world.phys.Vec3 legacyOrigin(
+        final net.minecraft.world.entity.LivingEntity owner) {
         final double eyeHeight = owner instanceof net.minecraft.world.entity.player.Player player
             ? (double) (player.isShiftKeyDown() ? 1.62F - 0.08F : 1.62F)
             : (double) owner.getEyeHeight();
