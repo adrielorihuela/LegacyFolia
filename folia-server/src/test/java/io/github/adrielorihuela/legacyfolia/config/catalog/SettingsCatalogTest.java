@@ -171,7 +171,8 @@ class SettingsCatalogTest {
         final Map<String, String> seen = new HashMap<>();
         for (final SettingEntry entry : catalog.all()) {
             final String key = entry.serverPropertiesKey();
-            if (entry.secret() || SettingEntry.USE_SERVER_PROPERTIES.equals(entry.tomlPath())) {
+            if (entry.secret() || SettingEntry.USE_SERVER_PROPERTIES.equals(entry.tomlPath())
+                || SettingEntry.EULA.equals(entry.tomlPath())) {
                 assertNull(key, entry.tomlPath() + " must never appear in server.properties");
                 continue;
             }

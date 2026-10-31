@@ -411,6 +411,43 @@ class ServerPropertiesTest {
     }
 
     @Test
+    @DisplayName("the EULA agreement never goes to server.properties, in either direction")
+    void eulaExcluded() throws Exception {
+        final String eula = io.github.adrielorihuela.legacyfolia.config.catalog.SettingEntry.EULA;
+        assertFalse(io.github.adrielorihuela.legacyfolia.config.catalog.SettingsCatalog.get().require(eula)
+            .allowedInServerProperties());
+
+        // Agreed in server.toml: it stays there, and is not moved into server.properties.
+        editToml(ServerConfig.SERVER, eula, "true");
+        ServerProperties.Report report = restart();
+        assertTrue(report.moved().isEmpty());
+        assertEquals(true, toml(ServerConfig.SERVER).get(eula));
+        assertTrue(ServerConfig.getBoolean(eula, false));
+        assertFalse(read(ServerProperties.FILE_NAME).contains("eula"));
+
+        // A server.properties copied from another server cannot agree on this one's behalf.
+        editToml(ServerConfig.SERVER, eula, "false");
+        appendProperties(eula + "=true\neula=true\n");
+        report = restart();
+        assertEquals(List.of(eula, "eula"), report.unknown());
+        assertFalse(ServerConfig.getBoolean(eula, true));
+
+        // The prompt's answer, written with set, goes to server.toml.
+        final String before = read(ServerProperties.FILE_NAME);
+        ServerProperties.set(eula, true).join();
+        assertEquals(true, toml(ServerConfig.SERVER).get(eula));
+        assertTrue(ServerConfig.getBoolean(eula, false));
+        assertEquals(before, read(ServerProperties.FILE_NAME), "nothing is written to server.properties");
+
+        // Off and on again: the agreement stays in the TOML.
+        ServerProperties.disable();
+        ServerProperties.enable();
+        assertEquals(true, toml(ServerConfig.SERVER).get(eula));
+        assertFalse(PropertiesDocument.parse(read(ServerProperties.FILE_NAME)).entries().stream()
+            .anyMatch(entry -> entry.key().equals(eula)));
+    }
+
+    @Test
     @DisplayName("writes go to server.properties when on, and setting the default removes the line")
     void writesWhenOn() throws Exception {
         ServerProperties.set("server.difficulty", "hard").join();

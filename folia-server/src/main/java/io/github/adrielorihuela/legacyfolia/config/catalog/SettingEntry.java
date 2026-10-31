@@ -46,6 +46,13 @@ public record SettingEntry(
     /** The switch for the server.properties mode, which cannot itself live in server.properties. */
     public static final String USE_SERVER_PROPERTIES = "server.use-server-properties";
 
+    /**
+     * The EULA agreement, which replaces {@code eula.txt}. It never goes to server.properties: that
+     * file is copied between servers, and a copy must not agree to the EULA on behalf of another
+     * server's operator.
+     */
+    public static final String EULA = "server.eula";
+
     public SettingEntry {
         Objects.requireNonNull(tomlPath, "tomlPath");
         Objects.requireNonNull(tomlFile, "tomlFile");
@@ -101,10 +108,11 @@ public record SettingEntry(
     /**
      * Whether this setting may appear in {@code server.properties} at all.
      *
-     * <p>Secrets never do, and neither does the switch that decides whether the file exists.</p>
+     * <p>Secrets never do, and neither does the switch that decides whether the file exists, nor
+     * the EULA agreement ({@link #EULA}).</p>
      */
     public boolean allowedInServerProperties() {
-        return !this.secret && !USE_SERVER_PROPERTIES.equals(this.tomlPath);
+        return !this.secret && !USE_SERVER_PROPERTIES.equals(this.tomlPath) && !EULA.equals(this.tomlPath);
     }
 
     /**
