@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:29:55 -0500
+Subject: [PATCH] Give a hit 1.8's sounds, statistics, tilt and critical checks
+
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index fc8e4da61efe5139b9646748768748e8134fcac4..740a0103f57fcb8b01ed0f45d22da65e885e5668 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -884,6 +884,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+ 
+     @Override
+     public void tick() {
++        io.github.adrielorihuela.legacyfolia.combat.Combat.syncAttackSpeed(this); // LegacyFolia - no charge indicator with no attack cooldown
+         // CraftBukkit start
+         if (this.joining) {
+             this.joining = false;
+@@ -3377,7 +3378,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+ 
+     @Override
+     public void indicateDamage(final double xd, final double zd) {
+-        this.hurtDir = (float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI - this.getYRot());
++        this.hurtDir = io.github.adrielorihuela.legacyfolia.combat.Combat.hurtDirection((float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI - this.getYRot())); // LegacyFolia - 1.8 always tilted the same way
+         this.connection.send(new ClientboundHurtAnimationPacket(this));
+     }
+ 
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index eff0346ad0faa433ef5f8677f49de4f8d4fe8586..65ce31906d9bd36ee9e86afa6e86e93c5eb5e042 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1041,7 +1041,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+                     boolean fullStrengthAttack = attackStrengthScale > 0.9F;
+                     boolean knockbackAttack;
+                     if (this.isSprinting() && fullStrengthAttack) {
+-                        this.playServerSideSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK);
++                        if (io.github.adrielorihuela.legacyfolia.combat.Combat.attackSounds()) this.playServerSideSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK); // LegacyFolia - 1.8 played no attack sounds
+                         knockbackAttack = true;
+                     } else {
+                         knockbackAttack = false;
+@@ -1103,11 +1103,16 @@ public abstract class Player extends Avatar implements ContainerUser {
+                         this.attackVisualEffects(entity, criticalAttack, sweepAttack, fullStrengthAttack, false, magicBoost);
+                         this.setLastHurtMob(entity);
+                         this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);
++                        // LegacyFolia start - 1.8 counted the hit's damage and showed no damage particles
++                        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyDamageDealt()) {
++                            if (entity instanceof LivingEntity) this.awardStat(Stats.DAMAGE_DEALT, Math.round(totalDamage * 10.0F));
++                        } else
++                        // LegacyFolia end - 1.8 counted the hit's damage
+                         this.damageStatsAndHearts(entity, oldLivingEntityHealth);
+                         this.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.attackExhaustion(this.level().spigotConfig.combatExhaustion), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value // LegacyFolia - 1.8's attack cost
+                     } else {
+                         if (legacyLit) entity.clearFire(); // LegacyFolia - 1.8 put out the fire a missed hit had lit
+-                        this.playServerSideSound(SoundEvents.PLAYER_ATTACK_NODAMAGE);
++                        if (io.github.adrielorihuela.legacyfolia.combat.Combat.attackSounds()) this.playServerSideSound(SoundEvents.PLAYER_ATTACK_NODAMAGE); // LegacyFolia - 1.8 played no attack sounds
+                     }
+                 }
+ 
+@@ -1148,7 +1153,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+             io.github.adrielorihuela.legacyfolia.combat.Combat.config();
+         if (legacyCombat.enabled() && legacyCombat.legacyCriticals()) {
+             return io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.isCritical(
+-                this.fallDistance > 0.0, this.onGround(), this.onClimbable(), this.isInWater(),
++                this.fallDistance > 0.0, this.onGround(), io.github.adrielorihuela.legacyfolia.combat.Combat.onLegacyLadder(this), io.github.adrielorihuela.legacyfolia.combat.Combat.inLegacyWater(this),
+                 this.isMobilityRestricted(), this.isPassenger())
+                 && entity instanceof LivingEntity;
+         }
+@@ -1191,11 +1196,11 @@ public abstract class Player extends Avatar implements ContainerUser {
+         final float magicBoost
+     ) {
+         if (criticalAttack) {
+-            this.playServerSideSound(SoundEvents.PLAYER_ATTACK_CRIT);
++            if (io.github.adrielorihuela.legacyfolia.combat.Combat.attackSounds()) this.playServerSideSound(SoundEvents.PLAYER_ATTACK_CRIT); // LegacyFolia - 1.8 played no attack sounds
+             this.crit(entity);
+         }
+ 
+-        if (!criticalAttack && !sweepAttack && !stabAttack) {
++        if (!criticalAttack && !sweepAttack && !stabAttack && io.github.adrielorihuela.legacyfolia.combat.Combat.attackSounds()) { // LegacyFolia - 1.8 played no attack sounds
+             this.playServerSideSound(fullStrengthAttack ? SoundEvents.PLAYER_ATTACK_STRONG : SoundEvents.PLAYER_ATTACK_WEAK);
+         }
+ 
+@@ -2011,6 +2016,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+     }
+ 
+     public boolean cannotAttackWithItem(final ItemStack itemStack, final int tolerance) {
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.noAttackCooldown()) return false; // LegacyFolia - 1.8 had no charge to wait for
+         float requiredStrength = itemStack.getOrDefault(DataComponents.MINIMUM_ATTACK_CHARGE, 0.0F);
+         float optimisticStrength = (this.attackStrengthTicker + tolerance) / this.getCurrentItemAttackStrengthDelay();
+         return requiredStrength > 0.0F && optimisticStrength < requiredStrength;
+@@ -2018,8 +2024,9 @@ public abstract class Player extends Avatar implements ContainerUser {
+ 
+     public float getAttackStrengthScale(final float a) {
+         // LegacyFolia start - 1.8 had no attack cooldown
+-        // Answering 1 here removes it everywhere at once: the damage scaling, the charge indicator
+-        // the client draws, and the sweep test that depends on a full-strength hit.
++        // Answering 1 here removes it from the server: the damage scaling and the sweep test that
++        // depends on a full-strength hit. The charge indicator the client draws is emptied by the
++        // attack speed modifier Combat.syncAttackSpeed gives every player.
+         final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
+             io.github.adrielorihuela.legacyfolia.combat.Combat.config();
+         if (legacyCombat.enabled() && legacyCombat.noAttackCooldown()) {

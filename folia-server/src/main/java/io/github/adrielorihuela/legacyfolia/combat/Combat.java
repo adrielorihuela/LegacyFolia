@@ -75,6 +75,130 @@ public final class Combat {
     }
 
     /**
+     * Whether a melee hit plays the attack sounds added in 1.9 (knockback, critical, strong, weak
+     * and no-damage). 1.8 played only the victim's hurt sound.
+     *
+     * @return whether to play them
+     */
+    public static boolean attackSounds() {
+        return !config.enabled();
+    }
+
+    /**
+     * Whether a hit awards {@code DAMAGE_DEALT} the way 1.8 did, ten times the damage of the hit
+     * against a living target before armour, and sends no damage indicator particles, which 1.8
+     * did not have.
+     *
+     * @return whether the old statistic applies
+     */
+    public static boolean legacyDamageDealt() {
+        return config.enabled();
+    }
+
+    /**
+     * The direction a hurt player's camera tilts. 1.8 sent only the hurt status, on which its
+     * client set the direction to 0, so the tilt never pointed at the attacker.
+     *
+     * @param modern the direction towards the attacker
+     * @return the direction to send
+     */
+    public static float hurtDirection(final float modern) {
+        return config.enabled() ? 0.0F : modern;
+    }
+
+    /**
+     * Whether an entity is on a ladder for a critical hit, from 1.8's {@code EntityLiving.k_()}:
+     * the block at its feet is a ladder or a vine, whether or not it is flying, and it is not a
+     * spectator. The modern test counts every climbable block and open trapdoors, and never a
+     * flying player.
+     *
+     * @param entity the attacker
+     * @return whether it is on a ladder
+     */
+    public static boolean onLegacyLadder(final net.minecraft.world.entity.LivingEntity entity) {
+        if (entity.isSpectator()) {
+            return false;
+        }
+        final net.minecraft.world.level.block.state.BlockState state = entity.level().getBlockState(
+            net.minecraft.core.BlockPos.containing(entity.getX(), entity.getBoundingBox().minY, entity.getZ()));
+        return state.is(net.minecraft.world.level.block.Blocks.LADDER)
+            || state.is(net.minecraft.world.level.block.Blocks.VINE);
+    }
+
+    /**
+     * Whether an entity is in water for a critical hit, from 1.8's {@code Entity.W()}: a water
+     * block anywhere in its box shrunk by 0.4 at the top and the bottom and by 0.001 all round.
+     * Waterlogged blocks did not exist and do not count.
+     *
+     * @param entity the attacker
+     * @return whether it is in water
+     */
+    public static boolean inLegacyWater(final net.minecraft.world.entity.Entity entity) {
+        final net.minecraft.world.phys.AABB box = entity.getBoundingBox().inflate(0.0, -0.4000000059604645, 0.0)
+            .deflate(0.001);
+        final int minX = net.minecraft.util.Mth.floor(box.minX);
+        final int maxX = net.minecraft.util.Mth.floor(box.maxX + 1.0);
+        final int minY = net.minecraft.util.Mth.floor(box.minY);
+        final int maxY = net.minecraft.util.Mth.floor(box.maxY + 1.0);
+        final int minZ = net.minecraft.util.Mth.floor(box.minZ);
+        final int maxZ = net.minecraft.util.Mth.floor(box.maxZ + 1.0);
+        final net.minecraft.core.BlockPos.MutableBlockPos pos = new net.minecraft.core.BlockPos.MutableBlockPos();
+        for (int x = minX; x < maxX; x++) {
+            for (int y = minY; y < maxY; y++) {
+                for (int z = minZ; z < maxZ; z++) {
+                    if (entity.level().getBlockState(pos.set(x, y, z))
+                        .is(net.minecraft.world.level.block.Blocks.WATER)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether hits need no charge, as before 1.9.
+     *
+     * @return whether the attack cooldown is gone
+     */
+    public static boolean noAttackCooldown() {
+        final CombatConfig current = config;
+        return current.enabled() && current.noAttackCooldown();
+    }
+
+    private static final net.minecraft.resources.Identifier NO_ATTACK_COOLDOWN =
+        net.minecraft.resources.Identifier.fromNamespaceAndPath("legacyfolia", "no_attack_cooldown");
+
+    /**
+     * Gives a player, or takes away, the attack speed that keeps a modern client's charge
+     * indicator full, so it draws none with no attack cooldown.
+     *
+     * <p>The client works out the indicator from the attack speed it is sent, so answering 1 on
+     * the server alone left it drawing a charge that meant nothing. A transient modifier is never
+     * saved with the player, and the weapons' own attack speed is untouched, so their tooltips
+     * read as before. Called every tick; it only changes anything when the setting has.</p>
+     *
+     * @param player the player
+     */
+    public static void syncAttackSpeed(final net.minecraft.world.entity.player.Player player) {
+        final net.minecraft.world.entity.ai.attributes.AttributeInstance speed =
+            player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_SPEED);
+        if (speed == null) {
+            return;
+        }
+        final boolean wanted = noAttackCooldown();
+        if (wanted != speed.hasModifier(NO_ATTACK_COOLDOWN)) {
+            if (wanted) {
+                speed.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                    NO_ATTACK_COOLDOWN, 1024.0,
+                    net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+            } else {
+                speed.removeModifier(NO_ATTACK_COOLDOWN);
+            }
+        }
+    }
+
+    /**
      * Whether a hit that does no damage still lands on a player.
      *
      * <p>Vanilla 1.8 dropped a 0 damage hit on a player, and CraftBukkit 1.8.8 took that filter

@@ -479,6 +479,20 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("a hit plays no 1.9 attack sounds and tilts the camera the same way every time")
+    void attackFeedback() {
+        Combat.use(VANILLA);
+        assertFalse(Combat.attackSounds());
+        assertEquals(0.0F, Combat.hurtDirection(135.0F), 0.0F);
+        assertTrue(Combat.noAttackCooldown());
+        assertTrue(Combat.legacyDamageDealt());
+        Combat.use(CombatConfig.off());
+        assertTrue(Combat.attackSounds());
+        assertEquals(135.0F, Combat.hurtDirection(135.0F), 0.0F);
+        assertFalse(Combat.noAttackCooldown());
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);
