@@ -570,9 +570,9 @@ ambient = 1
 [performance.spawning.despawn-ranges]
 
 # The shape the distances describe. "ELLIPSOID" measures true distance, so the
-# region is a squashed sphere; "CUBOID" measures each axis separately, which
-# keeps mobs alive further out diagonally and matches how some older builds
-# were tuned.
+# region is a squashed sphere; "CYLINDER" measures the horizontal distance and
+# the height separately, which keeps mobs alive further out above and below
+# the player and matches how some older builds were tuned.
 shape = "ELLIPSOID"
 
 monster-hard = 128
