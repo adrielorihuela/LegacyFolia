@@ -63,7 +63,11 @@ On Windows, `applyAllPatches` needs long paths:
 - `combat/` — 1.8 PvP. `Combat.attackDamage` is called from `Player.attack` and `Mob.doHurtTarget`;
   weapon damage is applied at attack time. `WeaponTooltips` rewrites items only on the outgoing
   `ItemStack` codec and strips the injection on inbound creative items.
-- `waypoint/` — locator bar via immutable per-player snapshots (region-thread safe).
+- `waypoint/` — locator bar, matching vanilla 26.3. `RegionisedWaypoints` is the per-level manager
+  behind the patched `ServerWaypointManager`; transmitters publish immutable `WaypointSnapshot`s and
+  `WaypointConnections` runs vanilla's per-receiver connection logic against them on the receiver's own
+  tick (hook in `LivingEntity.tick()`). Never touch another region's player directly: queue work for
+  the owner's tick. Leaving a level clears the player's bar.
 - `update/` — plugin auto-updater (Hangar, Modrinth, GitHub, LuckPerms).
 - `eula/`, `world/` (dimensions, lobby spawn, nether roof), `chunks/` (ChunkScope), `network/`, `command/` (`/legacyfolia`, console/op 4).
 
