@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 01:15:21 -0500
+Subject: [PATCH] Save what commands change through the server.properties mode
+
+Every vanilla setting the running server changes, /whitelist on,
+setMaxPlayers, the view distance and the rest of the nineteen mutable
+ones, goes through Settings.MutableValue#update. That is now where the
+change is saved, through ServerProperties.set: into server.properties
+with the mode on, into the setting's TOML file with it off, as the TOML
+would write the value. It may be called from any region thread; the
+value is in force when the call returns and the file is written on the
+configuration writer thread, so no region thread waits on the disk.
+
+Before exiting, the server waits for that thread, so the last change
+made before /stop is not lost.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index a01b8a111709dfddaace9a4b94e829a2ac513978..4df5619d00b0831201f5ccff93a3331847cd714c 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -538,6 +538,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             }
+         }
+ 
++        io.github.adrielorihuela.legacyfolia.config.ConfigHooks.stop(); // LegacyFolia - the last configuration change reaches the disk
+         this.hasFullyShutdown = true; // Paper - Improved watchdog support
+         System.exit(this.abnormalExit ? 70 : 0); // CraftBukkit // Paper - Improved watchdog support
+     }
+diff --git a/net/minecraft/server/dedicated/Settings.java b/net/minecraft/server/dedicated/Settings.java
+index 178f750c114afe26c98ff3434e6837f0b5f40f65..439e3298ddeea78d15910e3e0c271b0ac987340f 100644
+--- a/net/minecraft/server/dedicated/Settings.java
++++ b/net/minecraft/server/dedicated/Settings.java
+@@ -274,6 +274,7 @@ public abstract class Settings<T extends Settings<T>> {
+         public T update(final RegistryAccess registryAccess, final V value) {
+             Properties properties = Settings.this.cloneProperties();
+             properties.put(this.key, this.serializer.apply(value));
++            io.github.adrielorihuela.legacyfolia.config.ConfigHooks.vanillaChanged(this.key, this.serializer.apply(value)); // LegacyFolia - saved where the setting lives: server.properties with the mode on, its TOML file with it off
+             return Settings.this.reload(registryAccess, properties, Settings.this.options); // CraftBukkit
+         }
+     }
