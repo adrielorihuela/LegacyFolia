@@ -590,6 +590,27 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("falls round up, fire protection takes the best piece and thorns is whole")
+    void environment() {
+        assertEquals(1, LegacyCombat.fallDamage(3.5, 3.0, 1.0F, 1.0), "3.5 blocks hurts");
+        assertEquals(3, LegacyCombat.fallDamage(5.2, 3.0, 1.0F, 1.0));
+        assertEquals(0, LegacyCombat.fallDamage(3.0, 3.0, 1.0F, 1.0));
+        assertEquals(0, LegacyCombat.fallDamage(1.0, 3.0, 1.0F, 1.0), "never negative");
+        assertEquals(3, LegacyCombat.fallDamage(5.2, 3.0, 1.0F, 1.0));
+        // Fire Protection IV on a 15 second lava fire: 300 - floor(300 * 4 * 0.15) = 120.
+        assertEquals(120, LegacyCombat.burnTicks(300, 4));
+        assertEquals(300, LegacyCombat.burnTicks(300, 0));
+        assertEquals(255, LegacyCombat.burnTicks(300, 1));
+        // Thorns III triggers below 0.45 and hurts for 1 to 4.
+        assertTrue(LegacyCombat.thornsTriggers(3, 0.44F));
+        assertFalse(LegacyCombat.thornsTriggers(3, 0.46F), "0.15F * 3 is a hair over 0.45 in float");
+        assertFalse(LegacyCombat.thornsTriggers(0, 0.0F));
+        assertEquals(1, LegacyCombat.thornsDamage(3, bound -> 0));
+        assertEquals(4, LegacyCombat.thornsDamage(3, bound -> bound - 1));
+        assertEquals(5, LegacyCombat.thornsDamage(15, bound -> 0), "level - 10 above ten");
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);

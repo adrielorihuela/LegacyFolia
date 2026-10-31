@@ -1273,6 +1273,74 @@ public final class Combat {
     }
 
     /**
+     * How long a living thing burns, from 1.8's {@code EnchantmentProtection.a(Entity, int)}: the
+     * highest Fire Protection level it wears takes {@code floor(ticks * level * 0.15)} off. Full
+     * Fire Protection IV turns a 15 second lava fire into 6 seconds; the modern attribute sums
+     * every piece instead and, at four pieces of IV, stops a player burning at all.
+     *
+     * @param entity who is set alight
+     * @param ticks how long for
+     * @return how long they burn
+     */
+    public static int burnTicks(final net.minecraft.world.entity.LivingEntity entity, final int ticks) {
+        int level = 0;
+        for (final net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.VALUES) {
+            if (legacyEquipment(entity, slot)) {
+                level = Math.max(level, enchantmentLevel(entity.getItemBySlot(slot),
+                    net.minecraft.world.item.enchantment.Enchantments.FIRE_PROTECTION));
+            }
+        }
+        return LegacyCombat.burnTicks(ticks, level);
+    }
+
+    /** Whether a slot was part of the entity's equipment in 1.8: the armour, and a mob's hand. */
+    private static boolean legacyEquipment(final net.minecraft.world.entity.LivingEntity entity,
+                                           final net.minecraft.world.entity.EquipmentSlot slot) {
+        return slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR
+            || slot == net.minecraft.world.entity.EquipmentSlot.MAINHAND
+                && !(entity instanceof net.minecraft.world.entity.player.Player);
+    }
+
+    /**
+     * Thorns as 1.8's {@code EnchantmentThorns} did it, once for each piece that carries it: a
+     * {@code 0.15 * level} chance to hurt the attacker for 1 to 4 whole points (level - 10 above
+     * level 10) and wear a random thorny piece by 3, or else wear it by 1. The modern enchantment
+     * deals 1 to 5 as a fraction, wears the piece by 2 when it triggers and not at all otherwise.
+     *
+     * @param level the level the hit is in
+     * @param victim who wears the thorns
+     * @param source what hit them
+     * @param thornsLevel this piece's Thorns level
+     */
+    public static void thorns(final net.minecraft.server.level.ServerLevel level,
+                              final net.minecraft.world.entity.LivingEntity victim,
+                              final net.minecraft.world.damagesource.DamageSource source,
+                              final int thornsLevel) {
+        final net.minecraft.util.RandomSource random = victim.getRandom();
+        final java.util.List<net.minecraft.world.entity.EquipmentSlot> thorny = new java.util.ArrayList<>();
+        for (final net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.VALUES) {
+            if (legacyEquipment(victim, slot) && enchantmentLevel(victim.getItemBySlot(slot),
+                net.minecraft.world.item.enchantment.Enchantments.THORNS) > 0) {
+                thorny.add(slot);
+            }
+        }
+        final net.minecraft.world.entity.EquipmentSlot piece =
+            thorny.isEmpty() ? null : thorny.get(random.nextInt(thorny.size()));
+        if (LegacyCombat.thornsTriggers(thornsLevel, random.nextFloat())) {
+            final net.minecraft.world.entity.Entity attacker = source.getEntity();
+            if (attacker != null) {
+                attacker.hurtServer(level, victim.damageSources().thorns(victim),
+                    (float) LegacyCombat.thornsDamage(thornsLevel, random::nextInt));
+            }
+            if (piece != null) {
+                victim.getItemBySlot(piece).hurtAndBreak(3, victim, piece);
+            }
+        } else if (piece != null) {
+            victim.getItemBySlot(piece).hurtAndBreak(1, victim, piece);
+        }
+    }
+
+    /**
      * The health an instant healing effect restores.
      *
      * <p>The modern game already uses 1.8's {@code 4 << amplifier}; this exists so the base can be

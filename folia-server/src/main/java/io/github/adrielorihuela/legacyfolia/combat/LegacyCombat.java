@@ -474,6 +474,61 @@ public final class LegacyCombat {
     }
 
     /**
+     * The damage of a fall, from 1.8's {@code EntityLiving.e(float, float)}: the distance beyond
+     * what is safe, times the block's multiplier, rounded <em>up</em> in {@code float}. A fall of
+     * 3.5 blocks does 1 and one of 5.2 does 3, where the modern game rounds down to 0 and 2.
+     *
+     * @param fallDistance how far the entity fell
+     * @param safeDistance how far it can fall unhurt, 3 plus Jump Boost
+     * @param blockMultiplier what the block it landed on scales the damage by
+     * @param attributeMultiplier the fall damage multiplier attribute
+     * @return the damage, never below zero
+     */
+    public static int fallDamage(final double fallDistance, final double safeDistance,
+                                 final float blockMultiplier, final double attributeMultiplier) {
+        final float beyond = (float) fallDistance - (float) safeDistance;
+        return Math.max(0, net.minecraft.util.Mth.ceil(beyond * blockMultiplier * (float) attributeMultiplier));
+    }
+
+    /**
+     * How long Fire Protection lets an entity burn, from {@code EnchantmentProtection.a(Entity,
+     * int)}: {@code ticks - floor(ticks * level * 0.15)} for the highest level worn.
+     *
+     * @param ticks how long the fire would last
+     * @param level the highest Fire Protection level worn
+     * @return how long it lasts
+     */
+    public static int burnTicks(final int ticks, final int level) {
+        if (level <= 0) {
+            return ticks;
+        }
+        return ticks - net.minecraft.util.Mth.floor((float) ticks * (float) level * 0.15F);
+    }
+
+    /**
+     * Whether a piece of Thorns hurts the attacker, from {@code EnchantmentThorns.a(int, Random)}.
+     *
+     * @param level the piece's level
+     * @param random a {@code nextFloat()}
+     * @return whether it triggers
+     */
+    public static boolean thornsTriggers(final int level, final float random) {
+        return level > 0 && random < 0.15F * (float) level;
+    }
+
+    /**
+     * What Thorns hurts the attacker for, from {@code EnchantmentThorns.b(int, Random)}: 1 to 4,
+     * or {@code level - 10} above level 10.
+     *
+     * @param level the piece's level
+     * @param random a {@code nextInt(bound)}
+     * @return the damage
+     */
+    public static int thornsDamage(final int level, final IntUnaryOperator random) {
+        return level > 10 ? level - 10 : 1 + random.applyAsInt(4);
+    }
+
+    /**
      * Whether an entity is in reach, from 1.8's {@code PlayerConnection.a(PacketPlayInUseEntity)}:
      * the squared distance between the two positions is below 36 when the player can see the
      * target and below 9 when they cannot.

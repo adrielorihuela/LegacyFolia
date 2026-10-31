@@ -343,6 +343,21 @@ disable-shields = true
 disable-offhand = true
 disable-totems = true
 
+# Also part of the 1.8 rules while enabled is on, with no switch of their own:
+#
+#  - Fall damage rounds up, as 1.8's did: 3.5 blocks hurts for 1, not 0.
+#    Hay bales do not soften a fall, as they did not then.
+#  - Fire Protection shortens burning by the highest level worn, 15% a
+#    level, instead of adding up every piece: four pieces of IV no longer
+#    stop a player from burning at all.
+#  - Standing in fire keeps a player burning for eight seconds, as it did,
+#    rather than adding a tick or two for every tick spent in it.
+#  - Thorns hurts the attacker for 1 to 4 whole points, 15% a level of the
+#    time, and wears a thorny piece by 3 when it does and by 1 when it does
+#    not, as 1.8's did.
+#  - An iron golem throws whatever it hits 0.4 upward, whatever its
+#    knockback resistance.
+
 # ----------------------------------------------------------------------------
 #  Attribute limits - the highest value an attribute may take
 # ----------------------------------------------------------------------------
