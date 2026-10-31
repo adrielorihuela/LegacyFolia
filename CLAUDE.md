@@ -26,7 +26,8 @@ toggles, a lobby spawn, a Nether roof switch and adaptive view distance (ChunkSc
 (§2), incidents (§3), resume point (§4), remaining work in order (§5), user decisions (§6), upstream
 (§7), differences from Folia and Paper (§8).
 Other docs: `docs/SETTINGS-MAP.md` (every setting and where it came from), `docs/CONFIGURATION.md`,
-`docs/PVP-1.8.md`, `docs/PLUGIN-UPDATER.md`, `docs/UPDATING.md`.
+`docs/PVP-1.8.md`, `docs/PLUGIN-UPDATER.md`, `docs/UPDATING.md`, `docs/TESTING.md` (manual checklist for a
+release candidate).
 
 ## How it differs from Folia and Paper
 
