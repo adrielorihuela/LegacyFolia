@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 11:37:43 -0500
+Subject: [PATCH] Push primed TNT from its feet under 1.8 explosions
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index be83aa022ddd219923550932fabdbdec03552693..0ef2e423ce99a88e3e08989afa6342bafb2abf5c 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -485,7 +485,7 @@ public class ServerExplosion implements Explosion {
+                 if (!entity.ignoreExplosion(this)) {
+                     double dist = Math.sqrt(entity.distanceToSqr(this.center)) / doubleRadius;
+                     if (!(dist > 1.0)) {
+-                        Vec3 entityOrigin = entity instanceof PrimedTnt ? (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyExplosions() ? entity.position().add(0.0, entity.getBbHeight() * 0.85F, 0.0) : entity.position()) : entity.getEyePosition(); // LegacyFolia - 1.8 pushed TNT from its head height too
++                        Vec3 entityOrigin = entity instanceof PrimedTnt ? entity.position() : entity.getEyePosition();
+                         boolean legacyHurt = true; // LegacyFolia - 1.8 pushed only what the explosion hurt
+                         Vec3 direction = entityOrigin.subtract(this.center).normalize();
+                         boolean shouldDamageEntity = this.damageCalculator.shouldDamageEntity(this, entity);
