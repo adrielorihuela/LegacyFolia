@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class BundledTomlParseTestSuite {
+class BundledTomlParseTest {
 
     private static final List<String> FILES = List.of(
         "combat.toml", "gameplay.toml", "network.toml", "performance.toml",
@@ -20,7 +20,7 @@ class BundledTomlParseTestSuite {
     @Test
     void parsesWithNightConfigAndIsAscii() throws Exception {
         for (final String name : FILES) {
-            try (InputStream in = BundledTomlParseTestSuite.class.getClassLoader()
+            try (InputStream in = BundledTomlParseTest.class.getClassLoader()
                     .getResourceAsStream("legacyfolia/" + name)) {
                 assertNotNull(in, name + " is not on the classpath");
                 final byte[] bytes = in.readAllBytes();
