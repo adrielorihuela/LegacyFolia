@@ -728,6 +728,31 @@ public final class LegacyCombat {
     }
 
     /**
+     * How long a splash potion's effect lasts, from 1.8's {@code PotionBrewer.getEffects} and
+     * {@code EntityPotion}: the duration is first cut to {@code round(d * 0.75 + 0.5)}, then scaled
+     * by the intensity and rounded as {@code (int) (intensity * d + 0.5)}. Speed's 3:00 splashes for
+     * 2701 ticks at full strength. The two roundings are kept apart, as 1.8 had them.
+     *
+     * @param duration the potion's duration in ticks
+     * @param intensity how much of the splash landed
+     * @return the duration to apply
+     */
+    public static int splashDuration(final int duration, final double intensity) {
+        final int splash = (int) Math.round((double) duration * 0.75 + 0.5);
+        return (int) (intensity * (double) splash + 0.5);
+    }
+
+    /**
+     * The exhaustion 1.8's Hunger effect cost each tick, {@code 0.025 * (amplifier + 1)}.
+     *
+     * @param amplifier the effect amplifier
+     * @return the exhaustion
+     */
+    public static float hungerEffectExhaustion(final int amplifier) {
+        return 0.025F * (float) (amplifier + 1);
+    }
+
+    /**
      * How much of a splash potion reaches somebody, from {@code EntityPotion.a}.
      *
      * <p>1.8 wrote this as {@code 1 - sqrt(d) / 4} where {@code d} is the <em>squared</em> distance,

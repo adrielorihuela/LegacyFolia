@@ -258,6 +258,85 @@ public final class Combat {
     }
 
     /**
+     * Whether potions and effects work the way 1.8's did: splash intensity measured from where the
+     * potion was to each entity's feet, splash durations cut to three quarters, 1.8's durations
+     * for the potions that changed, no hidden effects, Absorption that lasts its full time, and
+     * Hunger that costs five times what it does now.
+     *
+     * @return whether the old potions apply
+     */
+    public static boolean legacyPotions() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyPotions();
+    }
+
+    /**
+     * How much of a splash reaches an entity, from 1.8's {@code EntityPotion.a(MovingObjectPosition)}:
+     * {@code 1 - sqrt(d) / 4} with {@code d} the squared distance from where the potion was to the
+     * entity's feet, and full strength for the entity it struck.
+     *
+     * @param center where the potion was before its last move
+     * @param entity who might be reached
+     * @param hit what the potion struck, if anything
+     * @return the intensity, zero for none
+     */
+    public static double splashIntensity(final net.minecraft.world.phys.Vec3 center,
+                                         final net.minecraft.world.entity.Entity entity,
+                                         final net.minecraft.world.phys.@org.jspecify.annotations.Nullable HitResult hit) {
+        final double intensity = LegacyCombat.splashIntensity(center.distanceToSqr(entity.position()), config);
+        if (intensity > 0.0 && hit instanceof net.minecraft.world.phys.EntityHitResult entityHit
+            && entityHit.getEntity() == entity) {
+            return 1.0;
+        }
+        return intensity;
+    }
+
+    /**
+     * A potion's effect with 1.8's duration where it differed: Regeneration and Poison extended
+     * lasted 2:00 (2400 ticks) rather than 1:30, and Poison II 450 ticks rather than 432. Only the
+     * potion's own effect at its own duration is changed; custom effects are left as they are.
+     *
+     * @param contents the potion
+     * @param effect one of its effects
+     * @return the effect to apply
+     */
+    public static net.minecraft.world.effect.MobEffectInstance potionEffect(
+        final net.minecraft.world.item.alchemy.PotionContents contents,
+        final net.minecraft.world.effect.MobEffectInstance effect) {
+        if (!legacyPotions() || contents.potion().isEmpty()) {
+            return effect;
+        }
+        final net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> potion = contents.potion().get();
+        final int legacy;
+        if (potion.is(net.minecraft.world.item.alchemy.Potions.LONG_REGENERATION)
+            && effect.is(net.minecraft.world.effect.MobEffects.REGENERATION) && effect.getDuration() == 1800) {
+            legacy = 2400;
+        } else if (potion.is(net.minecraft.world.item.alchemy.Potions.LONG_POISON)
+            && effect.is(net.minecraft.world.effect.MobEffects.POISON) && effect.getDuration() == 1800) {
+            legacy = 2400;
+        } else if (potion.is(net.minecraft.world.item.alchemy.Potions.STRONG_POISON)
+            && effect.is(net.minecraft.world.effect.MobEffects.POISON) && effect.getDuration() == 432) {
+            legacy = 450;
+        } else {
+            return effect;
+        }
+        return new net.minecraft.world.effect.MobEffectInstance(effect.getEffect(), legacy,
+            effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon());
+    }
+
+    /**
+     * The exhaustion the Hunger effect costs each tick, 0.025 a level in 1.8's
+     * {@code MobEffectList.tick} against 0.005 now.
+     *
+     * @param amplifier the effect amplifier
+     * @param modern what the server would otherwise use
+     * @return the exhaustion
+     */
+    public static float hungerEffectExhaustion(final int amplifier, final float modern) {
+        return legacyPotions() ? LegacyCombat.hungerEffectExhaustion(amplifier) : modern;
+    }
+
+    /**
      * Whether explosions hurt and push the way 1.8's did.
      *
      * @return whether the old explosions apply

@@ -1,0 +1,138 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:50:16 -0500
+Subject: [PATCH] Splash, last and stack potions the way 1.8 did
+
+
+diff --git a/net/minecraft/world/effect/AbsorptionMobEffect.java b/net/minecraft/world/effect/AbsorptionMobEffect.java
+index f6c975bf0bd868ca044e728a7a3376d4d6d31f39..cb9a9a5c790a90b18d9e541975167da0dcf92e83 100644
+--- a/net/minecraft/world/effect/AbsorptionMobEffect.java
++++ b/net/minecraft/world/effect/AbsorptionMobEffect.java
+@@ -10,7 +10,7 @@ class AbsorptionMobEffect extends MobEffect {
+ 
+     @Override
+     public boolean applyEffectTick(final ServerLevel level, final LivingEntity mob, final int amplification) {
+-        return mob.getAbsorptionAmount() > 0.0F;
++        return mob.getAbsorptionAmount() > 0.0F || io.github.adrielorihuela.legacyfolia.combat.Combat.legacyPotions(); // LegacyFolia - 1.8's absorption lasted its full time
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/effect/HungerMobEffect.java b/net/minecraft/world/effect/HungerMobEffect.java
+index 458b17a2dc096eb57fbe7ca20c8b9a2527219511..da66d8605f6de9bea2a7ec28b6d1b002f41beed1 100644
+--- a/net/minecraft/world/effect/HungerMobEffect.java
++++ b/net/minecraft/world/effect/HungerMobEffect.java
+@@ -12,7 +12,7 @@ class HungerMobEffect extends MobEffect {
+     @Override
+     public boolean applyEffectTick(final ServerLevel serverLevel, final LivingEntity mob, final int amplification) {
+         if (mob instanceof Player player) {
+-            player.causeFoodExhaustion(0.005F * (amplification + 1), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.HUNGER_EFFECT); // CraftBukkit - EntityExhaustionEvent
++            player.causeFoodExhaustion(io.github.adrielorihuela.legacyfolia.combat.Combat.hungerEffectExhaustion(amplification, 0.005F * (amplification + 1)), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.HUNGER_EFFECT); // CraftBukkit - EntityExhaustionEvent
+         }
+ 
+         return true;
+diff --git a/net/minecraft/world/effect/MobEffectInstance.java b/net/minecraft/world/effect/MobEffectInstance.java
+index 8ed9dc186580b438da202a978ac883daca732a6e..3a31d902d52e87c56f09c3d01fd6f61f8a852711 100644
+--- a/net/minecraft/world/effect/MobEffectInstance.java
++++ b/net/minecraft/world/effect/MobEffectInstance.java
+@@ -137,7 +137,7 @@ public class MobEffectInstance implements Comparable<MobEffectInstance> {
+ 
+         boolean changed = false;
+         if (takeOver.amplifier > this.amplifier) {
+-            if (takeOver.isShorterDurationThan(this)) {
++            if (takeOver.isShorterDurationThan(this) && !io.github.adrielorihuela.legacyfolia.combat.Combat.legacyPotions()) { // LegacyFolia - 1.8 kept no hidden effect
+                 MobEffectInstance prevHiddenEffect = this.hiddenEffect;
+                 this.hiddenEffect = new MobEffectInstance(this);
+                 this.hiddenEffect.hiddenEffect = prevHiddenEffect;
+@@ -150,6 +150,7 @@ public class MobEffectInstance implements Comparable<MobEffectInstance> {
+             if (takeOver.amplifier == this.amplifier) {
+                 this.duration = takeOver.duration;
+                 changed = true;
++            } else if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyPotions()) { // LegacyFolia - 1.8 dropped a weaker, longer effect
+             } else if (this.hiddenEffect == null) {
+                 this.hiddenEffect = new MobEffectInstance(takeOver);
+             } else {
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 7863650ff9401a990e57e4cbf9cacf7fc2d2354b..7ed13920487a5ead08d3a50467efd16ebf591146 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -1200,7 +1200,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         boolean addAsHiddenEffect = false;
+         if (effect != null) {
+             override = new MobEffectInstance(effect).update(newEffect);
+-            addAsHiddenEffect = effect.getAmplifier() > newEffect.getAmplifier() && effect.isShorterDurationThan(newEffect);
++            addAsHiddenEffect = effect.getAmplifier() > newEffect.getAmplifier() && effect.isShorterDurationThan(newEffect) && !io.github.adrielorihuela.legacyfolia.combat.Combat.legacyPotions(); // LegacyFolia - 1.8 kept no hidden effect
+         }
+ 
+         if (fireEvent) {
+@@ -1230,7 +1230,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             // Paper end - Properly update hidden effects
+         }
+ 
+-        newEffect.onEffectStarted(this);
++        (effect != null && io.github.adrielorihuela.legacyfolia.combat.Combat.legacyPotions() ? effect : newEffect).onEffectStarted(this); // LegacyFolia - 1.8 refreshed with the merged effect
+         return changed;
+     }
+ 
+diff --git a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownSplashPotion.java b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownSplashPotion.java
+index f8e0c1871990d34c5dead6b76010ba5533d09b50..0cfc26067c696bd7fc0eb222d3c5b66b8dc9d5ae 100644
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownSplashPotion.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownSplashPotion.java
+@@ -43,6 +43,13 @@ public class ThrownSplashPotion extends AbstractThrownPotion {
+         float durationScale = potionItem.getOrDefault(DataComponents.POTION_DURATION_SCALE, 1.0F);
+         Iterable<MobEffectInstance> mobEffects = contents.getAllEffects();
+         AABB potionAabb = hitResult == null ? this.getBoundingBox() : this.getBoundingBox().move(hitResult.getLocation().subtract(this.position())); // Paper - More projectile API
++        // LegacyFolia start - 1.8 measured from where the potion was before its last move, to each entity's feet
++        final boolean legacySplash = io.github.adrielorihuela.legacyfolia.combat.Combat.legacyPotions();
++        final net.minecraft.world.phys.Vec3 legacyCenter = this.oldPosition();
++        if (legacySplash) {
++            potionAabb = this.getBoundingBox().move(legacyCenter.subtract(this.position()));
++        }
++        // LegacyFolia end - 1.8 measured from where the potion was
+         AABB effectAabb = potionAabb.inflate(4.0, 2.0, 4.0);
+         List<LivingEntity> entities = this.level().getEntitiesOfClass(LivingEntity.class, effectAabb);
+         java.util.Map<org.bukkit.entity.LivingEntity, Double> affected = new java.util.HashMap<>(); // CraftBukkit
+@@ -52,6 +59,15 @@ public class ThrownSplashPotion extends AbstractThrownPotion {
+ 
+             for (LivingEntity entity : entities) {
+                 if (entity.isAffectedByPotions()) {
++                    // LegacyFolia start - 1.8's splash intensity, and full strength for whoever the potion struck
++                    if (legacySplash) {
++                        final double legacyScale = io.github.adrielorihuela.legacyfolia.combat.Combat.splashIntensity(legacyCenter, entity, hitResult);
++                        if (legacyScale > 0.0) {
++                            affected.put(entity.getBukkitEntity(), legacyScale);
++                        }
++                        continue;
++                    }
++                    // LegacyFolia end - 1.8's splash intensity
+                     double dist = potionAabb.distanceToSqr(entity.getBoundingBox().inflate(margin));
+                     if (dist < 16.0) {
+                         double scale = 1.0 - Math.sqrt(dist) / 4.0; // Paper - diff on change, used when calling the splash event for water splash potions
+@@ -73,12 +89,13 @@ public class ThrownSplashPotion extends AbstractThrownPotion {
+                 {
+                     {
+                 // CraftBukkit end
+-                        for (MobEffectInstance effectInstance : mobEffects) {
++                        for (MobEffectInstance modernEffectInstance : mobEffects) {
++                            final MobEffectInstance effectInstance = io.github.adrielorihuela.legacyfolia.combat.Combat.potionEffect(contents, modernEffectInstance); // LegacyFolia - 1.8's potion durations
+                             Holder<MobEffect> effect = effectInstance.getEffect();
+                             if (effect.value().isInstantaneous()) {
+                                 effect.value().applyInstantaneousEffect(level, this, this.getOwner(), entity, effectInstance.getAmplifier(), scale);
+                             } else {
+-                                int duration = effectInstance.mapDuration(d -> (int)(scale * d * durationScale + 0.5));
++                                int duration = legacySplash ? effectInstance.mapDuration(d -> io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.splashDuration(d, scale)) : effectInstance.mapDuration(d -> (int)(scale * d * durationScale + 0.5)); // LegacyFolia - 1.8 cut a splash to three quarters
+                                 MobEffectInstance newEffect = new MobEffectInstance(
+                                     effect, duration, effectInstance.getAmplifier(), effectInstance.isAmbient(), effectInstance.isVisible()
+                                 );
+diff --git a/net/minecraft/world/item/alchemy/PotionContents.java b/net/minecraft/world/item/alchemy/PotionContents.java
+index c8b2a548468458cccd0715dc583c20e4203ff1d2..e5f64a5b6c9f3692f84797b02d55220848e63ca0 100644
+--- a/net/minecraft/world/item/alchemy/PotionContents.java
++++ b/net/minecraft/world/item/alchemy/PotionContents.java
+@@ -167,7 +167,7 @@ public record PotionContents(Optional<Holder<Potion>> potion, Optional<Integer>
+                 if (effect.getEffect().value().isInstantaneous()) {
+                     effect.getEffect().value().applyInstantaneousEffect(serverLevel, player, player, entity, effect.getAmplifier(), 1.0);
+                 } else {
+-                    entity.addEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.POTION_DRINK); // CraftBukkit
++                    entity.addEffect(io.github.adrielorihuela.legacyfolia.combat.Combat.potionEffect(this, effect), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.POTION_DRINK); // CraftBukkit // LegacyFolia - 1.8's potion durations
+                 }
+             }, durationScale);
+         }

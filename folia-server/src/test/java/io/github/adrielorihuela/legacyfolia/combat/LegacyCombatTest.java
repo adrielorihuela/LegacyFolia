@@ -561,6 +561,23 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("a splash lasts three quarters of the potion, rounded twice as 1.8 did")
+    void splashDurations() {
+        // The figures the 1.8.8 jar gives at full strength.
+        assertEquals(2701, LegacyCombat.splashDuration(3600, 1.0), "Speed");
+        assertEquals(1351, LegacyCombat.splashDuration(1800, 1.0), "Speed II");
+        assertEquals(676, LegacyCombat.splashDuration(900, 1.0), "Regeneration");
+        assertEquals(338, LegacyCombat.splashDuration(450, 1.0), "Regeneration II");
+        assertEquals(7201, LegacyCombat.splashDuration(9600, 1.0), "extended");
+        assertEquals(1801, LegacyCombat.splashDuration(2400, 1.0), "Regeneration extended");
+        // Half strength: (int) (0.5 * 2701 + 0.5).
+        assertEquals(1351, LegacyCombat.splashDuration(3600, 0.5));
+        assertEquals(0.025F, LegacyCombat.hungerEffectExhaustion(0), 0.0F);
+        assertEquals(0.05F, LegacyCombat.hungerEffectExhaustion(1), 0.0F);
+        assertTrue(VANILLA.legacyPotions());
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);

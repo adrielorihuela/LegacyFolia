@@ -231,6 +231,22 @@ instant-damage-base = 6
 instant-heal-base = 4
 splash-radius = 4.0
 
+# Potions and effects as 1.8 had them.
+#
+#  - A splash is measured from where the potion was before its last move to
+#    each entity's feet, falling off as 1 - distance / splash-radius, and the
+#    entity it struck takes it at full strength. The modern game measures box
+#    to box, which reaches further.
+#  - A splash lasts three quarters of the drunk potion, rounded as 1.8 did:
+#    Speed's 3:00 splashes for 2:15.05 (2701 ticks).
+#  - Regeneration and Poison extended last 2:00, not 1:30, and Poison II 450
+#    ticks, not 432.
+#  - A weaker effect that outlasts a stronger one is dropped, not kept hidden
+#    to come back when the stronger one ends.
+#  - Absorption lasts its full time even once its hearts are gone, and Hunger
+#    costs 0.025 exhaustion a tick a level, five times what it does now.
+legacy-potions = true
+
 # Right-clicking with a sword blocks, halving incoming damage.
 #
 # Note that this is a reimplementation rather than a restoration: swords have
