@@ -681,14 +681,99 @@ public final class Combat {
     }
 
     /**
-     * Whether the target's own motion should be put back after the velocity packet is sent.
+     * Whether a player hit by another player has their own motion put back on the server after
+     * the velocity packet is sent, as CraftBukkit 1.8.8 and Paper both do.
+     *
+     * <p>Only ever a player target, and only when the packet was sent: a mob keeps the knockback.
+     * True unless {@code restore-velocity-after-knockback} turns it off with 1.8 knockback on.</p>
      *
      * @return whether to restore it
      */
     public static boolean restoresVelocity() {
         final CombatConfig current = config;
-        return current.enabled() && current.legacyKnockback()
-            && LegacyCombat.restoresVelocity(current);
+        return !current.enabled() || !current.legacyKnockback()
+            || LegacyCombat.restoresVelocity(current);
+    }
+
+    /**
+     * Whether knockback follows 1.8.
+     *
+     * @return whether the old knockback applies
+     */
+    public static boolean legacyKnockback() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyKnockback();
+    }
+
+    /**
+     * Which way the base knockback of a hit pushes, from CraftBukkit 1.8.8's
+     * {@code EntityLiving.damageEntity}.
+     *
+     * <p>1.8 pushed away from {@code damageSource.getEntity()}: the attacker for a melee hit, the
+     * owner for an arrow, a snowball, a fireball, a fishing hook or a harming potion, and whoever
+     * set off an explosion. An arrow nobody shot pushed away from itself; any other hit with no
+     * living thing behind it did not push at all. While the two stood on top of each other the
+     * direction was re-rolled from {@code Math.random()}, and nothing clamped a far-off source.</p>
+     *
+     * @param target who was hit
+     * @param source what hit them
+     * @return the x and z from the target to the source, or null for no knockback
+     */
+    public static double @org.jspecify.annotations.Nullable [] knockbackDirection(
+        final net.minecraft.world.entity.LivingEntity target,
+        final net.minecraft.world.damagesource.DamageSource source) {
+        net.minecraft.world.entity.Entity from = source.getEntity();
+        if (from == null
+            && source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow) {
+            from = arrow;
+        }
+        if (!(from instanceof net.minecraft.world.entity.LivingEntity)
+            && !(from instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow)) {
+            return null;
+        }
+        double xd = from.getX() - target.getX();
+        double zd = from.getZ() - target.getZ();
+        while (xd * xd + zd * zd < 1.0E-4) {
+            xd = (Math.random() - Math.random()) * 0.01;
+            zd = (Math.random() - Math.random()) * 0.01;
+        }
+        return new double[] {xd, zd};
+    }
+
+    /**
+     * Whether a hit the game tags as giving no knockback gave some in 1.8: an explosion somebody
+     * or something living set off, which pushed away from them on top of the blast.
+     *
+     * @param source what hit
+     * @return whether to knock back anyway
+     */
+    public static boolean knocksBackDespiteTag(final net.minecraft.world.damagesource.DamageSource source) {
+        return legacyKnockback() && source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)
+            && source.getEntity() instanceof net.minecraft.world.entity.LivingEntity;
+    }
+
+    /**
+     * Adds the extra push of a sprint hit or the Knockback enchantment, from 1.8's
+     * {@code EntityHuman.attack} and {@code EntityMonster.r}.
+     *
+     * <p>1.8 added it straight onto the target's motion: no halving, no cap and no knockback
+     * resistance. Sending it through the base knockback instead, as the modern game does, gave a
+     * sprint hit the same 0.4 as any other.</p>
+     *
+     * @param attacker who hit
+     * @param target who was hit
+     * @param amount half a point per level of Knockback plus one for sprinting
+     * @return whether it was added here; false leaves it to the game
+     */
+    public static boolean extraKnockback(final net.minecraft.world.entity.LivingEntity attacker,
+                                         final net.minecraft.world.entity.Entity target,
+                                         final float amount) {
+        if (!legacyKnockback() || !(target instanceof net.minecraft.world.entity.LivingEntity)) {
+            return false;
+        }
+        final net.minecraft.world.phys.Vec3 push = LegacyCombat.extraKnockback(attacker.getYRot(), amount);
+        target.push(push.x, push.y, push.z, attacker);
+        return true;
     }
 
     /**

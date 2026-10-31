@@ -34,28 +34,35 @@ public final class LegacyCombat {
      * <p>The second is that the horizontal push is a flat 0.4 rather than a strength passed in by
      * the caller, so it does not vary with the weapon or the attack.</p>
      *
+     * <p>The arithmetic keeps 1.8's precision: the length of the direction is a {@code float}
+     * square root, and the strengths and the cap are {@code float} constants widened to
+     * {@code double}, so the cap is 0.4000000059604645. Knockback resistance is the caller's: in
+     * 1.8 it was a chance to skip all of this, not a reduction.</p>
+     *
      * @param current the target's velocity before the hit
-     * @param dx how far the target is from the attacker along x
-     * @param dz how far the target is from the attacker along z
+     * @param dx how far the attacker is from the target along x
+     * @param dz how far the attacker is from the target along z
      * @param config the strengths to use
      * @return the velocity to set
      */
     public static Vec3 knockback(final Vec3 current, final double dx, final double dz,
                                  final CombatConfig config) {
-        final double magnitude = Math.sqrt(dx * dx + dz * dz);
-        if (magnitude < 1.0E-5) {
+        final float magnitude = (float) Math.sqrt(dx * dx + dz * dz);
+        if (magnitude < 1.0E-5F) {
             // 1.8 divided by this without guarding it, which produced a NaN velocity and a
-            // rubber-banding player. Standing exactly on top of somebody is rare but reachable,
-            // and a divide by zero is not a mechanic worth reproducing.
+            // rubber-banding player. The caller re-rolls a direction this short, as 1.8 did, so
+            // this only guards against being called without it.
             return current;
         }
 
-        final double horizontal = config.knockbackHorizontal();
-        final double x = current.x / 2.0 - dx / magnitude * horizontal;
-        final double z = current.z / 2.0 - dz / magnitude * horizontal;
-        double y = current.y / 2.0 + config.knockbackVertical();
-        if (y > config.knockbackVerticalLimit()) {
-            y = config.knockbackVerticalLimit();
+        final double horizontal = (double) (float) config.knockbackHorizontal();
+        final double vertical = (double) (float) config.knockbackVertical();
+        final double limit = (double) (float) config.knockbackVerticalLimit();
+        final double x = current.x / 2.0 - dx / (double) magnitude * horizontal;
+        final double z = current.z / 2.0 - dz / (double) magnitude * horizontal;
+        double y = current.y / 2.0 + vertical;
+        if (y > limit) {
+            y = limit;
         }
         return new Vec3(x, y, z);
     }
@@ -63,8 +70,8 @@ public final class LegacyCombat {
     /**
      * The extra push a sprinting attacker added, from {@code EntityHuman.attack}.
      *
-     * <p>1.8 added this on top of the knockback above rather than folding it in, and then halved
-     * the attacker's own horizontal velocity and cancelled their sprint. That is the w-tap: a
+     * <p>1.8 added this on top of the knockback above rather than folding it in, and then cut the
+     * attacker's own horizontal velocity to 0.6 and cancelled their sprint. That is the w-tap: a
      * sprint hit throws the target further, and costs the attacker their sprint until they build
      * it again.</p>
      *
@@ -75,9 +82,22 @@ public final class LegacyCombat {
      */
     public static Vec3 sprintKnockback(final float yawDegrees, final int level,
                                        final CombatConfig config) {
-        final double radians = yawDegrees * Math.PI / 180.0;
-        final double strength = level * config.sprintKnockbackStrength();
-        return new Vec3(-Math.sin(radians) * strength, 0.1, Math.cos(radians) * strength);
+        return extraKnockback(yawDegrees, (float) level * (float) config.sprintKnockbackStrength());
+    }
+
+    /**
+     * The extra push of a sprint hit or the Knockback enchantment, from {@code EntityHuman.attack}
+     * and {@code EntityMonster.r}: {@code (-sin(yaw) * amount, 0.1, cos(yaw) * amount)}, worked
+     * out in {@code float} with 1.8's sine table, and added to the target's motion as it is.
+     *
+     * @param yawDegrees which way the attacker is facing
+     * @param amount half a point per level
+     * @return the velocity to add to the target
+     */
+    public static Vec3 extraKnockback(final float yawDegrees, final float amount) {
+        final float radians = yawDegrees * 3.1415927F / 180.0F;
+        return new Vec3((double) (-net.minecraft.util.Mth.sin(radians) * amount), 0.1D,
+            (double) (net.minecraft.util.Mth.cos(radians) * amount));
     }
 
     /** What the attacker's own horizontal velocity is multiplied by after a sprint hit. */

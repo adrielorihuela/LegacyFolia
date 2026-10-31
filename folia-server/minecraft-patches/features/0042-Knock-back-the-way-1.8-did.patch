@@ -1,0 +1,126 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:20:52 -0500
+Subject: [PATCH] Knock back the way 1.8 did
+
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index a441a2496b5a396a621d38b6147757057d164c01..7863650ff9401a990e57e4cbf9cacf7fc2d2354b 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -258,6 +258,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     protected boolean dead;
+     protected int noActionTime;
+     public float lastHurt;
++    public boolean legacyBaseKnockback; // LegacyFolia - set while the base knockback of a hit is applied
+     protected boolean jumping;
+     public float xxa;
+     public float yya;
+@@ -1565,7 +1566,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             }
+ 
+             boolean fullyBlocked = blocked && damage <= 0.0F;
+-            if (!source.is(DamageTypeTags.NO_KNOCKBACK) && !fullyBlocked) {
++            if ((!source.is(DamageTypeTags.NO_KNOCKBACK) || io.github.adrielorihuela.legacyfolia.combat.Combat.knocksBackDespiteTag(source)) && !fullyBlocked) { // LegacyFolia - 1.8 knocked back from whoever set off an explosion
+                 this.dealDefaultKnockback(source, damage, blocked);
+             }
+         }
+@@ -1607,6 +1608,25 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     }
+ 
+     public void dealDefaultKnockback(final DamageSource source, final float damage, final boolean blocked) {
++        // LegacyFolia start - 1.8 pushed away from the entity behind the hit, with its own formula
++        // A projectile's push came from where its owner stood, not from the way it flew, and an
++        // ownerless one other than an arrow did not push at all.
++        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacyKnockback()) {
++            final double[] legacyDirection = io.github.adrielorihuela.legacyfolia.combat.Combat.knockbackDirection(this, source);
++            if (legacyDirection != null) {
++                this.legacyBaseKnockback = true;
++                try {
++                    this.knockback(0.4F, legacyDirection[0], legacyDirection[1], source, damage, source.getDirectEntity(), source.getDirectEntity() == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK);
++                } finally {
++                    this.legacyBaseKnockback = false;
++                }
++            }
++            if (!blocked) {
++                this.indicateDamage(legacyDirection == null ? 0.0 : legacyDirection[0], legacyDirection == null ? 0.0 : legacyDirection[1]);
++            }
++            return;
++        }
++        // LegacyFolia end - 1.8 pushed away from the entity behind the hit
+         double xd = 0.0;
+         double zd = 0.0;
+         if (source.getDirectEntity() instanceof Projectile projectile) {
+@@ -2107,6 +2127,16 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     }
+ 
+     public void knockback(double power, double xd, double zd, final DamageSource source, final float damage, final boolean comesFromEffect, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
++        // LegacyFolia start - 1.8 knockback
++        // Only the base knockback of a hit takes the old formula; anything else that pushes keeps
++        // its own. Knockback resistance was a chance to take none of it, not a reduction.
++        final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
++            io.github.adrielorihuela.legacyfolia.combat.Combat.config();
++        final boolean legacyBase = this.legacyBaseKnockback && legacyCombat.enabled() && legacyCombat.legacyKnockback();
++        if (legacyBase && this.random.nextDouble() < this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)) {
++            return;
++        }
++        // LegacyFolia end - 1.8 knockback
+         power *= 1.0 - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
+         if (true || !(power <= 0.0)) { // CraftBukkit - Call event even when force is 0
+             // this.needsSync = true; // Paper - moved down
+@@ -2122,9 +2152,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             // The vertical component below is only applied to a target that is on the ground. In
+             // 1.8 it was applied always, which is what lets a combo hold somebody in the air, so
+             // the whole vector is handed to the legacy formula when that is turned on.
+-            final io.github.adrielorihuela.legacyfolia.combat.CombatConfig legacyCombat =
+-                io.github.adrielorihuela.legacyfolia.combat.Combat.config();
+-            Vec3 targetMovement = legacyCombat.enabled() && legacyCombat.legacyKnockback()
++            Vec3 targetMovement = legacyBase
+                 ? io.github.adrielorihuela.legacyfolia.combat.LegacyCombat.knockback(deltaMovement, xd, zd, legacyCombat)
+                 : new Vec3( // Paper - knockback events
+                 deltaMovement.x / 2.0 - deltaVector.x,
+@@ -3451,6 +3479,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         final Entity target, final float knockback, final Vec3 oldMovement, final DamageSource damageSource, final float damage, final boolean comesFromEffect
+     ) {
+         if (knockback > 0.0F && target instanceof LivingEntity livingTarget) {
++            if (!io.github.adrielorihuela.legacyfolia.combat.Combat.extraKnockback(this, target, knockback)) // LegacyFolia - 1.8 added this push straight on
+             livingTarget.knockback(
+                 knockback, Mth.sin(this.getYRot() * Mth.DEG_TO_RAD), -Mth.cos(this.getYRot() * Mth.DEG_TO_RAD), damageSource, damage, comesFromEffect, this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK  // Paper - knockback events
+             );
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index 65cbf4582c1522172d0d623a68fa8fba6cc5b9e7..40b71bce2237828a07101d911f8a64675caaee90 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1090,14 +1090,6 @@ public abstract class Player extends Avatar implements ContainerUser {
+                             entity, this.getKnockback(entity, damageSource) + sprintBonus, oldMovement, damageSource, totalDamage, true
+                         );
+                         // LegacyFolia end - configurable sprint knockback
+-                        // LegacyFolia start - 1.8 put the target's own motion back after the packet
+-                        // The client has already been told to move; writing the pre-hit motion back
+-                        // onto the server's copy leaves the two disagreeing on purpose, which is
+-                        // what 1.8 knockback felt like.
+-                        if (io.github.adrielorihuela.legacyfolia.combat.Combat.restoresVelocity()) {
+-                            entity.setDeltaMovement(oldMovement);
+-                        }
+-                        // LegacyFolia end - 1.8 put the target's own motion back after the packet
+                         if (sweepAttack) {
+                             this.doSweepAttack(entity, baseDamage, damageSource, attackStrengthScale);
+                         }
+@@ -1266,7 +1258,8 @@ public abstract class Player extends Avatar implements ContainerUser {
+         final boolean comesFromEffect
+     ) {
+         if (knockbackAmount > 0.0F) {
+-            if (entity instanceof LivingEntity livingTarget) {
++            if (io.github.adrielorihuela.legacyfolia.combat.Combat.extraKnockback(this, entity, knockbackAmount)) { // LegacyFolia - 1.8 added this push straight on
++            } else if (entity instanceof LivingEntity livingTarget) {
+                 livingTarget.knockback(
+                     knockbackAmount, Mth.sin(this.getYRot() * Mth.DEG_TO_RAD), -Mth.cos(this.getYRot() * Mth.DEG_TO_RAD), damageSource, damage, comesFromEffect, this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK // Paper - knockback events
+                 );
+@@ -1300,6 +1293,7 @@ public abstract class Player extends Avatar implements ContainerUser {
+             if (!cancelled) {
+             serverPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity));
+             entity.syncVelocity = false;
++            if (io.github.adrielorihuela.legacyfolia.combat.Combat.restoresVelocity()) // LegacyFolia - restore-velocity-after-knockback
+             entity.setDeltaMovement(oldMovement);
+             }
+             // CraftBukkit end

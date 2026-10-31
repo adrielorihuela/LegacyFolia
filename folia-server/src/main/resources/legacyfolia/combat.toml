@@ -51,16 +51,26 @@ knockback-vertical-limit = 0.4
 
 # Sprinting adds a level of knockback and then cancels your own sprint, and
 # your horizontal speed is cut to 0.6 of what it was. This is what makes
-# w-tapping work.
+# w-tapping work. As in 1.8, this push and the Knockback enchantment's are
+# added straight onto the target's motion, on top of the base knockback, with
+# no cap and whatever the target's knockback resistance.
+#
+# The base knockback pushes away from whoever is behind the hit: the attacker,
+# the archer or thrower of a projectile, or whoever set off an explosion. A
+# projectile nobody owns does not push, except an arrow. Knockback resistance
+# is a chance to take none of the base knockback, as in 1.8, so an iron golem
+# is never moved.
 sprint-knockback = true
 sprint-knockback-strength = 0.5
 
-# After sending the target their velocity packet, put the server's copy of
-# their motion back to what it was before the hit.
+# After sending a player hit by another player their velocity packet, put the
+# server's copy of their motion back to what it was before the hit.
 #
 # This looks like a bug and is not: 1.8 saved the target's motion, told the
 # client to move, and then restored the server-side value, so the two disagree
 # on purpose. That disagreement is a real part of how 1.8 knockback felt.
+# Paper does the same, so turning this off is the departure from 1.8. Mobs
+# always keep their knockback, as they did.
 restore-velocity-after-knockback = true
 
 # Critical hits: falling, not on the ground, not on a ladder, not in water, not

@@ -26,7 +26,7 @@ class LegacyCombatTest {
         // alone; 1.8 halves it and adds 0.4, so a combo can hold somebody off the ground.
         final Vec3 result = LegacyCombat.knockback(new Vec3(0, -0.5, 0), 1, 0, VANILLA);
 
-        assertEquals(-0.5 / 2.0 + 0.4, result.y, EPSILON,
+        assertEquals(-0.5 / 2.0 + (double) 0.4F, result.y, EPSILON,
             "the vertical component is applied whether or not the target is on the ground");
         assertTrue(result.y > 0, "which means a falling player is pushed back up");
     }
@@ -36,7 +36,7 @@ class LegacyCombatTest {
     void upwardKnockbackIsCapped() {
         final Vec3 result = LegacyCombat.knockback(new Vec3(0, 5.0, 0), 1, 0, VANILLA);
 
-        assertEquals(0.4, result.y, EPSILON);
+        assertEquals(0.4000000059604645, result.y, 0.0, "1.8's cap, a float widened to double");
     }
 
     @Test
@@ -44,7 +44,7 @@ class LegacyCombatTest {
     void horizontalPushIsFlat() {
         final Vec3 result = LegacyCombat.knockback(Vec3.ZERO, 1, 0, VANILLA);
 
-        assertEquals(-0.4, result.x, EPSILON, "pushed away along the axis of the hit");
+        assertEquals(-(double) 0.4F, result.x, EPSILON, "pushed away along the axis of the hit");
         assertEquals(0.0, result.z, EPSILON);
     }
 
@@ -54,7 +54,7 @@ class LegacyCombatTest {
         final Vec3 result = LegacyCombat.knockback(new Vec3(1.0, 0, 2.0), 0, 1, VANILLA);
 
         assertEquals(0.5, result.x, EPSILON);
-        assertEquals(1.0 - 0.4, result.z, EPSILON);
+        assertEquals(1.0 - (double) 0.4F, result.z, EPSILON);
     }
 
     @Test
@@ -83,6 +83,12 @@ class LegacyCombatTest {
         assertEquals(0.0, north.x, EPSILON);
         assertEquals(0.1, north.y, EPSILON, "1.8 added a small fixed lift with the sprint push");
         assertEquals(0.5, north.z, EPSILON);
+        // Facing east (yaw -90) pushes along +x, through 1.8's float sine table.
+        final Vec3 east = LegacyCombat.extraKnockback(-90.0F, 0.5F);
+        assertEquals(0.5, east.x, 1.0E-6);
+        assertEquals(0.0, east.z, 1.0E-6);
+        assertEquals((double) (net.minecraft.util.Mth.cos(-90.0F * 3.1415927F / 180.0F) * 0.5F),
+            east.z, 0.0, "computed in float, as 1.8 did");
     }
 
     @Test
@@ -450,6 +456,12 @@ class LegacyCombatTest {
             "one flat second, against four a level in modern combat");
         assertTrue(VANILLA.fireAspectBeforeDamage(), "1.8 ignited before resolving the hit");
         assertTrue(LegacyCombat.restoresVelocity(VANILLA));
+        Combat.use(VANILLA);
+        assertTrue(Combat.restoresVelocity(), "a player target is restored as CraftBukkit did");
+        Combat.use(CombatConfigs.with(VANILLA, "restoreVelocityAfterKnockback", false));
+        assertFalse(Combat.restoresVelocity());
+        Combat.use(CombatConfig.off());
+        assertTrue(Combat.restoresVelocity(), "Paper's own restore with the module off");
     }
 
     @Test
