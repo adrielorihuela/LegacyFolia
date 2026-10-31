@@ -362,6 +362,7 @@ combat.sword-blocking	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.sword-blocking-reduction	DOUBLE	false	NONE	-	-	-	false	false	-	0.5	-
 combat.legacy-projectiles	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.legacy-fishing-rod	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
+combat.legacy-explosions	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.disable-shields	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.disable-offhand	BOOLEAN	false	NONE	-	-	-	false	false	-	true	-
 combat.attribute-limits.max-health	DOUBLE	false	SPIGOT	settings.attribute.maxHealth.max	-	-	false	false	-	1024.0	-

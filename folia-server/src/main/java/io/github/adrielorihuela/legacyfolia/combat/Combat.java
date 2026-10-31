@@ -258,6 +258,74 @@ public final class Combat {
     }
 
     /**
+     * Whether explosions hurt and push the way 1.8's did.
+     *
+     * @return whether the old explosions apply
+     */
+    public static boolean legacyExplosions() {
+        final CombatConfig current = config;
+        return current.enabled() && current.legacyExplosions();
+    }
+
+    /**
+     * Whether an explosion's hit on an entity is one CraftBukkit 1.8.8 refused only because the
+     * entity was still invulnerable from a stronger hit, in which case it pushed it anyway
+     * ({@code forceExplosionKnockback}, SPIGOT-949). Asked before the hit is dealt.
+     *
+     * @param entity what the explosion reaches
+     * @param damage the damage it would do
+     * @return whether to push it even though the hit will not land
+     */
+    public static boolean explosionHitsCooldown(final net.minecraft.world.entity.Entity entity,
+                                                final float damage) {
+        return entity instanceof net.minecraft.world.entity.LivingEntity living
+            && (float) living.damageCooldownTime > (float) living.invulnerableDuration / 2.0F
+            && damage <= living.lastHurt;
+    }
+
+    /**
+     * How much of an entity an explosion sees, from 1.8's {@code World.a(Vec3D, AxisAlignedBB)}:
+     * the same grid of rays as now, but stepped with {@code float} counters, which lands on
+     * slightly different points of the box.
+     *
+     * @param center the explosion's centre
+     * @param entity what it reaches
+     * @return the fraction of rays that reach the centre
+     */
+    public static float explosionExposure(final net.minecraft.world.phys.Vec3 center,
+                                          final net.minecraft.world.entity.Entity entity) {
+        final net.minecraft.world.phys.AABB bb = entity.getBoundingBox();
+        final double xs = 1.0 / ((bb.maxX - bb.minX) * 2.0 + 1.0);
+        final double ys = 1.0 / ((bb.maxY - bb.minY) * 2.0 + 1.0);
+        final double zs = 1.0 / ((bb.maxZ - bb.minZ) * 2.0 + 1.0);
+        final double xOffset = (1.0 - Math.floor(1.0 / xs) * xs) / 2.0;
+        final double zOffset = (1.0 - Math.floor(1.0 / zs) * zs) / 2.0;
+        if (xs < 0.0 || ys < 0.0 || zs < 0.0) {
+            return 0.0F;
+        }
+        int hits = 0;
+        int count = 0;
+        for (float fx = 0.0F; fx <= 1.0F; fx = (float) ((double) fx + xs)) {
+            for (float fy = 0.0F; fy <= 1.0F; fy = (float) ((double) fy + ys)) {
+                for (float fz = 0.0F; fz <= 1.0F; fz = (float) ((double) fz + zs)) {
+                    final double x = bb.minX + (bb.maxX - bb.minX) * (double) fx;
+                    final double y = bb.minY + (bb.maxY - bb.minY) * (double) fy;
+                    final double z = bb.minZ + (bb.maxZ - bb.minZ) * (double) fz;
+                    if (entity.level().clip(new net.minecraft.world.level.ClipContext(
+                            new net.minecraft.world.phys.Vec3(x + xOffset, y, z + zOffset), center,
+                            net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                            net.minecraft.world.level.ClipContext.Fluid.NONE, entity)).getType()
+                        == net.minecraft.world.phys.HitResult.Type.MISS) {
+                        hits++;
+                    }
+                    count++;
+                }
+            }
+        }
+        return count == 0 ? 0.0F : (float) hits / (float) count;
+    }
+
+    /**
      * Whether a fishing rod works the way 1.8's did: the hook is cast like a thrown item and
      * falls and slows as 1.8's did, hurts what it hits for nothing (knocking a player back from
      * the angler) and catches it only if that landed, cannot catch a dropped item, lifts what it

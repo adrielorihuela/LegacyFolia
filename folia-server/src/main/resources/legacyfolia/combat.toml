@@ -284,6 +284,18 @@ legacy-projectiles = true
 # moved.
 legacy-fishing-rod = true
 
+# Explosions as 1.8 had them.
+#
+# The damage uses 8 where the modern formula uses 7, and is rounded down to a
+# whole number: a creeper right next to you does up to 49 rather than 43. The
+# push is not reduced by Blast Protection (1.8's reduction rounded down to
+# nothing), is only applied to what the explosion actually hurt (or what was
+# still invulnerable from a stronger hit, and always TNT and falling blocks),
+# never to a creative player, and starts from TNT's head height as from every
+# other entity's. An explosion somebody or something living set off also
+# knocks back away from them, on top of the blast.
+legacy-explosions = true
+
 # Shields and the off-hand slot did not exist in 1.8.
 disable-shields = true
 disable-offhand = true

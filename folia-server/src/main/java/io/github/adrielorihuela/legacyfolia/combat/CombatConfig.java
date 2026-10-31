@@ -64,6 +64,7 @@ import io.github.adrielorihuela.legacyfolia.config.ServerConfig;
  * @param legacyReach whether reach is checked feet to feet against 6 blocks (3 without sight)
  * @param legacyProjectiles whether thrown and shot projectiles fly as they did in 1.8
  * @param legacyFishingRod whether the fishing rod casts, hits, pulls and wears as in 1.8
+ * @param legacyExplosions whether explosions hurt and push as in 1.8
  */
 public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean noSweepAttack,
                            boolean legacyKnockback, double knockbackHorizontal,
@@ -90,7 +91,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
                            int instantHealBase, double splashRadius,
                            boolean legacyStrength, double damageExhaustion,
                            boolean legacyReach, boolean legacyProjectiles,
-                           boolean legacyFishingRod) {
+                           boolean legacyFishingRod, boolean legacyExplosions) {
 
     private static final String PREFIX = "combat.";
 
@@ -108,7 +109,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             true, 6, 4, 4.0,
             true, 0.3,
             true, true,
-            true);
+            true, true);
     }
 
     /** The module off, for before the configuration exists. */
@@ -177,6 +178,7 @@ public record CombatConfig(boolean enabled, boolean noAttackCooldown, boolean no
             ServerConfig.getDouble(PREFIX + "damage-exhaustion", defaults.damageExhaustion()),
             ServerConfig.getBoolean(PREFIX + "legacy-reach", defaults.legacyReach()),
             ServerConfig.getBoolean(PREFIX + "legacy-projectiles", defaults.legacyProjectiles()),
-            ServerConfig.getBoolean(PREFIX + "legacy-fishing-rod", defaults.legacyFishingRod()));
+            ServerConfig.getBoolean(PREFIX + "legacy-fishing-rod", defaults.legacyFishingRod()),
+            ServerConfig.getBoolean(PREFIX + "legacy-explosions", defaults.legacyExplosions()));
     }
 }

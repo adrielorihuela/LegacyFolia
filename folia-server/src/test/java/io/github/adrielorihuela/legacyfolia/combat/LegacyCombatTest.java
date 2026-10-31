@@ -548,6 +548,19 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("explosion damage uses 8 rather than 7 and is truncated")
+    void explosionDamage() {
+        // A creeper (radius 3, so 2r = 6) next to a target in the open: p = 1.
+        assertEquals(49.0F, LegacyCombat.explosionDamage(1.0, 6.0F), 0.0F);
+        // Half the power: (0.25 + 0.5) / 2 * 8 * 6 + 1 = 19.
+        assertEquals(19.0F, LegacyCombat.explosionDamage(0.5, 6.0F), 0.0F);
+        // Truncated, not rounded: 0.3 gives (0.09 + 0.3) / 2 * 48 + 1 = 10.36.
+        assertEquals(10.0F, LegacyCombat.explosionDamage(0.3, 6.0F), 0.0F);
+        assertEquals(1.0F, LegacyCombat.explosionDamage(0.0, 6.0F), 0.0F);
+        assertTrue(VANILLA.legacyExplosions());
+    }
+
+    @Test
     @DisplayName("the defaults are the values 1.8.8 used")
     void defaultsAre18() {
         final CombatConfig config = CombatConfig.vanilla18(true);

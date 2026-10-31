@@ -376,6 +376,20 @@ public final class LegacyCombat {
     }
 
     /**
+     * The damage an explosion does, from 1.8's {@code Explosion.a()}:
+     * {@code (int) ((p * p + p) / 2 * 8 * 2r + 1)} with {@code p = (1 - distance / 2r) * exposure},
+     * where the modern game uses 7 and does not truncate. A creeper (radius 3) right next to a
+     * target in the open does 49 against 43.
+     *
+     * @param power {@code (1 - distance / 2r) * exposure}
+     * @param doubleRadius twice the explosion's radius
+     * @return the damage
+     */
+    public static float explosionDamage(final double power, final float doubleRadius) {
+        return (float) (int) ((power * power + power) / 2.0 * 8.0 * (double) doubleRadius + 1.0);
+    }
+
+    /**
      * The motion a fishing hook is cast with, from 1.8's {@code EntityFishingHook(World,
      * EntityHuman)}: the facing direction scaled by 0.4, then shot at 1.5 with an inaccuracy of 1.
      *
