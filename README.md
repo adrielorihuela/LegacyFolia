@@ -27,9 +27,10 @@ usual APIs. Every addition can be switched off.
 > **Status: release candidate `v1.0.0-rc.1`, for testing.** The code for 1.0.0 is complete and the
 > automated tests pass, but the 1.8 combat, the locator bar and the EULA prompt on a Linux terminal
 > have not yet been tried with real players. Download the jar from
-> [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), try it on a test server, and
-> please [open an issue](https://github.com/adrielorihuela/LegacyFolia/issues) for anything that
-> behaves differently from what is described here. `v1.0.0` follows once it has been tested.
+> [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), try it on a test server with the
+> checklist in [docs/TESTING.md](docs/TESTING.md), and report anything that behaves differently
+> from what is described here to the maintainer (the fork's issue tracker is off). `v1.0.0`
+> follows once it has been tested.
 
 ---
 
@@ -172,7 +173,8 @@ Detail: **[docs/PLUGIN-UPDATER.md](docs/PLUGIN-UPDATER.md)**
 
 For a lobby, a minigame server or anything that never leaves the overworld. A dimension that is off
 is never created: no world folder, no chunks, nothing ticking, and its portals do nothing. In one
-measurement on an empty server, start-up went from 23.5 s to 10.8 s with both off. Turning one off
+measurement on an empty server, taken on a 26.2 build and not repeated since, start-up went from
+23.5 s to 10.8 s with both off. Turning one off
 later does not delete its folder.
 
 ### Lobby spawn and the Nether roof
@@ -203,7 +205,9 @@ upstream does.
 
 1. Install **Java 25**.
 2. Download `legacyfolia-paperclip-<version>.jar` from
-   [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), or build it (below).
+   [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), or build it (below). The
+   version in the file name is the build's Minecraft version (`26.3.local-SNAPSHOT` for a local
+   build), not the release tag.
 3. Start it in an empty folder, or in the folder of the server you want to migrate:
 
    ```bash
@@ -248,7 +252,8 @@ Details: [docs/PVP-1.8.md](docs/PVP-1.8.md#what-could-not-be-made-identical).
 
 Applies the patches and builds the jars into `folia-server/build/libs/`; the one to run is
 `legacyfolia-paperclip-<version>.jar`. Requires Java 25. On Windows, applying the patches needs Git
-long paths (`git config core.longpaths true`).
+long paths for your user (`git config --global core.longpaths true`), since the patched sources are
+git repositories of their own.
 
 ## Updating to a new Folia build
 
@@ -269,6 +274,7 @@ into it, so merges stay cheap.
 | [docs/PVP-1.8.md](docs/PVP-1.8.md) | Every 1.8 combat mechanic, its formula, its setting, and what was verified |
 | [docs/PLUGIN-UPDATER.md](docs/PLUGIN-UPDATER.md) | The plugin auto-updater and each source |
 | [docs/UPDATING.md](docs/UPDATING.md) | Merging new Folia builds and handling patches |
+| [docs/TESTING.md](docs/TESTING.md) | The manual checklist for a release candidate |
 | [docs/SETTINGS-MAP.md](docs/SETTINGS-MAP.md) | Where every inherited setting went (Spanish) |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Project state and history (Spanish) |
 
@@ -293,4 +299,4 @@ the combat was read from, for anybody who wants to check the fidelity themselves
 
 - [PaperMC](https://github.com/PaperMC) for Paper and Folia, which this is a fork of.
 - The adaptive view distance began as [ChunkScope](https://github.com/adrielorihuela/ChunkScope) and
-  the plugin updater as the one in [HybridVelocity](https://github.com/adrielorihuela/HybridAuth).
+  the plugin updater as the one in [HybridAuth](https://github.com/adrielorihuela/HybridAuth).
