@@ -7,6 +7,8 @@ import com.electronwill.nightconfig.core.io.ParsingException;
 import com.electronwill.nightconfig.core.io.ParsingMode;
 import com.electronwill.nightconfig.toml.TomlFormat;
 import com.electronwill.nightconfig.toml.TomlParser;
+import io.github.adrielorihuela.legacyfolia.config.catalog.SettingKind;
+import io.github.adrielorihuela.legacyfolia.config.catalog.SettingsCatalog;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -181,7 +183,10 @@ public final class ConfigFile {
             final String path = prefix.isEmpty() ? key : prefix + "." + key;
             final Object value = entry.getValue();
 
-            if (value instanceof final CommentedConfig section) {
+            // A table whose keys are data, such as the command aliases, is one setting: the
+            // operator's table replaces the template's rather than being topped up from it, or a
+            // deleted default alias would come back at every start.
+            if (value instanceof final CommentedConfig section && !isDataTable(path)) {
                 if (!(target.get(at) instanceof final CommentedConfig existing)) {
                     target.set(at, section);
                     target.setComment(at, entry.getComment());
@@ -201,6 +206,10 @@ public final class ConfigFile {
                 added.add(path);
             }
         }
+    }
+
+    private static boolean isDataTable(final String path) {
+        return SettingsCatalog.get().byPath(path).map(entry -> entry.kind() == SettingKind.TABLE).orElse(false);
     }
 
     /**

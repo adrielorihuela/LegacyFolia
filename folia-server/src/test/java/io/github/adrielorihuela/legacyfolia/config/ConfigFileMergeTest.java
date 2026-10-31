@@ -106,4 +106,18 @@ class ConfigFileMergeTest {
         assertFalse(added.contains("dimensions.nether"),
             "the whole section is copied in one go, not key by key");
     }
+
+    @Test
+    @DisplayName("a table of data, such as the command aliases, is never topped up from the template")
+    void leavesDataTablesAlone() {
+        final CommentedConfig template = CommentedConfig.inMemory();
+        template.set(List.of("plugins", "commands", "aliases", "icanhasbukkit"), List.of("version $1-"));
+        final CommentedConfig target = CommentedConfig.inMemory();
+        target.set(List.of("plugins", "commands", "aliases", "hi"), List.of("say hi"));
+
+        final List<String> added = ConfigFile.merge(target, template);
+
+        assertTrue(added.isEmpty(), "the operator removed the default alias; it must stay removed");
+        assertFalse(target.contains(List.of("plugins", "commands", "aliases", "icanhasbukkit")));
+    }
 }
