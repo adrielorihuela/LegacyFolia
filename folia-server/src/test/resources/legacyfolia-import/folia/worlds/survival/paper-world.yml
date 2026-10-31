@@ -1,0 +1,4 @@
+# World: survival (minecraft:overworld)
+_version: 31
+misc:
+  redstone-implementation: ALTERNATE_CURRENT

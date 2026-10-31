@@ -1,0 +1,57 @@
+# This is the global configuration file for Paper.
+# As you can see, there's a lot to configure. Some options may impact gameplay, so use
+# with caution, and make sure you know what each option does before configuring.
+#
+# If you need help with the configuration or have any questions related to Paper,
+# join us in our Discord or check the docs page.
+#
+# The world configuration options have been moved inside
+# their respective world folder. The files are named paper-world.yml
+#
+# Docs: https://docs.papermc.io/
+# Discord: https://discord.gg/papermc
+# Website: https://papermc.io/
+
+_version: 31
+chunk-loading-basic:
+  autoconfig-send-distance: true
+  player-max-chunk-generate-rate: -1.0
+  player-max-chunk-load-rate: 100.0
+  player-max-chunk-send-rate: 75.0
+messages:
+  kick:
+    authentication-servers-down: <lang:multiplayer.disconnect.authservers_down>
+    connection-throttle: Connection throttled! Please wait before reconnecting.
+    flying-player: <lang:multiplayer.disconnect.flying>
+    flying-vehicle: <lang:multiplayer.disconnect.flying>
+  no-permission: <red>I'm sorry, but you do not have permission to perform this command.
+    Please contact the server administrators if you believe that this is in error.
+  use-display-name-in-quit-message: true
+misc:
+  enable-nether: false
+  compression-level: default
+player-auto-save:
+  max-per-tick: -1
+  rate: -1
+packet-limiter:
+  all-packets:
+    action: KICK
+    interval: 7.0
+    max-packet-rate: 500.0
+  kick-message: <red><lang:disconnect.exceeded_packet_rate>
+  overrides:
+    ServerboundPlaceRecipePacket:
+      action: DROP
+      interval: 4.0
+      max-packet-rate: 5.0
+proxies:
+  bungee-cord:
+    online-mode: true
+  proxy-protocol: false
+  velocity:
+    enabled: true
+    online-mode: true
+    secret: velocity-forwarding-s3cret
+watchdog:
+  early-warning-delay: 10000
+  early-warning-every: 5000

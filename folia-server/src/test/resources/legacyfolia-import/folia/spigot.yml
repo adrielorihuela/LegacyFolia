@@ -1,0 +1,9 @@
+settings:
+  bungeecord: false
+config-version: 12
+world-settings:
+  default:
+    view-distance: default
+    mob-spawn-range: 8
+  survival_nether:
+    mob-spawn-range: 4

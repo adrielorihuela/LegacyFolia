@@ -1,0 +1,95 @@
+# This is the main configuration file for Spigot.
+# As you can see, there's tons to configure. Some options may impact gameplay, so use
+# with caution, and make sure you know what each option does before configuring.
+# For a reference for any variable inside this file, check out the Spigot wiki at
+# http://www.spigotmc.org/wiki/spigot-configuration/
+#
+# If you need help with the configuration or have any questions related to Spigot,
+# join us at the Discord or drop by our forums and leave a post.
+#
+# Discord: https://www.spigotmc.org/go/discord
+# Forums: http://www.spigotmc.org/
+
+settings:
+  debug: false
+  bungeecord: true
+  sample-count: -5
+  player-shuffle: 0
+  user-cache-size: 1000
+  save-user-cache-on-stop-only: false
+  moved-wrongly-threshold: 0.0625
+  moved-too-quickly-multiplier: 10.0
+  timeout-time: 60
+  restart-on-crash: true
+  restart-script: ./start.sh
+  netty-threads: 4
+  log-villager-deaths: true
+  log-named-deaths: true
+  attribute:
+    maxAbsorption:
+      max: 2048.0
+    maxHealth:
+      max: 1024.0
+    movementSpeed:
+      max: 1024.0
+    attackDamage:
+      max: 2048.0
+messages:
+  whitelist: '&cYou are not on the &lwhitelist&c!'
+  unknown-command: Unknown command. Type "/help" for help.
+  server-full: The server is full!
+  outdated-client: Outdated client! Please use {0}
+  outdated-server: Outdated server! I'm still on {0}
+  restart: Server is restarting
+advancements:
+  disable-saving: false
+  disabled:
+  - minecraft:story/disabled
+commands:
+  silent-commandblock-console: false
+  log: true
+  tab-complete: false
+  send-namespaced: true
+  spam-exclusions:
+  - /skill
+  - /home
+  replace-commands:
+  - setblock
+  - summon
+  - testforblock
+  - tellraw
+stats:
+  disable-saving: false
+  forced-stats: {}
+players:
+  disable-saving: false
+config-version: 12
+world-settings:
+  default:
+    below-zero-generation-in-existing-chunks: true
+    view-distance: default
+    simulation-distance: default
+    mob-spawn-range: 6
+    item-despawn-rate: 6000
+    arrow-despawn-rate: 300
+    thunder-chance: 100000
+    zombie-aggressive-towards-villager: true
+    verbose: false
+    entity-activation-range:
+      animals: 32
+      monsters: 24
+      raiders: 64
+      misc: 16
+    growth:
+      cactus-modifier: 0
+      wheat-modifier: 150
+    seed-village: 10387312
+    seed-desert: 14357617
+  world_nether:
+    view-distance: 4
+    entity-activation-range:
+      monsters: 16
+    seed-village: 999
+    below-zero-generation-in-existing-chunks: false
+  world_the_end:
+    arrow-despawn-rate: 600

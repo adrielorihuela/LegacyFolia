@@ -1,0 +1,71 @@
+# This is the world defaults configuration file for Paper.
+# As you can see, there's a lot to configure. Some options may impact gameplay, so use
+# with caution, and make sure you know what each option does before configuring.
+#
+# If you need help with the configuration or have any questions related to Paper,
+# join us in our Discord or check the docs page.
+#
+# Configuration options here apply to all worlds, unless you specify overrides inside
+# the world-specific config file inside each world folder.
+#
+# Docs: https://docs.papermc.io/
+# Discord: https://discord.gg/papermc
+# Website: https://papermc.io/
+
+_version: 31
+anticheat:
+  anti-xray:
+    enabled: true
+    engine-mode: 2
+chunks:
+  auto-save-interval: default
+  delay-chunk-unloads-by: 20s
+  entity-per-chunk-save-limit:
+    arrow: 16
+    experience_orb: 16
+  prevent-moving-into-unloaded-chunks: false
+entities:
+  spawning:
+    alt-item-despawn-rate:
+      enabled: true
+      items:
+        minecraft:cobblestone: 300
+        minecraft:netherrack: 300
+    creative-arrow-despawn-rate: default
+    non-player-arrow-despawn-rate: default
+    despawn-ranges:
+      monster:
+        hard: default
+        soft: default
+    spawn-limits:
+      ambient: -1
+      axolotls: -1
+      creature: 5
+      monster: -1
+      underground_water_creature: -1
+      water_ambient: -1
+      water_creature: -1
+    ticks-per-spawn:
+      ambient: -1
+      axolotls: -1
+      creature: -1
+      monster: -1
+      underground_water_creature: -1
+      water_ambient: -1
+      water_creature: -1
+  behavior:
+    door-breaking-difficulty:
+      husk:
+      - HARD
+      vindicator:
+      - NORMAL
+      - HARD
+lootables:
+  refresh-min: 6h
+  refresh-max: 2d
+misc:
+  redstone-implementation: ALTERNATE_CURRENT
+tick-rates:
+  sensor:
+    villager:
+      secondarypoisensor: 80
