@@ -3,7 +3,6 @@ package io.github.adrielorihuela.legacyfolia.config.properties;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Writes plain Java values as TOML, the way the bundled files write them.
@@ -13,8 +12,6 @@ import java.util.regex.Pattern;
  * like the templates it came from.</p>
  */
 public final class TomlLiterals {
-
-    private static final Pattern BARE = Pattern.compile("[A-Za-z0-9_-]+");
 
     private TomlLiterals() {
     }
@@ -60,18 +57,15 @@ public final class TomlLiterals {
             final StringBuilder out = new StringBuilder("{ ");
             boolean first = true;
             for (final Map.Entry<?, ?> entry : map.entrySet()) {
-                out.append(first ? "" : ", ").append(key(String.valueOf(entry.getKey())))
+                // Quoted always, as the bundled files write them: these keys are data, such as
+                // item ids, and most of them need the quotes anyway.
+                out.append(first ? "" : ", ").append(string(String.valueOf(entry.getKey())))
                     .append(" = ").append(render(entry.getValue()));
                 first = false;
             }
             return out.append(" }").toString();
         }
         return string(String.valueOf(value));
-    }
-
-    /** A key: bare when TOML allows it, quoted otherwise. */
-    static String key(final String key) {
-        return BARE.matcher(key).matches() ? key : string(key);
     }
 
     /**
