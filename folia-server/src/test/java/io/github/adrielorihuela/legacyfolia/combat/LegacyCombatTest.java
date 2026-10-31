@@ -246,6 +246,20 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("blocking works on what the window and the hard hat left, in double")
+    void blockingAfterTheWindow() {
+        // A 7 then an 8 inside the window: 1.8 blocks the difference, (1 + 1) * 0.5 = 1. Blocking
+        // the raw hits first would have given 4.5 - 4 = 0.5.
+        final float through = LegacyCombat.damageThroughInvulnerability(8.0F, 7.0F, VANILLA);
+        assertEquals(1.0F, through, 0.0001F);
+        assertEquals(1.0, LegacyCombat.afterBlocking((double) through, VANILLA), EPSILON);
+        // An anvil of 12 on a helmeted, blocking player: hard hat first, 9, then (1 + 9) * 0.5.
+        assertEquals(5.0, LegacyCombat.afterBlocking(12.0 * 0.75, VANILLA), EPSILON);
+        // The modifier is computed in double, as CraftBukkit's was.
+        assertEquals((1.0 + 0.1) * 0.5, LegacyCombat.afterBlocking(0.1, VANILLA), 0.0);
+    }
+
+    @Test
     @DisplayName("sharpness is a flat 1.25 a level")
     void sharpnessIsFlat() {
         assertEquals(0.0F, LegacyCombat.sharpnessBonus(0, VANILLA), 0.0001F);

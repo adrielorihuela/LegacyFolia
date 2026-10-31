@@ -43,25 +43,58 @@ public final class Combat {
     }
 
     /**
-     * What is left of an incoming hit after a raised sword.
+     * The {@code BLOCKING} damage modifier of a raised sword, from the {@code blocking} function
+     * of CraftBukkit 1.8.8's {@code EntityLiving.d(DamageSource, float)}.
      *
-     * <p>Returns the damage unchanged when the target is not blocking, so the caller assigns
-     * unconditionally rather than branching on the hot path. See
-     * {@link LegacyCombat#afterBlocking(float, CombatConfig)} for the formula and for the order the
-     * modifiers ran in — blocking came before armour, so the two compound.</p>
+     * <p>1.8 applied it only to a player, only while the sword was raised, only to damage above
+     * zero and never to damage that ignores armour: falls and ender pearls, fire ticks, drowning,
+     * suffocation, starving, the void, magic and harming potions, and wither all went through a
+     * raised sword untouched. It ran after the invulnerability window and the hard hat, on what
+     * they left, and before armour, so blocking and armour compound. See
+     * {@link LegacyCombat#afterBlocking(double, CombatConfig)} for the formula.</p>
      *
      * @param target who is being hit
-     * @param damage the damage of the hit before blocking
-     * @return the damage that gets through
+     * @param source what is hitting them
+     * @param damage the damage the modifier works on
+     * @return the modifier, negative or zero, or null when a raised sword does not apply and the
+     *     game's own blocking should decide
      */
-    public static float afterBlocking(final net.minecraft.world.entity.LivingEntity target,
-                                      final float damage) {
+    public static @org.jspecify.annotations.Nullable Double swordBlocking(
+        final net.minecraft.world.entity.LivingEntity target,
+        final net.minecraft.world.damagesource.DamageSource source, final double damage) {
         final CombatConfig current = config;
-        if (!current.enabled() || !current.swordBlocking() || !target.isUsingItem()
-            || !target.getUseItem().is(net.minecraft.tags.ItemTags.SWORDS)) {
-            return damage;
+        if (!current.enabled() || !current.swordBlocking()
+            || !(target instanceof net.minecraft.world.entity.player.Player)
+            || !target.isUsingItem() || !target.getUseItem().is(net.minecraft.tags.ItemTags.SWORDS)) {
+            return null;
         }
-        return LegacyCombat.afterBlocking(damage, current);
+        if (source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_ARMOR) || damage <= 0.0) {
+            return -0.0;
+        }
+        return -(damage - LegacyCombat.afterBlocking(damage, current));
+    }
+
+    /**
+     * Whether hits follow 1.8's damage window: the raw damage is compared with the last hit's,
+     * only the difference reaches the damage modifiers, and the raw figure is remembered.
+     *
+     * @return whether the old window applies
+     */
+    public static boolean legacyDamageWindow() {
+        return config.enabled();
+    }
+
+    /**
+     * What a hit inside the invulnerability window does, from CraftBukkit 1.8.8's
+     * {@code EntityLiving.damageEntity}: the difference from the last hit, or nothing when
+     * {@code damage-overriding} is off or the hit is not stronger.
+     *
+     * @param damage the raw damage of this hit
+     * @param lastDamage the raw damage of the hit that is remembered
+     * @return the damage to hand to the modifiers, zero for none
+     */
+    public static float damageThroughWindow(final float damage, final float lastDamage) {
+        return LegacyCombat.damageThroughInvulnerability(damage, lastDamage, config);
     }
 
     /**

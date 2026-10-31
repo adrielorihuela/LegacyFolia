@@ -252,19 +252,32 @@ public final class LegacyCombat {
      * against large hits and weaker against small ones.</p>
      *
      * <p>Where it sits also matters. 1.8 ran the damage modifiers in this order: hard hat,
-     * <strong>blocking</strong>, armour, resistance, magic (protection), absorption. Blocking is
-     * therefore applied to the raw hit and armour works on whatever blocking left, so the two
-     * compound rather than being alternatives.</p>
+     * <strong>blocking</strong>, armour, resistance, magic (protection), absorption, all on what
+     * the invulnerability window left of the hit. Armour therefore works on whatever blocking
+     * left, so the two compound rather than being alternatives, and a hit inside the window is
+     * blocked as {@code (1 + difference) * 0.5}.</p>
      *
-     * @param damage the raw damage of the hit
+     * @param damage the damage reaching the blocking step
      * @param config the factor to use, 0.5 in 1.8
      * @return the damage that gets through
      */
     public static float afterBlocking(final float damage, final CombatConfig config) {
-        if (damage <= 0.0F) {
+        return (float) afterBlocking((double) damage, config);
+    }
+
+    /**
+     * {@link #afterBlocking(float, CombatConfig)} in {@code double}, the precision CraftBukkit
+     * 1.8.8's blocking damage modifier worked in.
+     *
+     * @param damage the damage reaching the blocking step
+     * @param config the factor to use, 0.5 in 1.8
+     * @return the damage that gets through
+     */
+    public static double afterBlocking(final double damage, final CombatConfig config) {
+        if (damage <= 0.0) {
             return damage;
         }
-        return (1.0F + damage) * (float) config.swordBlockingReduction();
+        return (1.0 + damage) * (double) (float) config.swordBlockingReduction();
     }
 
     /**

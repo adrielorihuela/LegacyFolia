@@ -73,7 +73,8 @@ invulnerability-ticks = 20
 
 # Let a stronger hit through during those ticks, for the difference in damage
 # only. Without this, tapping somebody for half a heart makes them briefly
-# immune to an axe, which is not how 1.8 played.
+# immune to an axe, which is not how 1.8 played. As in 1.8, the window
+# remembers the raw damage of the hit, before armour, blocking and the rest.
 damage-overriding = true
 
 # Weapon damage. In 1.8 a weapon's attack damage was a base for its kind plus
@@ -214,6 +215,13 @@ splash-radius = 4.0
 # below is the 0.5 factor in that expression. 1.8 also applied blocking BEFORE
 # armour - the order was hard hat, blocking, armour, resistance, protection,
 # absorption - so blocking and armour compound rather than being alternatives.
+# It works on what the invulnerability window left: a 7 and then an 8 within
+# the window blocks the difference, (1 + 1) * 0.5 = 1. Plugins see it as the
+# BLOCKING modifier of the damage event.
+#
+# Only players block, and only damage that armour also stops. Falls and ender
+# pearl landings, burning, drowning, suffocation, starving, the void, magic,
+# harming potions and wither go straight through a raised sword.
 sword-blocking = true
 sword-blocking-reduction = 0.5
 
