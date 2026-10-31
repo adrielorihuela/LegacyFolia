@@ -3,7 +3,7 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.17.0` · **Base:** Folia
+**Última actualización:** 2026-10-31 · **Último tag publicado:** `v0.18.0` · **Base:** Folia
 `ver/26.3.x` en `597e413` (2026-10-14), Minecraft 26.3, Paper `c927bd34`.
 
 ---
@@ -61,6 +61,7 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.15.0 | 10-31 | Enganche de la configuración: los TOML son la fuente, `server.properties` es un override opcional, los servidores antiguos se migran en el primer arranque; EULA como clave, `/legacyfolia properties`, lobby configurable |
 | v0.16.0 | 10-31 | Daño de las armas de 1.8 (espadas, hachas, picos y palas), el último de los nueve enganches del PvP |
 | v0.17.0 | 10-31 | El tooltip de las armas muestra el daño de 1.8: se reescribe al enviar el objeto y se quita de lo que devuelve un cliente en creativo |
+| v0.18.0 | 10-31 | Locator bar idéntica a la de vanilla: solo la dimensión propia, la máquina de estados de conexiones de vanilla sobre snapshots, todos los paquetes en el hilo del receptor |
 
 **Contenido de `v0.13.0`:**
 - `ServerConfig.forWorld(nombre)`: resuelve `[worlds.<nombre>]`, luego `[worlds.default]` y luego
@@ -77,8 +78,10 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 - `docs/SETTINGS-MAP.md` corregido y completado, con los tipos no escalares, las claves omitidas y
   las decisiones pendientes.
 
-**Tests:** 288 en `LegacyFoliaTestSuite`, en 37 archivos de resultados, sin fallos ni omitidos
-(verificado el 2026-10-31 al cerrar `v0.17.0`, que aporta 13 en `WeaponTooltipsTest`; al cerrar
+**Tests:** 303 en `LegacyFoliaTestSuite`, en 38 archivos de resultados, sin fallos ni omitidos
+(verificado el 2026-10-31 al cerrar `v0.18.0`, que aporta 14 en `WaypointConnectionsTest` y 1 en
+`WaypointSnapshotTest`; al cerrar `v0.17.0` eran 288, en 37 archivos: esa versión aportó 13 en
+`WeaponTooltipsTest`; al cerrar
 `v0.16.0` eran 275, en 36 archivos: esa versión aportó 4 en `LegacyCombatTest`: cinco casos nuevos
 del daño de las armas en lugar del de las espadas; al cerrar la etapa 5b eran 271, contando los XML de
 `folia-server/build/test-results/test` tras `./gradlew :folia-server:test --tests
@@ -176,9 +179,10 @@ fuente de todo lo que lee el servidor.
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-31), `main` y el tag `v0.16.0` están publicados y `main` es la única rama.
+Al escribir esto (2026-10-31), `main` y el tag `v0.18.0` están publicados y `main` es la única rama.
 **La fase de enganche (§5, punto 1) está terminada**: las etapas 1 a 5b están en `main`. **El punto 2
-(daño de las armas, `v0.16.0`, y su tooltip, `v0.17.0`) también.** Lo siguiente es el punto 3 de §5. Lo que sigue en este apartado es el historial de
+(daño de las armas, `v0.16.0`, y su tooltip, `v0.17.0`) también, y el punto 3 (locator bar, `v0.18.0`).**
+Lo siguiente es el punto 4 de §5. Lo que sigue en este apartado es el historial de
 la fase de enganche. **La etapa 1 está hecha:** las decisiones del usuario
 (§6) escritas y con sus claves en los TOML, los defaults de 26.3 aplicados, y el catálogo maestro de
 claves en `config/catalog/` (`SettingsCatalog`, cargado de `legacyfolia/catalog.tsv`: 482 claves con
@@ -278,13 +282,34 @@ Las etapas van **en fila**: cada una empieza cuando la anterior termina y está 
    `legacy-weapon-damage` y `sword-`, `axe-`, `pickaxe-` y `shovel-base-damage`; sustituyen a
    `legacy-sword-damage`, que no leía nada y queda olvidada en los `combat.toml` existentes (el
    merge no borra claves). Comprobado en un servidor con un plugin de prueba (cifras en `PVP-1.8.md`).
-3. **Locator bar idéntica a vanilla y Paper.** Comparar línea a línea nuestra implementación
-   (`waypoint/RegionisedWaypoints`, parche 0014) con el código de vanilla
-   (`ServerWaypointManager`, `WaypointTransmitter` y el atributo `WAYPOINT_TRANSMIT_RANGE`) y con el de
-   Paper, y después corregirla hasta que se comporte **exactamente** igual. Error conocido: se ven
-   jugadores de otras dimensiones (overworld, Nether y End). Solo deben verse los de la dimensión
-   propia. Revisar también los cambios de dimensión, el agacharse, las cabezas, la invisibilidad, las
-   desconexiones y el rango.
+3. **Locator bar idéntica a vanilla y Paper. HECHO (2026-10-31, `v0.18.0`).** Paper no cambia la
+   lógica de vanilla (solo añade `canSee`, la distancia al cuadrado y no hacer nada con la regla
+   apagada). Diferencias encontradas y corregidas (parche 0037 y `waypoint/`):
+   - **Otras dimensiones:** al salir de un mundo (`removePlayer`) se olvidaban las conexiones del
+     receptor sin mandar `remove` al cliente, y los marcadores se quedaban congelados. Ahora se
+     quitan todos, como vanilla, y el mundo nuevo añade los suyos. Cada mundo tiene su propio gestor.
+   - Un emisor que se movía no llegaba a un receptor quieto (solo se recalculaba al moverse el
+     receptor). Ahora el receptor se pone al día en su tick.
+   - No existían las reglas de vanilla para cambiar de tipo: la conexión de bloque solo se rompe con
+     un salto de más de un bloque o al dejar de verse, la de chunk con un salto de más de un chunk o
+     cuando el chunk llega al cliente, la de azimut cuando el chunk es visible o ya no está lejos.
+     Los 332 bloques se comparan en `float`, como `Entity.distanceTo`.
+   - Faltaba `firstTick` (vanilla no conecta a nadie en su primer tick).
+   - `trackWaypoint` de un emisor ya seguido, `remakeConnections` (equipos) y `/waypoint modify`
+     no reenviaban el `add`; `untrack`+`track` no mandaba el `remove` previo.
+   - Apagar la regla no mandaba `remove` y borraba los snapshots; al encenderla nadie aparecía hasta
+     moverse. Ahora es `breakAllConnections` y `updatePlayer` como en vanilla.
+   - El icono iba con el estilo del momento del envío; ahora el de la creación de la conexión.
+   - Un `trackWaypoint` de un emisor sin alcance (agachado) se descartaba; vanilla lo sigue y un
+     espectador lo ve.
+   - `remakeConnections` y el `updatePlayer` de la regla se llamaban desde otro hilo y leían el
+     jugador de otra región; ahora se apuntan y se hacen en el tick del dueño.
+   Todos los paquetes de waypoint a un jugador salen de su propio hilo. Diferencias que quedan, por el
+   modelo de hilos: lo que hace el emisor llega al receptor hasta un tick más tarde, y varios
+   movimientos en ese tick llegan como un solo `update`; el reaparecer de Folia reutiliza el mismo
+   `ServerPlayer`, así que no hay el primer tick que vanilla tiene tras reaparecer; y un
+   `remakeConnections` sobre un emisor no seguido (agachado) no conecta a los espectadores como en
+   vanilla. **Sin comprobar con un cliente real.**
 4. **PvP 1.8 idéntico al original.** Hacer la misma comparación entre nuestro combate (`combat/` y los
    parches 0016, 0017 y 0020–0027) y el código fuente de 1.8.8 (`reference/fetch-1.8.8-source.sh`),
    cubriendo todas las mecánicas y no solo las fórmulas: orden de los modificadores, knockback, bloqueo
@@ -360,7 +385,8 @@ en el catálogo `config/catalog/`; desde la etapa 5b el servidor las lee todas):
 `[server.messages]` en MiniMessage con `translate:`.
 
 **Verificaciones manuales pendientes:** el prompt del EULA en Linux con una TTY real; la locator bar
-con dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con cabeza puesta; y
+(`v0.18.0`) con dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con cabeza
+puesta; y
 cómo se siente el PvP 1.8 comparado con un servidor 1.8 real.
 
 ## 7. Upstream

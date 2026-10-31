@@ -68,9 +68,16 @@ because the locator bar only shows somebody past 332 blocks — which under regi
 they are almost always on another thread, and reading their entity from yours is a crash waiting to
 happen.
 
-LegacyFolia fixes it rather than working around it. Transmitters publish an immutable snapshot on
-their own thread; receivers read only snapshots. Nothing crosses a region boundary, and the whole
-cost is one map write per moving player.
+LegacyFolia fixes it rather than working around it, and the bar behaves exactly as vanilla's (Paper
+does not change it): only players in your own dimension, the same azimuth / chunk / block waypoints
+with the same 332-block switch and update thresholds, hidden while crouching, invisible or wearing a
+head or carved pumpkin, team colours, `/waypoint`, `waypoint_transmit_range` and
+`waypoint_receive_range`. Changing dimension clears the bar and fills it from the new one.
+
+Transmitters publish an immutable snapshot on their own thread; each receiver runs vanilla's
+connection logic against those snapshots on its own thread. Nothing crosses a region boundary; the
+only difference a player could notice is that somebody else's move reaches their bar up to one tick
+later.
 
 ### TOML configuration instead of six YAML and properties files
 
