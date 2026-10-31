@@ -1,4 +1,4 @@
-# LegacyFolia — a Folia fork with 1.8 PvP, one config file, and plugin auto-updates
+# LegacyFolia — a Folia fork with 1.8 PvP, TOML configuration, and plugin auto-updates
 
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://minecraft.net)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://adoptium.net)
@@ -7,7 +7,9 @@
 
 **LegacyFolia** is a fork of [Folia](https://github.com/PaperMC/Folia) — the multithreaded Minecraft
 server — that puts back **1.8 PvP**, fixes the **locator bar** Folia disabled, replaces the scattered
-configuration with **one commented file**, and **keeps your plugins up to date on its own**.
+YAML configuration with **commented TOML files** (keeping an optional `server.properties` for hosting
+panels), migrates an existing Paper, Spigot, Folia or vanilla server automatically, and **keeps your
+plugins up to date on its own**.
 
 It is a Folia server first: regionised multithreading, the full Paper and Bukkit plugin API, and
 every upstream commit merged in. Everything below is added on top, and every part of it can be
@@ -25,10 +27,13 @@ around it that makes a Folia server tedious to run:
 |---|---|
 | Modern combat killed 1.8 PvP | Restores it, from 1.8.8's own source, mechanic by mechanic |
 | `/gamerule locator_bar` does nothing on Folia | Fixed properly, region-safe |
-| Settings spread across six files in three formats | A few commented TOML files in `config/`, grouped by what they do |
+| Settings spread across six files in three formats | Eight commented TOML files in `config/`, grouped by what they do; plugins still see every value |
+| Panels like Pterodactyl expect `server.properties` | Kept, optional, holding only what differs from the defaults |
+| Moving an existing server means redoing its configuration | Imported automatically on first start, originals backed up |
 | No way to turn off the Nether or the End | One `[dimensions]` section — and a **2× faster start-up** |
 | Velocity secret sits in plain text in a shared YAML | Its own `config/forwarding.secret` |
-| The server stops on first start to make you edit `eula.txt` | Asks you at the console instead |
+| The server stops on first start to make you edit `eula.txt` | Asks you at the console instead; the answer is a key in `server.toml` |
+| RCON passwords end up in shared config files | Generated into `config/rcon.secret`, RCON bound to `127.0.0.1` |
 | Updating plugins is a manual chore | Checked and updated at every start, verified by checksum |
 | Every player is sent chunks they never look at | Each gets only the chunks they use |
 
@@ -67,14 +72,28 @@ LegacyFolia fixes it rather than working around it. Transmitters publish an immu
 their own thread; receivers read only snapshots. Nothing crosses a region boundary, and the whole
 cost is one map write per moving player.
 
-### One configuration file
+### TOML configuration instead of six YAML and properties files
 
-`config/` holds a handful of TOML files — grouped by what settings **do** rather than which server introduced
-them, with a comment on every key explaining what it is for.
+`config/` holds eight TOML files (`server`, `world`, `network`, `performance`, `gameplay`, `combat`,
+`plugins` and `worlds` for per-world overrides), grouped by what settings **do** rather than which
+server introduced them, with a comment on every key explaining what it is for.
 
-It does not replace `bukkit.yml`, `spigot.yml` or `paper-global.yml`. Those are still generated,
-still read, and still what plugins see; this file overrides them at start-up. **No plugin can tell
-the difference.**
+`bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-global.yml`, `paper-world-defaults.yml` and
+`paper-world.yml` **are gone from disk**. Plugins still read every value through the Bukkit, Spigot
+and Paper APIs, including `Bukkit.spigot().getConfig()`: those objects are built in memory from the
+TOML files. **No plugin can tell the difference.**
+
+- **`server.properties` mode**, on by default, for Pterodactyl and other panels:
+  `config/server.properties` holds only the settings that differ from their defaults and wins over
+  the TOML files. Vanilla keys keep their names (`motd`, `max-players`); everything else uses its
+  TOML path. `/legacyfolia properties on|off|status` switches it at once.
+- **Automatic migration**: start the jar where a vanilla, Spigot, Paper or Folia server used to run
+  and its configuration is imported into the TOML files, conflicts resolved as the original server
+  resolved them, with the originals and an `import-report.txt` in `config/legacy-backup/`.
+- **Secrets in their own files**: `rcon.secret` (generated), `forwarding.secret`, `github.token`.
+  RCON is on and listens on `127.0.0.1` only.
+- **Lobby mode**: send every joining player to the world spawn, of the world they left or of the
+  main world.
 
 ```toml
 [dimensions]
@@ -126,9 +145,11 @@ player who is away is reduced further — with anti-AFK macro and auto-clicker d
 
 ### An EULA prompt instead of a wall
 
-First start asks at the console. Press **Enter** to agree, **Escape** to stop. A server with no
-console attached — systemd, Docker, `--noconsole` — is never asked and stops exactly as before,
-because a prompt nobody can see is indistinguishable from a hang.
+First start asks at the console. Press **Enter** to agree, **Escape** to stop. The answer is
+`eula = true` in `config/server.toml`, which replaces `eula.txt` and never goes into
+`server.properties`. A server with no console attached — systemd, Docker, `--noconsole` — is never
+asked and stops with a message saying what to set, because a prompt nobody can see is
+indistinguishable from a hang.
 
 ### The forwarding secret in its own file
 
@@ -144,8 +165,10 @@ configurations get pasted into issues and photographed in screenshots, and secre
 java -Xms4G -Xmx4G -jar legacyfolia.jar nogui
 ```
 
-Requires **Java 25**. On first start it asks about the EULA, writes the configuration into `config/`, and
-creates `config/forwarding.secret` and `config/github.token` empty for you to fill in when needed.
+Requires **Java 25**. On first start it asks about the EULA, writes the configuration into `config/`,
+generates the RCON password in `config/rcon.secret`, and creates `config/forwarding.secret` and
+`config/github.token` empty for you to fill in when needed. Started in the folder of an existing
+server, it imports that server's configuration first.
 
 Then open `config/` — every setting is in there, and every one of them is commented.
 
@@ -177,8 +200,8 @@ into it.
 ## Compatibility
 
 - **Plugins**: everything that runs on Folia runs here. The Bukkit, Spigot and Paper configuration
-  files are untouched and still authoritative for what plugins read. Declare `folia-supported: true`
-  as you would for Folia.
+  objects plugins read are built in memory from the TOML files and hold the same values the YAML
+  files would. Declare `folia-supported: true` as you would for Folia.
 - **Clients**: 26.3 natively; 1.8 clients through [ViaVersion](https://hangar.papermc.io/ViaVersion/ViaVersion)
   and ViaBackwards, which is the intended way to play the 1.8 PvP.
 - **Proxies**: Velocity modern forwarding and BungeeCord, as upstream.
