@@ -132,12 +132,18 @@ public final class ConfigFile {
             throw new IOException("config/" + fileName + " could not be brought up to date with its template: "
                 + e.getMessage(), e);
         }
-        if (merged.added().isEmpty()) {
+        if (merged.added().isEmpty() && merged.renamed().isEmpty()) {
             return new ConfigFile(fileName, path, parsed, created);
         }
         AtomicFiles.write(path, merged.text());
-        LOGGER.info("Added {} new setting(s) to config/{}: {}",
-            merged.added().size(), fileName, String.join(", ", merged.added()));
+        if (!merged.renamed().isEmpty()) {
+            LOGGER.info("Renamed {} setting(s) in config/{}, keeping their values: {}",
+                merged.renamed().size(), fileName, String.join(", ", merged.renamed()));
+        }
+        if (!merged.added().isEmpty()) {
+            LOGGER.info("Added {} new setting(s) to config/{}: {}",
+                merged.added().size(), fileName, String.join(", ", merged.added()));
+        }
         return new ConfigFile(fileName, path, parse(merged.text(), fileName), created);
     }
 
@@ -229,8 +235,104 @@ public final class ConfigFile {
         return in;
     }
 
-    /** The outcome of a merge: the new text, and the dotted paths that were added to it. */
-    record Merged(String text, List<String> added) {
+    /**
+     * The outcome of a merge: the new text, the dotted paths that were added to it, and the
+     * renamed keys, written as {@code old -> new}.
+     */
+    record Merged(String text, List<String> added, List<String> renamed) {
+    }
+
+    /**
+     * A key that was renamed, with the comment the template used to write above it.
+     *
+     * @param from the old dotted path
+     * @param to the new dotted path
+     * @param oldComment the old template's comment above the key, exactly, or empty for none
+     */
+    private record Rename(String from, String to, String oldComment) {
+    }
+
+    /**
+     * Keys this fork has renamed. A file written by an older build has the old name, which nothing
+     * reads any more and which the merge, adding only, would leave behind next to the new one.
+     */
+    private static final List<Rename> RENAMES = List.of(
+        // v0.16.0 replaced the sword-only switch, which nothing read, with one for every weapon.
+        new Rename("combat.legacy-sword-damage", "combat.legacy-weapon-damage", """
+            # Sword damage. In 1.8 a sword's attack damage modifier was 4 plus its tier
+            # bonus; modern swords are built on a base of 3 with exactly the same tier
+            # bonuses (wood 0, stone 1, iron 2, diamond 3, gold 0). Every sword therefore
+            # hit for one point more, so a diamond sword's modifier is 7 rather than 6.
+            """));
+
+    /**
+     * Gives each renamed key its new name, in place and with its value, before the merge.
+     *
+     * <p>The line is renamed where it stands, so the value somebody chose survives and nothing
+     * else in the file moves. When the old template's comment is still above it, word for word,
+     * it is replaced by the new template's comment; a comment somebody wrote themselves is left
+     * alone. When the file already has the new key as well, the old one is simply removed, with
+     * the old template's comment above it when that is still there word for word.</p>
+     */
+    private static String rename(final String text, final CommentedConfig parsed, final String template,
+                                 final List<String> renamed) {
+        String current = text;
+        for (final Rename rename : RENAMES) {
+            if (parsed.get(rename.from()) == null) {
+                continue;
+            }
+            final String oldKey = lastSegment(rename.from());
+            final String newKey = lastSegment(rename.to());
+            if (parsed.get(rename.to()) != null) {
+                current = replaceOldComment(current, rename, oldKey, "");
+                current = TomlText.parse(current).remove(List.of(), rename.from()).text();
+            } else {
+                current = java.util.regex.Pattern.compile("(?m)^([ \\t]*)" + java.util.regex.Pattern.quote(oldKey) + "(?=[ \\t]*=)")
+                    .matcher(current).replaceFirst("$1" + java.util.regex.Matcher.quoteReplacement(newKey));
+                final String eol = current.contains("\r\n") ? "\r\n" : "\n";
+                final String found = commentAbove(template, newKey);
+                if (found != null) {
+                    current = replaceOldComment(current, rename, newKey, found.replace("\n", eol) + eol);
+                }
+            }
+            renamed.add(rename.from() + " -> " + rename.to());
+        }
+        return current;
+    }
+
+    /**
+     * Replaces the old template's comment, word for word and directly above {@code key}, with
+     * {@code replacement}, which ends with its own line break or is empty. Anything else is left
+     * as it is.
+     */
+    private static String replaceOldComment(final String text, final Rename rename, final String key,
+                                            final String replacement) {
+        if (rename.oldComment().isEmpty()) {
+            return text;
+        }
+        final String oldPattern = java.util.regex.Pattern.quote(rename.oldComment().strip())
+            .replace("\n", "\\E\\r?\\n\\Q");
+        return java.util.regex.Pattern.compile("(?m)^" + oldPattern + "\\r?\\n(?=[ \\t]*" + java.util.regex.Pattern.quote(key) + "[ \\t]*=)")
+            .matcher(text).replaceFirst(java.util.regex.Matcher.quoteReplacement(replacement));
+    }
+
+    private static String lastSegment(final String dotted) {
+        return dotted.substring(dotted.lastIndexOf('.') + 1);
+    }
+
+    /** The comment lines directly above a key in a template, without the final line break. */
+    private static String commentAbove(final String template, final String key) {
+        final String[] lines = template.split("\\r?\\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].matches(java.util.regex.Pattern.quote(key) + "[ \\t]*=.*")) {
+                int first = i;
+                while (first > 0 && lines[first - 1].startsWith("#")) {
+                    first--;
+                }
+                return first == i ? null : String.join("\n", java.util.Arrays.asList(lines).subList(first, i));
+            }
+        }
+        return null;
     }
 
     /**
@@ -239,7 +341,8 @@ public final class ConfigFile {
      *
      * <p>Only missing keys are written. A value somebody set is never replaced by the default, and
      * a key the template no longer has is never deleted — an unknown key is far more likely to come
-     * from a newer build than to be worth throwing away. Every byte that was in the file before is
+     * from a newer build than to be worth throwing away. The exception is a key this fork renamed
+     * ({@code RENAMES}), which takes its new name first, keeping its value. Every byte that was in the file before is
      * still there afterwards, in the same order: new keys and tables are inserted between them,
      * never written over them. The one exception is a value that is not a table standing where the
      * template has a table, which is replaced by the table.</p>
@@ -254,9 +357,11 @@ public final class ConfigFile {
 
     private static Merged merge(final String text, final CommentedConfig parsed, final String template) {
         final List<String> added = new ArrayList<>();
-        final Document document = new Document(TomlText.parse(text), TomlText.parse(template));
-        merge(document, parsed, parse(template), List.of(), added);
-        return new Merged(document.text.text(), List.copyOf(added));
+        final List<String> renamed = new ArrayList<>();
+        final String current = rename(text, parsed, template, renamed);
+        final Document document = new Document(TomlText.parse(current), TomlText.parse(template));
+        merge(document, renamed.isEmpty() ? parsed : parse(current), parse(template), List.of(), added);
+        return new Merged(document.text.text(), List.copyOf(added), List.copyOf(renamed));
     }
 
     /** The file being merged, and the template it is merged from. */

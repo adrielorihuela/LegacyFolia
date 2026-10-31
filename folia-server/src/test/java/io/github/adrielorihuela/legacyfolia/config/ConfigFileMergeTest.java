@@ -335,4 +335,68 @@ class ConfigFileMergeTest {
         }
         return true;
     }
+
+    private static final String COMBAT_TEMPLATE = """
+        [combat]
+
+        # Weapon damage, the new comment.
+        legacy-weapon-damage = true
+        sword-base-damage = 4.0
+        """;
+
+    @Test
+    @DisplayName("a renamed key takes its new name in place, with its value and the new comment")
+    void renamesTheOrphanSwordKey() {
+        final String file = """
+            [combat]
+
+            # Sword damage. In 1.8 a sword's attack damage modifier was 4 plus its tier
+            # bonus; modern swords are built on a base of 3 with exactly the same tier
+            # bonuses (wood 0, stone 1, iron 2, diamond 3, gold 0). Every sword therefore
+            # hit for one point more, so a diamond sword's modifier is 7 rather than 6.
+            legacy-sword-damage = false
+            sword-base-damage = 4.0
+            """;
+
+        final ConfigFile.Merged merged = ConfigFile.merge(file, COMBAT_TEMPLATE);
+
+        assertEquals(COMBAT_TEMPLATE.replace("legacy-weapon-damage = true", "legacy-weapon-damage = false"),
+            merged.text(), "the operator's false survives the rename, under the new comment");
+        assertIterableEquals(List.of("combat.legacy-sword-damage -> combat.legacy-weapon-damage"), merged.renamed());
+        assertTrue(merged.added().isEmpty(), "the new key is the old line, not an addition");
+        assertEquals(merged.text(), ConfigFile.merge(merged.text(), COMBAT_TEMPLATE).text(),
+            "a second start changes nothing");
+    }
+
+    @Test
+    @DisplayName("a renamed key with a comment of the operator's own keeps that comment")
+    void renameKeepsAnOwnComment() {
+        final String file = "[combat]\r\n\r\n# Mine.\r\nlegacy-sword-damage = true\r\nsword-base-damage = 4.0\r\n";
+
+        final ConfigFile.Merged merged = ConfigFile.merge(file, COMBAT_TEMPLATE);
+
+        assertEquals("[combat]\r\n\r\n# Mine.\r\nlegacy-weapon-damage = true\r\nsword-base-damage = 4.0\r\n",
+            merged.text());
+    }
+
+    @Test
+    @DisplayName("the old key goes when the new one is already there")
+    void renameDropsTheOldKeyBesideTheNewOne() {
+        final String file = """
+            [combat]
+
+            # Weapon damage, the new comment.
+            legacy-weapon-damage = true
+            # Sword damage. In 1.8 a sword's attack damage modifier was 4 plus its tier
+            # bonus; modern swords are built on a base of 3 with exactly the same tier
+            # bonuses (wood 0, stone 1, iron 2, diamond 3, gold 0). Every sword therefore
+            # hit for one point more, so a diamond sword's modifier is 7 rather than 6.
+            legacy-sword-damage = false
+            sword-base-damage = 4.0
+            """;
+
+        final ConfigFile.Merged merged = ConfigFile.merge(file, COMBAT_TEMPLATE);
+
+        assertEquals(COMBAT_TEMPLATE, merged.text());
+    }
 }
