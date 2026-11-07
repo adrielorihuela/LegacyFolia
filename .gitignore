@@ -17,3 +17,8 @@ build
 /folia-checkstyle/build.gradle.kts
 
 .idea/
+
+# Claude Code
+*.bak
+.claude/worktrees/
+.claude/settings.local.json
