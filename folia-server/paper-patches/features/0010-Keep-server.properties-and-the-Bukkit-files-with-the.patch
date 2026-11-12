@@ -20,22 +20,19 @@ the same, in a different place.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index eb0ac87536692ea1215bdbb4646cfa6589e6fb10..3f5ede20bce2a0cd90100c5088d388165de1a098 100644
+index eb0ac87536692ea1215bdbb4646cfa6589e6fb10..9b41f46b65fb349e03b6b1d71d4eb5e5c18e909a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -35,7 +35,10 @@ public class Main {
+@@ -35,7 +35,7 @@ public class Main {
                  this.acceptsAll(asList("c", "config"), "Properties file to use")
                          .withRequiredArg()
                          .ofType(File.class)
 -                        .defaultsTo(new File("server.properties"))
-+                        // LegacyFolia - server.properties is configuration and lives with the rest
-+                        // of it. An existing one in the root is moved on the first start rather than
-+                        // left behind, and --config still overrides this outright.
-+                        .defaultsTo(io.github.adrielorihuela.legacyfolia.config.ConfigPaths.resolve("server.properties"))
++                        .defaultsTo(new File("server.properties")) // LegacyFolia - server.properties stays in the server root, next to the jar
                          .describedAs("Properties file");
  
                  this.acceptsAll(asList("P", "plugins"), "Plugin directory to use")
-@@ -87,13 +90,13 @@ public class Main {
+@@ -87,13 +87,13 @@ public class Main {
                  this.acceptsAll(asList("b", "bukkit-settings"), "File for bukkit settings")
                          .withRequiredArg()
                          .ofType(File.class)
@@ -51,7 +48,7 @@ index eb0ac87536692ea1215bdbb4646cfa6589e6fb10..3f5ede20bce2a0cd90100c5088d38816
                          .describedAs("Yml file");
  
                  this.accepts("forceUpgrade", "Whether to force a world upgrade");
-@@ -117,7 +120,7 @@ public class Main {
+@@ -117,7 +117,7 @@ public class Main {
                  this.acceptsAll(asList("S", "spigot-settings"), "File for spigot settings")
                          .withRequiredArg()
                          .ofType(File.class)

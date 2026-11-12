@@ -79,6 +79,7 @@ public final class ConfigHooks {
     public static void start(final Path serverRoot, final @Nullable Path worldContainer) throws IOException {
         final boolean existed = Files.exists(ConfigFile.DIRECTORY.resolve(ServerConfig.SERVER));
         final boolean imported = LegacyImport.runIfNeeded(serverRoot, worldContainer).isPresent();
+        LegacyImport.adoptOwnProperties(serverRoot);
         firstStart = !existed && !imported;
         ServerConfig.load();
         log(ServerProperties.reconcile());
@@ -138,7 +139,7 @@ public final class ConfigHooks {
     public static void log(final ServerProperties.Report report) {
         final ServerProperties.Status status = ServerProperties.status();
         if (report.enabled()) {
-            LOGGER.info("server.properties mode is on: config/{} {} {} setting(s) that differ from the defaults{}.",
+            LOGGER.info("server.properties mode is on: {} {} {} setting(s) that differ from the defaults{}.",
                 ServerProperties.FILE_NAME, report.created() ? "was created and holds" : "holds", status.overrides(),
                 status.byFile().isEmpty() ? "" : " " + status.byFile());
         } else {
@@ -171,7 +172,8 @@ public final class ConfigHooks {
 
     /**
      * What {@code DedicatedServerProperties} is built from, in place of reading server.properties.
-     * The RCON password comes from its secret file, generated there on first use.
+     * The RCON password comes from its secret file, generated there on first use, and the
+     * management keystore's password from {@code config/management-keystore.secret} when that exists.
      */
     public static Properties serverProperties() {
         return ServerPropertiesBridge.build(SOURCE, RconSecret.resolve(ServerPropertiesBridge.rconPasswordFile(SOURCE)),
@@ -325,7 +327,7 @@ public final class ConfigHooks {
             if (legacyBukkit != null && legacyBukkit.isFile()) {
                 return YamlConfiguration.loadConfiguration(legacyBukkit).getString("settings.update-folder", fallback);
             }
-            final Path properties = ConfigFile.DIRECTORY.resolve(ServerProperties.FILE_NAME);
+            final Path properties = Path.of(ServerProperties.FILE_NAME);
             if (Files.isRegularFile(properties)) {
                 final Properties loaded = new Properties();
                 try (InputStream in = Files.newInputStream(properties)) {

@@ -130,6 +130,41 @@ public final class LegacyImport {
         return run(serverRoot, worldContainer, LocalDateTime.now(), Checkpoint.NONE);
     }
 
+    /**
+     * Moves this fork's own {@code config/server.properties} to the server root.
+     *
+     * <p>Releases up to 1.0.0-rc.1 kept the mode's file in {@code config/}; it now lives
+     * beside the jar, where panels look for it. Only a file that is this fork's own is moved: a
+     * legacy one is the importer's. When the root already has one, both are left alone and the
+     * operator is told, because choosing between two files of settings is not this code's call.</p>
+     *
+     * @param serverRoot the directory that holds {@code config/}
+     * @return whether a file was moved
+     * @throws IOException if the file could not be read or moved
+     */
+    public static boolean adoptOwnProperties(final Path serverRoot) throws IOException {
+        final Path root = serverRoot.toAbsolutePath().normalize();
+        final Path inConfig = root.resolve(LegacyFiles.CONFIG).resolve(LegacyFile.Kind.SERVER_PROPERTIES.fileName());
+        if (!Files.isRegularFile(inConfig)) {
+            return false;
+        }
+        final boolean beside = Files.isRegularFile(inConfig.resolveSibling("bukkit.yml"))
+            || Files.isRegularFile(inConfig.resolveSibling("spigot.yml"));
+        if (LegacyFiles.isLegacyServerProperties(inConfig, beside)) {
+            return false;
+        }
+        final Path inRoot = root.resolve(LegacyFile.Kind.SERVER_PROPERTIES.fileName());
+        if (Files.exists(inRoot)) {
+            LOGGER.warn("Both {} and {} exist. server.properties lives in the server root now, so the one in "
+                + "config/ is ignored; delete it, or move over the lines you want to keep.", inRoot.getFileName(),
+                root.relativize(inConfig));
+            return false;
+        }
+        move(inConfig, inRoot);
+        LOGGER.info("Moved {} to the server root, where server.properties lives now.", root.relativize(inConfig));
+        return true;
+    }
+
     static Optional<Result> run(final Path serverRoot, final @Nullable Path worldContainer, final LocalDateTime now,
                                 final Checkpoint checkpoint) throws IOException {
         final Path root = serverRoot.toAbsolutePath().normalize();

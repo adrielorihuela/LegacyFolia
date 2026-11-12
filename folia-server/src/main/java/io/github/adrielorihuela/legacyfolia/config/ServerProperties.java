@@ -333,7 +333,7 @@ public final class ServerProperties {
 
     /** Where server.properties is, or would be. */
     public static Path file() {
-        return ServerConfig.directory().resolve(FILE_NAME);
+        return ServerConfig.root().resolve(FILE_NAME);
     }
 
     /**
@@ -509,7 +509,7 @@ public final class ServerProperties {
                 final boolean drop = plain == null || world == null && PropertyValues.same(entry, plain, entry.defaultValue());
                 final String text = plain == null ? "" : PropertyValues.render(entry, plain);
                 return submit(() -> {
-                    final Path file = directory.resolve(FILE_NAME);
+                    final Path file = ServerConfig.root().resolve(FILE_NAME);
                     final boolean exists = Files.exists(file);
                     final PropertiesDocument document = exists ? read(file) : PropertiesDocument.create(HEADER);
                     final boolean changed = drop ? document.remove(key)
@@ -585,7 +585,7 @@ public final class ServerProperties {
         final Builder report = new Builder();
         final SettingsCatalog catalog = SettingsCatalog.get();
         final Path directory = ServerConfig.directory();
-        final Path file = directory.resolve(FILE_NAME);
+        final Path file = ServerConfig.root().resolve(FILE_NAME);
 
         report.created = !Files.exists(file);
         final PropertiesDocument document = report.created ? PropertiesDocument.create(HEADER) : read(file);
@@ -632,7 +632,7 @@ public final class ServerProperties {
                 document.remove(line.key);
                 documentChanged = true;
                 report.removedDefaults.add(line.key);
-                LOGGER.info("config/{}: {} is the default; removed the line.", FILE_NAME, line.key);
+                LOGGER.info("{}: {} is the default; removed the line.", FILE_NAME, line.key);
             }
         }
 
@@ -645,7 +645,7 @@ public final class ServerProperties {
             ServerConfig.load(directory);
         }
         if (report.created) {
-            LOGGER.info("Created config/{}. It lists only what differs from the defaults.", FILE_NAME);
+            LOGGER.info("Created {}. It lists only what differs from the defaults.", FILE_NAME);
         }
 
         // Line numbers as the file now stands, for the warnings.
@@ -684,13 +684,13 @@ public final class ServerProperties {
             document.set(key, PropertyValues.render(entry, tomlValue), ServerProperties::groupOf,
                 ServerProperties::groupLabel);
             report.moved.add(key);
-            LOGGER.info("config/{}: moved {} = {} into config/{}, and set the TOML back to its default.",
+            LOGGER.info("config/{}: moved {} = {} into {}, and set the TOML back to its default.",
                 tomlFile, entry.tomlPath(), TomlLiterals.render(tomlValue), FILE_NAME);
             return true;
         }
         if (!existing.valid() || !PropertyValues.same(entry, existing.value, tomlValue)) {
             report.conflicts.add(key);
-            LOGGER.warn("{} is set in both config/{} ({}) and config/{} ({}). config/{} wins; config/{} goes "
+            LOGGER.warn("{} is set in both {} ({}) and config/{} ({}). {} wins; config/{} goes "
                     + "back to the default, and the value it had is the one in this message.",
                 key, FILE_NAME, existing.text, tomlFile, TomlLiterals.render(tomlValue), FILE_NAME, tomlFile);
         }
@@ -707,7 +707,7 @@ public final class ServerProperties {
      */
     private static Report reconcileOff(final Builder report, final Tomls tomls) throws IOException {
         final Path directory = ServerConfig.directory();
-        final Path file = directory.resolve(FILE_NAME);
+        final Path file = ServerConfig.root().resolve(FILE_NAME);
         PropertiesDocument leftover = null;
         if (Files.exists(file)) {
             final PropertiesDocument document = read(file);
@@ -743,14 +743,14 @@ public final class ServerProperties {
         // In this order: the TOML files, then whatever could not go into them, then the delete.
         tomls.write();
         if (leftover != null) {
-            final Path unused = unusedFile(directory);
+            final Path unused = unusedFile(ServerConfig.root());
             AtomicFiles.write(unused, leftover.render());
-            LOGGER.warn("config/{} had {} line(s) that could not be moved into the TOML files: {}. They are "
+            LOGGER.warn("{} had {} line(s) that could not be moved into the TOML files: {}. They are "
                 + "kept in {}.", FILE_NAME, report.unused.size(), String.join(", ", report.unused), unused.getFileName());
         }
         if (Files.exists(file)) {
             Files.delete(file);
-            LOGGER.info("Moved {} setting(s) from config/{} into the TOML files and deleted it.",
+            LOGGER.info("Moved {} setting(s) from {} into the TOML files and deleted it.",
                 report.transferred.size(), FILE_NAME);
         }
         ServerConfig.load(directory);
@@ -880,14 +880,14 @@ public final class ServerProperties {
     private static void warn(final Analysis analysis, final Builder report) {
         for (final Line line : analysis.global.values()) {
             if (!line.valid()) {
-                LOGGER.warn("config/{} line {}: {}={} is not valid ({}). Using the default, {}.", FILE_NAME, line.line,
+                LOGGER.warn("{} line {}: {}={} is not valid ({}). Using the default, {}.", FILE_NAME, line.line,
                     line.key, line.text, line.error, TomlLiterals.render(line.target.entry.defaultValue()));
             }
         }
         for (final Map<String, Line> world : analysis.worlds.values()) {
             for (final Line line : world.values()) {
                 if (!line.valid()) {
-                    LOGGER.warn("config/{} line {}: {}={} is not valid ({}). The world keeps the value every "
+                    LOGGER.warn("{} line {}: {}={} is not valid ({}). The world keeps the value every "
                         + "world uses.", FILE_NAME, line.line, line.key, line.text, line.error);
                 }
             }
@@ -896,7 +896,7 @@ public final class ServerProperties {
         for (final Map.Entry<String, Integer> unknown : analysis.unknown.entrySet()) {
             report.unknown.add(unknown.getKey());
             if (WARNED.add(unknown.getKey())) {
-                LOGGER.warn("config/{} line {}: {} is not a setting this server knows{}. The line is kept as it "
+                LOGGER.warn("{} line {}: {} is not a setting this server knows{}. The line is kept as it "
                     + "is and ignored.", FILE_NAME, unknown.getValue(), unknown.getKey(), hint(unknown.getKey()));
             }
         }

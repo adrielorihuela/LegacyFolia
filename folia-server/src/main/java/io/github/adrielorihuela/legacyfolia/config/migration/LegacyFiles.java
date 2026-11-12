@@ -17,15 +17,16 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Vanilla, Spigot, Paper and Folia between them keep their configuration in eight kinds of
  * file, and depending on the version and on this fork's own earlier releases each may be in the
- * server root or in {@code config/}: {@code ConfigPaths} has been moving {@code server.properties},
- * {@code bukkit.yml}, {@code spigot.yml}, {@code commands.yml} and {@code eula.txt} into
- * {@code config/} since v0.10, and Paper has kept its own two files there since 1.19. Both places
- * are looked at. When a file is in both, the one in {@code config/} is the one the server was
- * using, exactly as {@code ConfigPaths} decides; the other is a stray, backed up but not imported.</p>
+ * server root or in {@code config/}: {@code ConfigPaths} has been moving {@code bukkit.yml},
+ * {@code spigot.yml}, {@code commands.yml} and {@code eula.txt} into {@code config/} since v0.10, an
+ * earlier release of this fork did the same with {@code server.properties}, and Paper has kept its
+ * own two files there since 1.19. Both places are looked at. When a file is in both, the one in
+ * {@code config/} is the one the server was using, exactly as {@code ConfigPaths} decides; the
+ * other is a stray, backed up but not imported. {@code server.properties} is the exception: this
+ * fork keeps it in the server root, so the root copy wins.</p>
  *
- * <p>The whitelist, the ban lists and the operator list are not looked for. They are JSON the
- * server keeps reading after the hook-up, and {@code ConfigPaths} already moves them from the root
- * into {@code config/}; moving them into the backup as well would empty them.</p>
+ * <p>The whitelist, the ban lists and the operator list are not looked for here: {@code PlayerLists}
+ * imports their JSON files into {@code config/players.toml} and backs them up itself.</p>
  *
  * <h2>Which server.properties is legacy</h2>
  *
@@ -128,7 +129,9 @@ final class LegacyFiles {
         final Path propertiesInConfig = root.resolve(CONFIG).resolve(LegacyFile.Kind.SERVER_PROPERTIES.fileName());
         final Path propertiesInRoot = root.resolve(LegacyFile.Kind.SERVER_PROPERTIES.fileName());
         final List<LegacyFile> legacyProperties = new ArrayList<>(2);
-        for (final Path candidate : List.of(propertiesInConfig, propertiesInRoot)) {
+        // The root first: since this fork keeps server.properties there, it is the file a server
+        // that was running here was using. A copy in config/ is an older fork's, or a stray.
+        for (final Path candidate : List.of(propertiesInRoot, propertiesInConfig)) {
             if (!Files.isRegularFile(candidate)) {
                 continue;
             }
@@ -138,11 +141,11 @@ final class LegacyFiles {
             if (inBackup || isLegacyServerProperties(candidate, beside)) {
                 legacyProperties.add(new LegacyFile(LegacyFile.Kind.SERVER_PROPERTIES, candidate, relative, null));
             } else {
-                notes.add(relative + " is LegacyFolia's own (server.properties mode); left where it is");
+                notes.add(relative + " is LegacyFolia's own (server.properties mode); " + (candidate.equals(propertiesInConfig) ? "move it to the server root" : "left where it is"));
             }
         }
         if (!legacyProperties.isEmpty()) {
-            // The one in config/ wins, as it does in ConfigPaths.
+            // The one in the root wins: that is where the server reads it.
             toImport.add(legacyProperties.get(0));
             strays.addAll(legacyProperties.subList(1, legacyProperties.size()));
         }

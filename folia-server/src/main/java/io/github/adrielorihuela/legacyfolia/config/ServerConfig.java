@@ -192,6 +192,22 @@ public final class ServerConfig {
     }
 
     /**
+     * The server root: the directory that holds {@code config/}, and with it {@code server.properties}.
+     * A configuration directory with any other name is its own root, which is how the tests lay
+     * theirs out.
+     *
+     * @return the server root, empty (the working directory) on a real server
+     */
+    public static Path root() {
+        final Path configuration = directory;
+        if (configuration.getFileName() == null || !"config".equals(configuration.getFileName().toString())) {
+            return configuration;
+        }
+        final Path parent = configuration.getParent();
+        return parent == null ? Path.of("") : parent;
+    }
+
+    /**
      * One loaded file, for {@link ServerProperties}, which compares and rewrites them.
      *
      * @param fileName the file's name

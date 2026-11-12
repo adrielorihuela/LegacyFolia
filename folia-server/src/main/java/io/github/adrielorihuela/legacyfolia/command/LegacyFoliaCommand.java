@@ -120,7 +120,7 @@ public final class LegacyFoliaCommand {
     public static String describe(final ServerProperties.Report report, final ServerProperties.Status status) {
         final StringBuilder out = new StringBuilder();
         if (report.enabled()) {
-            out.append("<green>The server.properties mode is on.</green> <gray>config/").append(ServerProperties.FILE_NAME)
+            out.append("<green>The server.properties mode is on.</green> <gray>").append(ServerProperties.FILE_NAME)
                 .append(" holds ").append(status.overrides()).append(" setting(s) that differ from the defaults")
                 .append(byFile(status.byFile())).append(", and it wins over the TOML files.</gray>");
             list(out, "Moved there from the TOML files", report.moved());
