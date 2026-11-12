@@ -22,3 +22,9 @@ build
 *.bak
 .claude/worktrees/
 .claude/settings.local.json
+
+# Functional test bench
+testing/.cache/
+testing/results/
+testing/bots/.gradle/
+testing/bots/build/
