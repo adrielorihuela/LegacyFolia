@@ -1,0 +1,10 @@
+{
+  "name": "legacyfolia-bot18",
+  "version": "1.0.0",
+  "private": true,
+  "description": "1.8.8 client checks for LegacyFolia through ViaVersion, ViaBackwards and ViaRewind",
+  "type": "commonjs",
+  "engines": { "node": ">=24" },
+  "scripts": { "test": "node test.js" },
+  "dependencies": { "mineflayer": "4.37.1" }
+}
