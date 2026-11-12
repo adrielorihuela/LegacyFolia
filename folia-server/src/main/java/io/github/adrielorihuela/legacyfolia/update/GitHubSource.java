@@ -46,10 +46,24 @@ final class GitHubSource implements PluginSource {
 
     GitHubSource(final HttpClient httpClient, final @Nullable String token) {
         this.api = new JsonApi(httpClient);
-        final String fromEnvironment = System.getenv("GITHUB_TOKEN");
-        final String chosen = fromEnvironment != null && !fromEnvironment.isBlank()
-            ? fromEnvironment : token;
-        this.token = chosen == null || chosen.isBlank() ? null : chosen.trim();
+        this.token = effectiveToken(token, System.getenv(TOKEN_VARIABLE));
+    }
+
+    /** The environment variable that overrides the token file. */
+    static final String TOKEN_VARIABLE = "GITHUB_TOKEN";
+
+    /**
+     * The token that will be sent: the environment variable when it is set, otherwise the file's.
+     * One rule for the request and for the start-up notice about the rate limit, so the notice
+     * never claims there is no token when a request is going out with one.
+     *
+     * @param fromFile the token read from the token file, or {@code null}
+     * @param fromEnvironment the {@code GITHUB_TOKEN} variable, or {@code null}
+     * @return the trimmed token, or {@code null} when neither holds one
+     */
+    static @Nullable String effectiveToken(final @Nullable String fromFile, final @Nullable String fromEnvironment) {
+        final String chosen = fromEnvironment != null && !fromEnvironment.isBlank() ? fromEnvironment : fromFile;
+        return chosen == null || chosen.isBlank() ? null : chosen.trim();
     }
 
     @Override

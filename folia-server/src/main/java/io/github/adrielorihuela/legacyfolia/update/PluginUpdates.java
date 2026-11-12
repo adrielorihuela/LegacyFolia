@@ -59,12 +59,24 @@ public final class PluginUpdates {
         }
 
         final @Nullable String token = SecretFiles.read(tokenFile);
-        if (token == null && wanted.stream().anyMatch(one -> "github".equals(one.source()))) {
-            LOGGER.info("No GitHub token in {}. That is fine, but GitHub allows only sixty "
-                + "unauthenticated requests an hour per address.", SecretFiles.path(tokenFile));
+        if (noTokenNotice(wanted, token, System.getenv(GitHubSource.TOKEN_VARIABLE))) {
+            LOGGER.info("No GitHub token in {} or in the {} environment variable. That is fine, but "
+                + "GitHub allows only sixty unauthenticated requests an hour per address.",
+                SecretFiles.path(tokenFile), GitHubSource.TOKEN_VARIABLE);
         }
 
         new PluginUpdater(pluginDirectory, minecraftVersion, token).updateAll(wanted);
+    }
+
+    /**
+     * Whether to say that GitHub will be asked without a token: a GitHub plugin is listed and
+     * neither the token file nor {@code GITHUB_TOKEN} holds one, which are exactly the cases in
+     * which {@link GitHubSource} sends no {@code Authorization} header.
+     */
+    static boolean noTokenNotice(final List<PluginUpdater.Wanted> wanted, final @Nullable String fileToken,
+                                 final @Nullable String environmentToken) {
+        return GitHubSource.effectiveToken(fileToken, environmentToken) == null
+            && wanted.stream().anyMatch(one -> "github".equals(one.source()));
     }
 
     /** Everything the configuration asks for, flattened in the order the sources are listed. */
