@@ -18,7 +18,7 @@ made before /stop is not lost.
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index a01b8a111709dfddaace9a4b94e829a2ac513978..4df5619d00b0831201f5ccff93a3331847cd714c 100644
+index 0bb13e15a02549186639bfe4c80d932c8b3cae86..73f9698073dd5e1461607c1575bba395747b2e8d 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -538,6 +538,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface

@@ -108,7 +108,7 @@ index 933a9705f261a3071313658845287123009eaafb..724dd713f30ee3b9f80af0068befc1f7
                  }
                  // LegacyFolia end - ask at the console rather than stopping
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index a557ae45b2ee76eb0bcfe669f611a7f0a58d209c..a01b8a111709dfddaace9a4b94e829a2ac513978 100644
+index e39846f56bd8fa32c6f6a8e2aedfb4778f9ccfa0..0bb13e15a02549186639bfe4c80d932c8b3cae86 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -231,7 +231,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface

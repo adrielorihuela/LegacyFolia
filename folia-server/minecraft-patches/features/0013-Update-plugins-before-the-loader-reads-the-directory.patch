@@ -13,7 +13,7 @@ permissions, and a server that comes up without it comes up wide open.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 762822ce2ccf98952dc92be4824c48fe6bc1bacb..a557ae45b2ee76eb0bcfe669f611a7f0a58d209c 100644
+index 762822ce2ccf98952dc92be4824c48fe6bc1bacb..e39846f56bd8fa32c6f6a8e2aedfb4778f9ccfa0 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -293,6 +293,21 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -31,7 +31,7 @@ index 762822ce2ccf98952dc92be4824c48fe6bc1bacb..a557ae45b2ee76eb0bcfe669f611a7f0
 +            LOGGER.error("Could not update plugins: {}", e.getMessage());
 +            LOGGER.error("Starting without a plugin somebody listed on purpose is not safe -- it "
 +                + "may be the one granting permissions. Fix the entry, or set "
-+                + "plugins.auto-update.enabled to false in config/server.config.");
++                + "plugins.auto-update.enabled to false in config/plugins.toml.");
 +            return false;
 +        }
 +        // LegacyFolia end - update plugins before they are loaded
