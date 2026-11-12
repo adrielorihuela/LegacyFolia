@@ -258,9 +258,10 @@ allowed-origins = ""
 
 # Two settings deliberately absent from this file: the API's bearer token and
 # the keystore password. Secrets do not go in configuration, for the same
-# reason the Velocity secret does not - see secret-file above. Until they have
-# files of their own, set them with the management-server-secret and
-# management-server-tls-keystore-password properties.
+# reason the Velocity secret does not - see secret-file above. The keystore
+# password goes in config/management-keystore.secret, raw, with nothing else in
+# the file; without that file the keystore is read with an empty password. The
+# bearer token is generated anew on every start and is not configurable here.
 
 # ----------------------------------------------------------------------------
 #  Limits - what one connection may ask of the server

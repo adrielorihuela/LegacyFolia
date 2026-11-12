@@ -174,7 +174,8 @@ public final class ConfigHooks {
      * The RCON password comes from its secret file, generated there on first use.
      */
     public static Properties serverProperties() {
-        return ServerPropertiesBridge.build(SOURCE, RconSecret.resolve(ServerPropertiesBridge.rconPasswordFile(SOURCE)));
+        return ServerPropertiesBridge.build(SOURCE, RconSecret.resolve(ServerPropertiesBridge.rconPasswordFile(SOURCE)),
+            SecretFiles.read(SecretFiles.MANAGEMENT_KEYSTORE));
     }
 
     /** {@code bukkit.yml}, in memory. */

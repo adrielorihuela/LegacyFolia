@@ -38,7 +38,7 @@ public final class LegacyExclusions {
         exclude(LegacySource.SERVER_PROPERTIES, "management-server-secret",
             "a secret, generated anew by the server on every start; never imported (SETTINGS-MAP 8)");
         exclude(LegacySource.SERVER_PROPERTIES, "management-server-tls-keystore-password",
-            "a secret with no secret file yet; copy it by hand when the management server needs it (SETTINGS-MAP 8)");
+            "a secret, read from config/management-keystore.secret and never imported or written to server.properties (SETTINGS-MAP 8)");
         exclude(LegacySource.PAPER_WORLD, "chunks.prevent-moving-into-unloaded-chunks",
             "Folia forces it to true whatever the file says (SETTINGS-MAP 8)");
         exclude(LegacySource.BUKKIT, "settings.compatibility",

@@ -36,6 +36,8 @@ public final class ServerPropertiesBridge {
 
     private static final String RCON_PASSWORD = "rcon.password";
 
+    private static final String KEYSTORE_PASSWORD = "management-server-tls-keystore-password";
+
     private ServerPropertiesBridge() {
     }
 
@@ -48,6 +50,20 @@ public final class ServerPropertiesBridge {
      *     defaults, exactly as it does to a loaded file
      */
     public static Properties build(final EffectiveSettings source, final String rconPassword) {
+        return build(source, rconPassword, null);
+    }
+
+    /**
+     * Builds the properties, with the password of the management server's TLS keystore.
+     *
+     * @param source the settings
+     * @param rconPassword the RCON password, as {@code RconSecret.resolve} returned it
+     * @param keystorePassword the keystore's password from its secret file, or {@code null} for none, in
+     *     which case vanilla's default (empty) applies
+     * @return a new, mutable {@code Properties}
+     */
+    public static Properties build(final EffectiveSettings source, final String rconPassword,
+                                   final @org.jspecify.annotations.Nullable String keystorePassword) {
         Objects.requireNonNull(rconPassword, "rconPassword");
         final Properties properties = new Properties();
         for (final SettingEntry entry : SettingsCatalog.get().all()) {
@@ -62,6 +78,9 @@ public final class ServerPropertiesBridge {
             properties.setProperty(name, text);
         }
         properties.setProperty(RCON_PASSWORD, rconPassword);
+        if (keystorePassword != null) {
+            properties.setProperty(KEYSTORE_PASSWORD, keystorePassword);
+        }
         return properties;
     }
 

@@ -31,6 +31,12 @@ public final class SecretFiles {
     /** An optional GitHub token, used only to raise the plugin updater's rate limit. */
     public static final String GITHUB_TOKEN = "github.token";
 
+    /**
+     * The password of the management server's TLS keystore, for a keystore that has one. Never
+     * generated: it has to be the password the keystore was made with.
+     */
+    public static final String MANAGEMENT_KEYSTORE = "management-keystore.secret";
+
     private SecretFiles() {
     }
 

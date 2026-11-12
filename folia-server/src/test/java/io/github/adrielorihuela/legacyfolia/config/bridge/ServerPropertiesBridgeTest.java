@@ -137,6 +137,17 @@ class ServerPropertiesBridgeTest {
     }
 
     @Test
+    @DisplayName("the management keystore password reaches vanilla only when its secret file gave one")
+    void keystorePassword() {
+        final DedicatedServerProperties none = new DedicatedServerProperties(
+            ServerPropertiesBridge.build(TomlSettings.bundled(), "x"), null);
+        assertEquals("", none.managementServerTlsKeystorePassword);
+        final DedicatedServerProperties given = new DedicatedServerProperties(
+            ServerPropertiesBridge.build(TomlSettings.bundled(), "x", "changeit"), null);
+        assertEquals("changeit", given.managementServerTlsKeystorePassword);
+    }
+
+    @Test
     @DisplayName("a value the setting cannot take falls back to its default instead of reaching vanilla")
     void invalidValueFallsBack() {
         final Properties properties = ServerPropertiesBridge.build(TomlSettings.bundledWith("""
