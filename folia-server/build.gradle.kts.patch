@@ -8,6 +8,16 @@
 +    archivesName = "legacyfolia"
 +}
 +
++// The runnable jars are named after the project's own version, not after the Minecraft snapshot
++// string the build is versioned with: that one is what /version reports and stays as it is.
++val projectVersion = providers.gradleProperty("projectVersion").get().trim()
++tasks.createBundlerJar {
++    outputZip = layout.buildDirectory.file("libs/legacyfolia-bundler-$projectVersion.jar")
++}
++tasks.createPaperclipJar {
++    outputZip = layout.buildDirectory.file("libs/legacyfolia-paperclip-$projectVersion.jar")
++}
++
  dependencies {
      mache("io.papermc:mache:26.3+build.1")
      paperclip("io.papermc:paperclip:3.0.4")
