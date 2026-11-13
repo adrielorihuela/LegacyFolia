@@ -477,6 +477,12 @@ public final class LegacyCombat {
     public static final int SPAWN_INVULNERABLE_TICKS = 60;
 
     /**
+     * How far up its height primed TNT explodes in 1.8, from {@code EntityTNTPrimed.explode()}:
+     * {@code locY + length / 2}, half its height. The modern game explodes it at 0.0625 of it.
+     */
+    public static final double TNT_EXPLOSION_HEIGHT = 0.5;
+
+    /**
      * Whether 1.8's spawn invulnerability refuses a hit, from CraftBukkit 1.8.8's
      * {@code EntityPlayer.damageEntity}: while ticks are left, everything but the void, and a fall
      * only when the world has PvP off ({@code server.ae() && cr() && "fall"}, where a dedicated

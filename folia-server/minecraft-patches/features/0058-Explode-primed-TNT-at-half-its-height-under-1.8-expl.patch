@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Fri, 13 Nov 2026 15:36:45 -0500
+Subject: [PATCH] Explode primed TNT at half its height under 1.8 explosions
+
+
+diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
+index e810c03fdbd480eb2b7e1b904f9f761d524b3a99..c421d36650f140bcf0ab4ff14ea5335d6b12adba 100644
+--- a/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -161,7 +161,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+                     Explosion.getDefaultDamageSource(this.level(), this),
+                     this.usedPortal ? USED_PORTAL_DAMAGE_CALCULATOR : null,
+                     this.getX(),
+-                    this.getY(0.0625),
++                    this.getY(io.github.adrielorihuela.legacyfolia.combat.Combat.primedTntExplosionHeight()), // LegacyFolia - 1.8 exploded primed TNT at half its height, not at 0.0625
+                     this.getZ(),
+                     event.getRadius(), // CraftBukkit
+                     event.getFire(), // CraftBukkit

@@ -576,6 +576,19 @@ class LegacyCombatTest {
     }
 
     @Test
+    @DisplayName("primed TNT explodes at half its height, so TNT 6 blocks away and a block up does 9 as in 1.8")
+    void primedTntExplosionCentre() {
+        assertEquals(0.5, LegacyCombat.TNT_EXPLOSION_HEIGHT, 0.0);
+        // The victim's feet are 6 blocks across and 1 below the TNT's feet; the centre is 0.98 * 0.5 up.
+        final double dy = 1.0 + 0.98 * LegacyCombat.TNT_EXPLOSION_HEIGHT;
+        final double power = 1.0 - Math.sqrt(36.0 + dy * dy) / 8.0;
+        assertEquals(9.0F, LegacyCombat.explosionDamage(power, 8.0F), 0.0F);
+        // The modern centre (0.98 * 0.0625 up) would have given 10.
+        final double modern = 1.0 - Math.sqrt(36.0 + Math.pow(1.0 + 0.98 * 0.0625, 2)) / 8.0;
+        assertEquals(10.0F, LegacyCombat.explosionDamage(modern, 8.0F), 0.0F);
+    }
+
+    @Test
     @DisplayName("a splash lasts three quarters of the potion, rounded twice as 1.8 did")
     void splashDurations() {
         // The figures the 1.8.8 jar gives at full strength.

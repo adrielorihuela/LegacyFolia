@@ -447,6 +447,16 @@ public final class Combat {
     }
 
     /**
+     * How far up its height primed TNT explodes: half of it under 1.8's explosions
+     * ({@link LegacyCombat#TNT_EXPLOSION_HEIGHT}), 0.0625 of it as the modern game does.
+     *
+     * @return the fraction of the TNT's height
+     */
+    public static double primedTntExplosionHeight() {
+        return legacyExplosions() ? LegacyCombat.TNT_EXPLOSION_HEIGHT : 0.0625;
+    }
+
+    /**
      * Whether an explosion's hit on an entity is one CraftBukkit 1.8.8 refused only because the
      * entity was still invulnerable from a stronger hit, in which case it pushed it anyway
      * ({@code forceExplosionKnockback}, SPIGOT-949). Asked before the hit is dealt.
