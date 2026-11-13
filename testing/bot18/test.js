@@ -171,6 +171,14 @@ async function waitHealthDrop(bot, since, ms) {
   return null;
 }
 
+// Knockback pushes the victim out of reach, so put it back next to the attacker, both facing each other.
+async function regroup(proc, attacker, victim) {
+  say(proc, `execute at ${attacker.username} run tp ${victim.username} ~ ~ ~1.2`);
+  await sleep(600);
+  await attacker.lookAt(victim.entity.position.offset(0, 1.6, 0), true);
+  await victim.lookAt(attacker.entity.position.offset(0, 1.6, 0), true);
+}
+
 async function healFull(proc, bot, name) {
   for (let i = 0; i < 20 && bot.health < 20; i++) {
     say(proc, `effect give ${name} minecraft:instant_health 1 5 true`);
@@ -182,6 +190,7 @@ async function healFull(proc, bot, name) {
 async function hitUntilDamage(proc, attacker, victim, victimName, tries = 15) {
   for (let i = 0; i < tries; i++) {
     await healFull(proc, victim, victimName);
+    await regroup(proc, attacker, victim);
     const since = Date.now();
     attacker.attack(attacker.players[victimName].entity);
     const r = await waitHealthDrop(victim, since, 1200);
@@ -228,7 +237,7 @@ async function main() {
         say(proc, `clear ${n}`);
         say(proc, `give ${n} minecraft:diamond_sword`);
       }
-      say(proc, `execute at ${A} run tp ${B} ~ ~ ~2`);
+      say(proc, `execute at ${A} run tp ${B} ~ ~ ~1.2`);
       await sleep(2500);
       const sword = (bot) => bot.inventory.items().find((i) => i.name === 'diamond_sword');
       notes.swordA = !!sword(a);
@@ -250,6 +259,7 @@ async function main() {
 
       // No attack cooldown: a second hit 600 ms later deals the full 8 again (1.8 has none).
       await healFull(proc, b, B);
+      await regroup(proc, a, b);
       const s1 = Date.now();
       a.attack(a.players[B].entity);
       const d1 = await waitHealthDrop(b, s1, 1200);
@@ -265,6 +275,7 @@ async function main() {
 
       // Sword blocking: B right-clicks with the sword facing A; damage becomes (1 + 8) / 2 = 4.5.
       await healFull(proc, b, B);
+      await regroup(proc, a, b);
       await b.lookAt(a.entity.position.offset(0, 1.6, 0), true);
       await a.lookAt(b.entity.position.offset(0, 1.6, 0), true);
       b.activateItem();

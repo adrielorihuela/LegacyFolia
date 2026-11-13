@@ -115,6 +115,33 @@ function startServer() {
   return { dir, proc };
 }
 
+// The client must be silent: the person running the test is at the computer. Every sound category is
+// set to 0 in the game folder before each launch, and OpenAL is pointed at a library that does not
+// exist (see NO_AUDIO_JVM) so that no audio device is opened at all.
+const NO_AUDIO_JVM = '-Dorg.lwjgl.openal.libname=legacyfolia-no-audio.dll';
+
+function muteClient() {
+  const dir = path.join(HMC_DIR, 'mc', 'fabric-26.3');
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, 'options.txt');
+  const wanted = { pauseOnLostFocus: 'false', onboardAccessibility: 'false', narrator: '0' };
+  for (const c of ['master', 'music', 'record', 'weather', 'block', 'hostile', 'neutral', 'player', 'ambient', 'voice', 'ui']) {
+    wanted[`soundCategory_${c}`] = '0.0';
+  }
+  const lines = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(Boolean) : [];
+  const seen = new Set();
+  const out = lines.map((l) => {
+    const k = l.split(':')[0];
+    if (k in wanted) {
+      seen.add(k);
+      return `${k}:${wanted[k]}`;
+    }
+    return l;
+  });
+  for (const k of Object.keys(wanted)) if (!seen.has(k)) out.push(`${k}:${wanted[k]}`);
+  fs.writeFileSync(file, `${out.join('\n')}\n`);
+}
+
 async function main() {
   if (!args.jar || !fs.existsSync(JAR)) throw new Error('pass --jar <paperclip jar>');
   const hmcJar = await ensureHeadlessMc();
@@ -130,6 +157,7 @@ async function main() {
     notes.serverStarted = done.replace(/^\[[^\]]*\]\s*/, '');
 
     // HeadlessMC keeps its own config, game files and mods under <cache>/hmc, never in ~/.minecraft.
+    muteClient();
     const jvm = [
       `-Dhmc.files.location=${HMC_DIR}`,
       `-Dhmc.files.mc=${path.join(HMC_DIR, 'mc')}`,
@@ -140,6 +168,8 @@ async function main() {
       '--offline',
       '--headless',
       '--eula-accept',
+      '--jvm',
+      `${NO_AUDIO_JVM} ${args.jvm || ''}`.trim(),
       '--server',
       `127.0.0.1:${PORT}`,
       'fabric',
@@ -148,7 +178,7 @@ async function main() {
     client = spawn('java', jvm, { cwd: HMC_DIR, stdio: ['pipe', 'pipe', 'pipe'] });
     collect(client, clientLog, args.verbose ? '[client]' : '');
 
-    const joinedLine = await waitFor(serverLog, /joined the game/, Number(args.joinTimeout || 1500) * 1000);
+    const joinedLine = await waitFor(serverLog, /joined the game/, Number(args.joinTimeout || 300) * 1000);
     if (!joinedLine) {
       record('join', false, `the client never joined; last client lines: ${clientLog.slice(-5).join(' | ').slice(0, 400)}`);
     } else {
