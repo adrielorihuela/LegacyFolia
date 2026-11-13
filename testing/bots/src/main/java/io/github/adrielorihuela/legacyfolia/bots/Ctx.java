@@ -127,6 +127,21 @@ final class Ctx {
         return before - victim.health;
     }
 
+    /**
+     * Like {@link #hit}, but reads the lowest health seen in half a second. 26.3's saturation regeneration heals 1 every
+     * 10 ticks on a full stomach, which would otherwise eat a point of the damage before the reading.
+     */
+    double hitPeak(Bot attacker, Bot victim) throws InterruptedException {
+        float before = victim.health;
+        float low = before;
+        attacker.attack(victim.entityId);
+        for (int i = 0; i < 50; i++) {
+            Thread.sleep(10);
+            low = Math.min(low, victim.health);
+        }
+        return before - low;
+    }
+
     /** Console command output for a quick look at errors. */
     String run(String cmd) throws InterruptedException {
         return srv.cmdOut(cmd, 700);

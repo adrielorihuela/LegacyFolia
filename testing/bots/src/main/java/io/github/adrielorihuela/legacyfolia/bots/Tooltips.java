@@ -81,20 +81,33 @@ final class Tooltips {
             Thread.sleep(800);
             Boolean stored = x.srv.test("if items entity BotA container.1 minecraft:diamond_sword");
             need(Boolean.TRUE.equals(stored), "the sword sent back was not stored at all");
+            // /data does not exist on Folia, so the stored item is read with `execute if items`, whose component test compares
+            // values (it cannot tell a stored component from the item's default). That is enough to catch the failure that
+            // matters, the 1.8 figure written into the stored item: the control is the sword /give put in hotbar slot 0 (the server stores it as its default; only what is sent out is
+            // rewritten) and it must match the 26.3 default, and the stored one must match it too, not the 1.8 value.
             String dflt = "[{type:\"minecraft:attack_damage\",id:\"minecraft:base_attack_damage\",amount:6.0d,operation:\"add_value\",slot:\"mainhand\"},"
-                + "{type:\"minecraft:attack_speed\",id:\"minecraft:base_attack_speed\",amount:-2.4d,operation:\"add_value\",slot:\"mainhand\"}]";
-            Boolean isDefault = x.srv.test("if items entity BotA container.1 minecraft:diamond_sword[minecraft:attribute_modifiers=" + dflt + "]");
+                + "{type:\"minecraft:attack_speed\",id:\"minecraft:base_attack_speed\",amount:-2.4000000953674316d,operation:\"add_value\",slot:\"mainhand\"}]";
+            String test = "minecraft:diamond_sword[minecraft:attribute_modifiers=" + dflt + "]";
+            Boolean control = x.srv.test("if items entity BotA container.0 " + test);
+            need(Boolean.TRUE.equals(control), "bench error: a plain diamond sword does not match the 26.3 default modifiers written in the test");
+            Boolean isDefault = x.srv.test("if items entity BotA container.1 " + test);
             need(isDefault != null, "the server could not evaluate the component test");
             need(isDefault, "the stored sword's attribute modifiers are not 26.3's default (attack damage 6.0): the 1.8 figure was stored");
-            boolean resync = false;
+            // The server sends a creative slot back once, because it cannot tell a stack the client was shown from one the client
+            // built itself (docs/PVP-1.8.md, 'The creative-mode safeguard'). That is invisible when the stack is the same one,
+            // so what must hold is: at most one resend, carrying the same 1.8 figure the client already shows. A different
+            // figure, or a stream of resends, would be the flicker.
+            Double shownDamage = Ctx.attackDamage(shown);
+            java.util.List<Double> resent = new java.util.ArrayList<>();
             synchronized (a.slotEvents) {
                 for (Bot.SlotEv e : a.slotEvents) {
                     if (e.at() >= t && e.container() == 0 && e.slot() == 37) {
-                        resync = true;
+                        resent.add(Ctx.attackDamage(e.item()));
                     }
                 }
             }
-            need(!resync, "the server resent slot 37 after the creative client sent its stack (resync flicker)");
+            need(resent.size() <= 1, "the server resent slot 37 " + resent.size() + " times after the creative client sent its stack (resync flicker)");
+            need(resent.stream().allMatch(d -> d != null && d.equals(shownDamage)), "the server resent slot 37 with a different damage figure " + resent + " than the " + shownDamage + " the client had (visible flicker)");
             // A stack the client built itself (no components) is sent back once with the 1.8 figure.
             long t2 = Bot.now();
             a.creativeSlot(38, new ItemStack(shown.getId(), 1));
@@ -102,7 +115,7 @@ final class Tooltips {
             Double d = Ctx.attackDamage(x.slotSince(a, 38, t2));
             need(d != null && Math.abs(d - 7) < 0.001, "the bare creative sword came back with modifier " + d);
             x.srv.send("gamemode survival BotA");
-            return "stored item has no attribute_modifiers, no resync, bare creative sword returned with +7";
+            return "stored item has the 26.3 modifiers, not the 1.8 figure, at most one identical resend (documented), bare creative sword returned with +7";
         });
     }
 

@@ -157,7 +157,7 @@ final class Groups {
                 x.pair(a, b);
                 x.hold(a, "diamond_sword");
                 Thread.sleep(1500);
-                String full = Scn.near("fully charged diamond sword", x.hit(a, b), 7, 0.1);
+                                String full = Scn.near("fully charged diamond sword", x.hitPeak(a, b), 7, 0.1);
                 x.pair(a, b);
                 x.hold(a, "diamond_sword");
                 x.srv.send("clear BotB"); x.srv.send("give BotB minecraft:shield");
@@ -165,7 +165,7 @@ final class Groups {
                 b.use(Hand.MAIN_HAND);
                 Thread.sleep(700);
                 Thread.sleep(1500);
-                double shielded = x.hit(a, b);
+                double shielded = x.hitPeak(a, b);
                 need(shielded < 0.5, "a raised shield should block the hit in 26.3, the victim lost " + Scn.fmt(shielded));
                 return "tooltip untouched, immediate hit " + Scn.fmt(quick) + ", " + full + ", shield blocked (PVP-1.8.md 'LegacyFolia, Paper and Folia')";
             });
@@ -230,8 +230,8 @@ final class Groups {
             need(bad.isEmpty(), "unexpected in the root: " + bad + "; root is " + names);
             return "root is " + names;
         });
-        run("10b", "General: config/ holds the eight commented TOML files", () -> {
-            List<String> want = List.of("combat.toml", "gameplay.toml", "network.toml", "performance.toml", "plugins.toml", "server.toml", "world.toml", "worlds.toml");
+        run("10b", "General: config/ holds the nine commented TOML files", () -> {
+            List<String> want = List.of("combat.toml", "gameplay.toml", "network.toml", "performance.toml", "players.toml", "plugins.toml", "server.toml", "world.toml", "worlds.toml");
             List<String> toml = Ctx.names(d.resolve("config")).stream().filter(n -> n.endsWith(".toml")).toList();
             need(toml.equals(want), "TOML files are " + toml + ", expected " + want);
             for (String f : want) {
@@ -239,11 +239,16 @@ final class Groups {
                 for (int i = 0; i < ls.size(); i++) {
                     String l = ls.get(i);
                     if (l.matches("^[A-Za-z0-9_.\"-]+ *=.*")) {
-                        need(i > 0 && (ls.get(i - 1).startsWith("#") || ls.get(i - 1).matches("^[A-Za-z0-9_.\"-]+ *=.*")), f + " line " + (i + 1) + " has no comment above: " + l);
+                        int up = i - 1;
+                        while (up >= 0 && (ls.get(up).isEmpty() || ls.get(up).startsWith("["))) {
+                            up--;
+                        }
+                        String prev = up < 0 ? "" : ls.get(up);
+                        need(prev.startsWith("#") || prev.equals("]") || prev.matches("^[A-Za-z0-9_.\"-]+ *=.*"), f + " line " + (i + 1) + " has no comment above: " + l);
                     }
                 }
             }
-            return "eight files; every setting has a comment above it (or follows a commented one)";
+            return "nine files; every setting is commented (own comment, the key above, or the comment above its [table])";
         });
 
         // start 2: own password, a motd and max-players edited, RCON moved to our port
@@ -307,18 +312,21 @@ final class Groups {
             return "regenerated and working";
         });
         final ServerProc serverRef = s;
-        run("5e", "server.properties mode: /whitelist, /defaultgamemode and /setidletimeout write to the file", () -> {
+        run("5e", "server.properties mode: /whitelist and /setidletimeout write to the file; /defaultgamemode, as in vanilla, does not", () -> {
             serverRef.send("whitelist on");
             serverRef.send("defaultgamemode creative");
             serverRef.send("setidletimeout 5");
             Thread.sleep(2500);
             String p = read(props);
             need(p.contains("white-list=true"), "white-list=true not written after /whitelist on");
-            need(p.contains("gamemode=creative"), "gamemode=creative not written after /defaultgamemode creative");
+            // Vanilla's /defaultgamemode only sets the level's game type (MinecraftServer.setDefaultGameType); the dedicated
+            // server's setGameMode, which would write server.properties, has no caller. So the line must stay out, as in vanilla.
+            need(!p.contains("gamemode=creative"), "gamemode=creative was written after /defaultgamemode creative, which vanilla does not do");
+            need(serverRef.cmdOut("defaultgamemode creative", 800).toLowerCase().contains("default game mode"), "/defaultgamemode creative did not answer with the new default game mode");
             need(p.contains("player-idle-timeout=5"), "player-idle-timeout=5 not written after /setidletimeout 5");
             serverRef.send("whitelist off");
             Thread.sleep(800);
-            return "the three lines appeared without a restart (/difficulty not checked)";
+            return "the two lines appeared without a restart, gamemode stayed out as in vanilla (/difficulty not checked)";
         });
         run("5f", "server.properties mode: 'legacyfolia properties off' moves settings to TOML and deletes the file", () -> {
             serverRef.send("legacyfolia properties status");
@@ -429,8 +437,8 @@ final class Groups {
             need(nBack && eBack, "after turning them back on the Nether=" + nBack + " End=" + eBack + " are not loaded");
             return "folders kept, both dimensions load again";
         });
-        notRun("7h", "Dimensions: disable-nether-roof refuses blocks above y=127", "block placement packets from a bot over the Nether roof were not scripted");
-        notRun("7i", "Dimensions: spawn protection is 0 so a non-op can build at spawn", "needs a block-placing bot, not scripted; the setting default is checked by the TOML reading in 10b");
+        notRun("7h", "Dimensions: disable-nether-roof refuses blocks above y=127", "a bot's use-item-on packet (ServerboundUseItemOnPacket) gets no reaction at all from the server, not even a block-changed ack, so no placement can be driven; not diagnosed");
+        notRun("7i", "Dimensions: spawn protection is 0 so a non-op can build at spawn", "same: the bot's block placement packet gets no reaction from the server; the setting default is checked by the TOML reading in 10b");
     }
 
     // ---- lobby ----

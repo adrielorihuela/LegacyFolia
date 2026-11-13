@@ -200,13 +200,21 @@ final class Pvp {
             "the shooter's motion is client-owned; a packet bot cannot move at a controlled speed while shooting, so the effect is not observable");
 
         run("2i", "PvP: TNT damage follows 1.8", () -> {
-            x.pair(a, b);
-            x.tp(a, x.ox + 40, x.gy, x.oz + 40, 0, 0);
-            x.srv.send("summon tnt " + fmt(x.ox).replace(',', '.') + " " + fmt(x.gy + 1).replace(',', '.') + " " + fmt(x.oz + 6).replace(',', '.') + " {fuse:50,NoGravity:1b}");
-            Thread.sleep(4500);
-            double dmg = 20 - b.health;
-            need(Math.abs(dmg - 10) < 0.15, "TNT 6 blocks away and 1 up should do 10 (1.8 formula (int)((p^2+p)/2*8*8+1), p about 0.24, clear line), did " + fmt(dmg) + "; modern 26.3 would give about 9.3");
-            return "damage " + fmt(dmg) + " at 6 blocks (PVP-1.8.md 'Explosions'); push direction and Blast Protection not checked";
+            // Explosions scale with the difficulty in 1.8 and in 26.3 alike (easy: min(d / 2 + 1, d)), and the bench runs on easy.
+            x.srv.send("difficulty normal");
+            try {
+                x.pair(a, b);
+                x.tp(a, x.ox + 40, x.gy, x.oz + 40, 0, 0);
+                x.srv.send("summon tnt " + fmt(x.ox).replace(',', '.') + " " + fmt(x.gy + 1).replace(',', '.') + " " + fmt(x.oz + 6).replace(',', '.') + " {fuse:50,NoGravity:1b}");
+                Thread.sleep(4500);
+                double dmg = 20 - b.health;
+                // 1.8: the TNT explodes at locY + 0.49, so the feet are sqrt(6^2 + 1.49^2) = 6.18 away, p = 1 - 6.18 / 8 = 0.227 and (int)((p^2+p)/2*8*8+1) = 9;
+                // the modern centre (0.06 up) would give 10.
+                need(Math.abs(dmg - 9) < 0.15, "TNT 6 blocks away and 1 up should do 9 (1.8 formula (int)((p^2+p)/2*8*8+1), p = 0.227, clear line), did " + fmt(dmg) + "; the modern centre would give 10");
+                return "damage " + fmt(dmg) + " at 6 blocks on normal difficulty (PVP-1.8.md 'Explosions'); push direction and Blast Protection not checked";
+            } finally {
+                x.srv.send("difficulty easy");
+            }
         });
 
         run("2j", "PvP: Strength I, Weakness I and Instant Damage", () -> {
@@ -268,11 +276,15 @@ final class Pvp {
         run("2m", "PvP: three seconds of protection after joining, none after a respawn", () -> {
             x.pair(a, b);
             x.hold(a, "diamond_sword");
+            long joinedAt = System.nanoTime();
             Bot d = x.join("BotD");
             try {
                 x.tp(a, d.x, d.y, d.z + 2, 180, 0);
                 double early = x.hit(a, d);
                 need(Math.abs(early) < 0.01, "a hit within moments of joining did " + fmt(early));
+                // The three seconds belong to the player object and a respawn reuses it, so what is left of them
+                // would still protect the respawned player: let them run out before killing, to test the respawn alone.
+                Thread.sleep(Math.max(0, 3600 - (System.nanoTime() - joinedAt) / 1_000_000));
                 long pp = d.positionPackets;
                 x.srv.send("kill BotD");
                 d.waitFor(p -> p.dead, 3000);

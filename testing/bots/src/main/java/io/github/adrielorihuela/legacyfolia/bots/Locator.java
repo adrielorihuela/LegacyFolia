@@ -1,5 +1,6 @@
 package io.github.adrielorihuela.legacyfolia.bots;
 
+import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 import static io.github.adrielorihuela.legacyfolia.bots.Scn.Fail;
 import static io.github.adrielorihuela.legacyfolia.bots.Scn.need;
 import static io.github.adrielorihuela.legacyfolia.bots.Scn.run;
@@ -121,8 +122,19 @@ final class Locator {
         });
 
         run("1f", "Locator: pumpkin and Invisibility hide B", () -> {
-            x.equip(b, "carved_pumpkin");
-            String put = "(equipped by right-click)";
+            // Put on the way a creative client does (/item does not exist on Folia, and a packet bot's right-click does not equip):
+            // what is tested is the bar, not equipping.
+            ItemStack pumpkin = x.give(b, "carved_pumpkin");
+            need(pumpkin != null, "bench error: the pumpkin was never sent to B");
+            x.srv.send("gamemode creative BotB");
+            Thread.sleep(500);
+            b.creativeSlot(5, pumpkin);
+            Thread.sleep(500);
+            x.srv.send("gamemode survival BotB");
+            Thread.sleep(300);
+            Boolean worn = x.srv.test("if items entity BotB armor.head minecraft:carved_pumpkin");
+            need(Boolean.TRUE.equals(worn), "bench error: the pumpkin is not on B's head");
+            String put = "worn";
             need(hidden(a, b, 6000), "B stayed visible with a carved pumpkin on; server said: " + put.trim());
             x.srv.send("clear BotB");
             need(visible(a, b, 5000), "B did not return after the pumpkin came off");

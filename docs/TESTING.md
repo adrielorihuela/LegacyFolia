@@ -91,7 +91,7 @@ tick later, and several moves in one tick arrive as one update. Nobody should be
 
 Enabled by default (`[combat] enabled = true` in `config/combat.toml`). Every rule is described in
 [PVP-1.8.md](PVP-1.8.md). To read damage exactly, look at the victim's health before and after a
-hit: `/data get entity <victim> Health` (20 is full, 1 is half a heart). Test with no armour, no
+hit (20 is full, 1 is half a heart; Folia has no `/data`, `/item`, `/loot` or `/team`, so read health from the client's bar; the bot bench reads the health packets). Mind the regeneration: under 26.3 combat a player on a full stomach heals 1 every half second, which eats a point of what you read; under 1.8 combat it does not. Test with no armour, no
 enchantments and no effects unless the item says otherwise, in survival, on a world with PvP on.
 
 Two 26.3 clients first, then repeat 2a, 2b, 2c and 2e with a 1.8.9 client through ViaVersion.
@@ -106,11 +106,11 @@ Two 26.3 clients first, then repeat 2a, 2b, 2c and 2e with a 1.8.9 client throug
 | 2f | Try to raise a shield, put anything in the off-hand (swap key, drag, shift-click), and hold a Totem of Undying while dying. | The shield does nothing, the off-hand stays empty, the totem saves nobody. |
 | 2g | Throw a snowball or egg at a player, and hook them with a fishing rod. | They flash red and are knocked back away from the thrower or angler, for 0 damage. Reeling in never pulls a hooked player. |
 | 2h | Throw ender pearls one after another; shoot arrows. | No pearl cooldown (a modern client may draw one for a moment). Arrows do not take on the shooter's motion. |
-| 2i | Stand near primed TNT and a creeper explosion. | Damage and push follow 1.8; Blast Protection does not reduce the push. Record how it compares with 1.8. |
+| 2i | Stand near primed TNT and a creeper explosion. | Damage and push follow 1.8; Blast Protection does not reduce the push. Primed TNT explodes at half its height, as in 1.8: at 6 blocks and a block up, on normal difficulty, it does 9 (easy: `min(d / 2 + 1, d)`, hard: 1.5 times). Record how it compares with 1.8. |
 | 2j | Splash Instant Damage and Instant Health; drink Strength I and hit with a diamond sword. | Strength I diamond sword: 18.4. Splash strength falls off over 4 blocks from where the potion broke. |
 | 2k | Eat an enchanted golden apple; craft one from 8 gold blocks around an apple. | Absorption I 2:00, Regeneration V 0:30, Resistance and Fire Resistance 5:00. The recipe works. |
 | 2l | Drop from the top of a slab whose top is 3.5 blocks above the ground. | 1 damage: fall damage rounds up, as in 1.8. |
-| 2m | B joins the server and A hits B within 3 seconds; then B dies, respawns and A hits at once. | No damage for 3 seconds after joining. After a respawn the hit lands at once, as on Spigot 1.8.8. |
+| 2m | B joins the server and A hits B within 3 seconds; then B dies, respawns and A hits at once. | No damage for 3 seconds after joining. After a respawn the hit lands at once, as on Spigot 1.8.8 (what is left of the three seconds from joining still protects, as the player object is the same: kill B only after 3 seconds). |
 | 2n | Repeat 2a with `enabled = false` in `combat.toml` and a restart. | Pure 26.3 combat: cooldown indicator, sweeping, modern damage, shields work. |
 
 Not identical to 1.8 by design (listed in [PVP-1.8.md](PVP-1.8.md)): the sneaking hitbox, beds and
@@ -125,7 +125,7 @@ the 1.8 figure; the item stored on the server keeps its modern components.
 |---|---|---|
 | 3a | 26.3 client: hover a diamond sword, a diamond axe, an iron pickaxe and a wooden shovel. | 8, 7, 5 and 2 Attack Damage (26.3 would show 7, 9, 4 and 2.5). |
 | 3b | Same items held by another player, in a chest, in an item frame, in a villager trade and dropped on the ground. | The same figures everywhere. |
-| 3c | Creative mode: take a diamond sword from the creative menu, move it around, put it in a chest. Then `/data get entity @s Inventory`. | Tooltip shows 8. The stored item has no `attribute_modifiers` component added. No item flickers or resyncs. |
+| 3c | Creative mode: take a diamond sword from the creative menu, move it around, put it in a chest. Check what is stored (Folia has no `/data`; the bot bench compares the stored item's modifiers with 26.3's default using `execute if items`). | Tooltip shows 8. The stored item has no `attribute_modifiers` component added. No item flickers: the server sends the creative slot back once, with the same 1.8 figure the client already shows, because it cannot tell a stack the client was shown from one it built itself ([PVP-1.8.md](PVP-1.8.md), the creative-mode safeguard). |
 | 3d | 1.8.9 client through ViaVersion: hover a diamond sword. | The figure a 1.8 server shows for it: the modifier, +7, without the player's own 1. Record exactly what is shown. |
 | 3e | Set `legacy-weapon-damage = false` in `combat.toml` and run `/paper reload` (or restart). | The open inventory refreshes and the tooltips show 26.3's figures. |
 
@@ -157,7 +157,7 @@ and wins over the TOML files. Details: [CONFIGURATION.md](CONFIGURATION.md).
 | 5b | Stop, add `motd=Test` and `gameplay.hunger.jump-walk-exhaustion=0.1` to it, start. | The server list shows "Test"; jumping costs the new figure. The TOML files still show the defaults. |
 | 5c | Stop, change `max-players` in `config/server.toml` to 5, start. | The change is moved into `server.properties` as `max-players=5`, and `server.toml` goes back to the default. |
 | 5d | Stop, delete the `motd` line, start. | The MOTD is back to the default. |
-| 5e | In game: `/whitelist on`, `/defaultgamemode creative`, `/setidletimeout 5`. | `white-list=true`, `gamemode=creative` and `player-idle-timeout=5` appear in `server.properties` without a restart. `/difficulty` changes the world's difficulty only, as in vanilla and Paper. |
+| 5e | In game: `/whitelist on`, `/defaultgamemode creative`, `/setidletimeout 5`. | `white-list=true` and `player-idle-timeout=5` appear in `server.properties` without a restart. `/defaultgamemode` does not write `gamemode`: in vanilla it only sets the level's game type (the dedicated server's `setGameMode`, which would write the file, has no caller). `/difficulty` changes the world's difficulty only, as in vanilla and Paper. |
 | 5f | Console: `legacyfolia properties status`, then `legacyfolia properties off`. | `off` moves every setting into the TOML files and deletes `server.properties`; lines that are not settings are kept in `config/server.properties.unused`. |
 | 5g | `/whitelist off` with the mode off, then `legacyfolia properties on`. | The change is written to `server.toml`; `on` moves every non-default back into a new `server.properties`. |
 | 5h | Look through `server.properties` at every step. | Never an `eula` line, and never a password, secret or token. |

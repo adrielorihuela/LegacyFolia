@@ -264,7 +264,7 @@ the default. It is compared with the configured bases whether or not the setting
 sent just before the setting was turned off is still recognised. A weapon taken from the creative
 menu, which the client builds itself, is sent back to it once with the 1.8 figure. Container clicks
 compare the client's item hashes (`HashedStack`) with what it was sent, so the rewrite does not cause
-resyncs.
+resyncs. A creative slot is the exception: the server sends it back once, with the same figure, because after the strip it cannot tell a stack the client was shown from one it built itself (invisible, and the bot bench pins it at one identical resend).
 
 Not rewritten: recipe-book ingredients shown by item type (the client builds those itself), items
 named in a villager's price, and items in chat hover text. A 1.8 client through ViaVersion receives
