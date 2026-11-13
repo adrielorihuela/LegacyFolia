@@ -98,7 +98,7 @@ server.data-packs.initial-disabled-packs	STRING_LIST	false	SERVER_PROPERTIES	ini
 server.data-packs.text-filtering-config	STRING	false	SERVER_PROPERTIES	text-filtering-config	-	text-filtering-config	false	false	-	""	-
 server.data-packs.text-filtering-version	INT	false	SERVER_PROPERTIES	text-filtering-version	-	text-filtering-version	false	false	-	0	-
 dimensions.overworld	BOOLEAN	false	NONE	-	-	-	false	false	-	true	cannot be false; refused at start-up
-dimensions.nether	BOOLEAN	false	PAPER_GLOBAL	misc.enable-nether	-	-	false	false	-	true	consumed by Dimensions; getAllowNether answers from it
+dimensions.nether	BOOLEAN	false	PAPER_GLOBAL	misc.enable-nether	SERVER_PROPERTIES:allow-nether	-	false	false	-	true	consumed by Dimensions; getAllowNether answers from it; allow-nether is the key vanilla and Spigot kept in server.properties before Paper moved it into misc.enable-nether
 dimensions.end	BOOLEAN	false	BUKKIT	settings.allow-end	-	-	false	false	-	true	consumed by Dimensions; getAllowEnd answers from it
 world.always-spawn-at-world-spawn	BOOLEAN	false	NONE	-	-	-	false	false	-	false	-
 world.lobby-spawn-world	ENUM	false	NONE	-	-	-	false	false	logout-world,main-world	"logout-world"	decision 3; only read while always-spawn-at-world-spawn is true

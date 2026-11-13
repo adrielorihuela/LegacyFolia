@@ -41,6 +41,19 @@ class LegacyImportCollisionsTest {
     }
 
     @Test
+    @DisplayName("3.1 dimensions: allow-nether in server.properties turns the Nether off, Paper's switch wins when both are there")
+    void allowNetherInServerProperties(@TempDir final Path vanilla, @TempDir final Path both) throws IOException {
+        write(vanilla, "server.properties", "allow-nether=false\n");
+        run(vanilla).orElseThrow();
+        assertEquals(false, toml(vanilla, "world.toml", "dimensions.nether"));
+
+        write(both, "server.properties", "allow-nether=false\n");
+        write(both, "config/paper-global.yml", "misc:\n  enable-nether: true\n");
+        run(both).orElseThrow();
+        assertEquals(true, toml(both, "world.toml", "dimensions.nether"));
+    }
+
+    @Test
     @DisplayName("3.2 BungeeCord: Spigot's switch and Paper's online mode, each to its own key")
     void bungeeCord(@TempDir final Path root) throws IOException {
         write(root, "spigot.yml", "settings:\n  bungeecord: true\n");
