@@ -481,9 +481,11 @@ final class Groups {
         ServerProc s = start(d, "--online-mode", "false");
         Click spawn = null;
         String why = null;
+        String opOut = "";
         try {
             Ctx x = new Ctx(s, port);
-            s.send("op BotOp");
+            // An empty ops list switches spawn protection off in vanilla, so the op must really be on it.
+            opOut = s.cmdOut("op BotOp", 1500);
             Bot a = x.join("BotA");
             s.send("gamemode survival BotA");
             Thread.sleep(800);
@@ -496,8 +498,10 @@ final class Groups {
         }
         Click sp = spawn;
         String err = why;
+        String opped = opOut;
         run("7i", "Dimensions: spawn protection is 0 so a non-op can build at spawn", () -> {
             need(err == null, "bench error: " + err);
+            need(opped.contains("Made BotOp a server operator"), "op BotOp did not put an op on the list, so spawn protection may be off for another reason: " + opped);
             need(sp.placed(), "a non-op could not place stone beside the world spawn: " + sp);
             return "non-op placed stone beside the spawn with an op on the list: " + sp;
         });
