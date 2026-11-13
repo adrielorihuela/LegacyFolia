@@ -165,7 +165,7 @@ final class Locator {
             String out = x.run("waypoint modify BotB color hex 0000FF");
             need(a.waitFor(p -> {
                 var w = p.waypointOf(b.uuid);
-                return w != null && w.wp().icon().color().isPresent() && w.wp().icon().color().get() == 0x0000FF;
+                return w != null && w.wp().icon().color().isPresent() && (w.wp().icon().color().get() & 0xFFFFFF) == 0x0000FF;
             }, 5000), "colour did not become 0000FF; server said: " + out.trim());
             return "waypoint modify -> 0x0000FF reached A in the waypoint packet";
         });

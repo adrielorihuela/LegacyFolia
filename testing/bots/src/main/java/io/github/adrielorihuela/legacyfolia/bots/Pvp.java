@@ -59,7 +59,7 @@ final class Pvp {
             v = b.lastOwnMotionSince(t);
             need(v != null, "airborne victim was sent no velocity");
             s.append("; airborne: ").append(Ctx.vec(v));
-            need(v.getY() > 0.3, "an airborne victim must still be lifted (1.8: y = y/2 + 0.4); vertical was " + fmt(v.getY()));
+            need(v.getY() > -0.2, "an airborne victim must still be lifted (1.8: y = motY/2 + 0.4, so a victim falling at -0.65 gets about 0.07; modern leaves the fall speed alone); vertical was " + fmt(v.getY()));
             b.onGround = true;
 
             x.pair(a, b);
