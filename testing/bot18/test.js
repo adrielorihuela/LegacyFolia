@@ -257,21 +257,30 @@ async function main() {
         first ? `diamond sword dealt ${first.drop} (expected 8)` : 'no damage received',
       );
 
-      // No attack cooldown: a second hit 600 ms later deals the full 8 again (1.8 has none).
+      // No attack cooldown. A diamond axe is used because its 26.3 cooldown is a full second: a hit at ~550 ms would
+      // be scaled down to roughly 3 if the cooldown leaked into 1.8 combat, while 1.8 deals its flat 7 every time
+      // (a sword's 0.625 s cooldown is already over at 600 ms, so a sword could not show the difference).
+      say(proc, `give ${A} minecraft:diamond_axe`);
+      await sleep(600);
+      const axe = a.inventory.items().find((i) => i.name === 'diamond_axe');
+      if (axe) await a.equip(axe, 'hand');
+      await sleep(500);
       await healFull(proc, b, B);
       await regroup(proc, a, b);
       const s1 = Date.now();
       a.attack(a.players[B].entity);
       const d1 = await waitHealthDrop(b, s1, 1200);
-      await sleep(Math.max(0, 600 - (Date.now() - s1)));
+      await sleep(Math.max(0, 550 - (Date.now() - s1)));
       const s2 = Date.now();
       a.attack(a.players[B].entity);
       const d2 = await waitHealthDrop(b, s2, 1200);
       record(
         'no_attack_cooldown',
-        !!d1 && !!d2 && Math.abs(d2.drop - 8) < 0.01,
-        `hits ${d1 ? d1.drop : 'none'} then ${d2 ? d2.drop : 'none'} at 600 ms (expected 8 and 8)`,
+        !!d1 && !!d2 && Math.abs(d1.drop - 7) < 0.01 && Math.abs(d2.drop - 7) < 0.01,
+        `diamond axe hits ${d1 ? d1.drop : 'none'} then ${d2 ? d2.drop : 'none'} at ~550 ms (expected 7 and 7; a leaked 26.3 cooldown gives about 3 on the second)`,
       );
+      if (sword(a)) await a.equip(sword(a), 'hand');
+      await sleep(300);
 
       // Sword blocking: B right-clicks with the sword facing A; damage becomes (1 + 8) / 2 = 4.5.
       await healFull(proc, b, B);
@@ -298,8 +307,8 @@ async function main() {
       const held = sword(b);
       const nbt = held ? nbtSimplify(held.nbt) : null;
       notes.swordNbt = nbt;
-      // A 1.8 client draws "+N Attack Damage" as the attackDamage modifier plus 1 of the fist, so the
-      // modifier must be 7 for the diamond sword to read +8 (the 1.8 figure, not 26.3's 7).
+      // A 1.8 client draws "+N Attack Damage" straight from the attackDamage modifier, so the diamond sword's
+      // modifier must be 7 for the tooltip to read +7, the 1.8 figure (hits land for 8: 7 plus 1 of the fist).
       const mods = (nbt && Array.isArray(nbt.AttributeModifiers) ? nbt.AttributeModifiers : []).filter(
         (m) => m.AttributeName === 'generic.attackDamage',
       );
@@ -310,7 +319,7 @@ async function main() {
         amount === 7,
         amount === null
           ? 'no attackDamage modifier in the item NBT the 1.8 client receives'
-          : `attackDamage modifier ${amount} on the 1.8 client, tooltip reads +${amount + 1} (expected +8)`,
+          : `attackDamage modifier ${amount} on the 1.8 client; a 1.8 client draws it as +${amount} (it adds nothing for the fist), expected +7`,
       );
     }
   } catch (e) {

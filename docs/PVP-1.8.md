@@ -88,6 +88,7 @@ The combat patches in `folia-server/minecraft-patches/features/`:
 | 0054 | Falls, hay bales, Fire Protection, fire, Thorns, the iron golem |
 | 0055, 0057 | Three seconds of spawn invulnerability, armed only on joining |
 | 0056 | Primed TNT pushed from its feet |
+| 0058 | Primed TNT explodes at half its height |
 
 0018, 0019, 0028–0034 and 0037 in the same range are not combat (configuration files, the lobby,
 the Nether roof, the locator bar).
@@ -422,7 +423,7 @@ are stopped by tall grass, flowers, torches and signs as well as solid blocks, a
 `World.rayTrace` was. The push lands only on what the explosion hurt, and always on primed TNT and
 falling blocks, and on an entity still invulnerable from a stronger hit (Spigot's SPIGOT-949); it is
 not reduced by Blast Protection, and a creative player is never sent it (the server's copy still
-moves, as in 1.8). Primed TNT is pushed from its feet. An explosion something living set off (a
+moves, as in 1.8). Primed TNT is pushed from its feet, and explodes at half its height, as 1.8 did, not 0.0625 of the way up (patch 0058). An explosion something living set off (a
 creeper, whoever lit the TNT; not a ghast's fireball, a wither skull or an end crystal, which had no
 cause in 1.8) also knocks back away from it, under `legacy-knockback`. Paper's
 `gameplay.environment.disable-explosion-knockback` still applies.

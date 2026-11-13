@@ -59,7 +59,7 @@ final class Pvp {
             v = b.lastOwnMotionSince(t);
             need(v != null, "airborne victim was sent no velocity");
             s.append("; airborne: ").append(Ctx.vec(v));
-            need(v.getY() > -0.2, "an airborne victim must still be lifted (1.8: y = motY/2 + 0.4, so a victim falling at -0.65 gets about 0.07; modern leaves the fall speed alone); vertical was " + fmt(v.getY()));
+            need(v.getY() > 0, "an airborne victim must still be lifted (1.8: y = motY/2 + 0.4, so a victim falling at -0.65 gets about 0.07; modern leaves the fall speed alone); vertical was " + fmt(v.getY()));
             b.onGround = true;
 
             x.pair(a, b);
@@ -285,6 +285,8 @@ final class Pvp {
                 // The three seconds belong to the player object and a respawn reuses it, so what is left of them
                 // would still protect the respawned player: let them run out before killing, to test the respawn alone.
                 Thread.sleep(Math.max(0, 3600 - (System.nanoTime() - joinedAt) / 1_000_000));
+                // Control: the protection is really over, so the hit after the respawn tests the respawn and nothing else.
+                String control = near("control hit once the three seconds ran out", x.hit(a, d), 8, 0.01);
                 long pp = d.positionPackets;
                 x.srv.send("kill BotD");
                 d.waitFor(p -> p.dead, 3000);
@@ -293,7 +295,7 @@ final class Pvp {
                 x.tp(a, d.x, d.y, d.z + 2, 180, 0);
                 double after = x.hit(a, d);
                 String s = near("hit right after a respawn", after, 8, 0.01);
-                return "hit while new: " + fmt(early) + ", " + s + " (PVP-1.8.md 'Falls, fire and spawning')";
+                return "hit while new: " + fmt(early) + ", " + control + ", " + s + " (PVP-1.8.md 'Falls, fire and spawning')";
             } finally {
                 d.disconnect();
             }
