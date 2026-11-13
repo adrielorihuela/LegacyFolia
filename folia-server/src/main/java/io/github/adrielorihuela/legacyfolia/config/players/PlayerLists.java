@@ -217,10 +217,32 @@ public final class PlayerLists {
      * @throws IOException if {@code players.toml} could not be written or a file could not be moved
      */
     public static int importLegacy(final Path serverRoot) throws IOException {
-        return importLegacy(serverRoot, LocalDateTime.now());
+        return importLegacy(serverRoot, LocalDateTime.now(), null);
+    }
+
+    /**
+     * Imports the four JSON files, moving the originals into a backup folder that is already there.
+     *
+     * <p>When the same start has just imported an older server's other files, the originals of
+     * these go beside them, so that one folder holds everything that was replaced.</p>
+     *
+     * @param serverRoot the directory that holds {@code config/}
+     * @param backup the folder the import of the other files made, or {@code null} to make one
+     *     under {@code config/legacy-backup/}
+     * @return how many files were imported
+     * @throws IOException if {@code players.toml} could not be written or a file could not be moved
+     */
+    public static int importLegacy(final Path serverRoot, final @Nullable Path backup)
+            throws IOException {
+        return importLegacy(serverRoot, LocalDateTime.now(), backup);
     }
 
     static int importLegacy(final Path serverRoot, final LocalDateTime now) throws IOException {
+        return importLegacy(serverRoot, now, null);
+    }
+
+    static int importLegacy(final Path serverRoot, final LocalDateTime now,
+                            final @Nullable Path shared) throws IOException {
         final Path root = serverRoot.toAbsolutePath().normalize();
         final Path config = root.resolve("config");
         final Map<String, List<Path>> found = new LinkedHashMap<>();
@@ -281,7 +303,7 @@ public final class PlayerLists {
             if (done.isEmpty()) {
                 return 0;
             }
-            final Path backup = backupFolder(config.resolve("legacy-backup"), now);
+            final Path backup = shared != null ? Files.createDirectories(shared.toAbsolutePath().normalize()) : backupFolder(config.resolve("legacy-backup"), now);
             for (final List<Path> files : done.values()) {
                 for (final Path file : files) {
                     final Path destination = free(backup.resolve(root.relativize(file).toString()));

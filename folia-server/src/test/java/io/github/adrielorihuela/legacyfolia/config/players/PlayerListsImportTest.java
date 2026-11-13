@@ -60,6 +60,21 @@ class PlayerListsImportTest {
     }
 
     @Test
+    @DisplayName("given the folder the import of the other files made, the originals go there and no second folder appears")
+    void usesTheSharedBackup(@TempDir final Path root) throws IOException {
+        write(root, "whitelist.json", "[{\"uuid\":\"w-1\",\"name\":\"Steve\"}]");
+        write(root, "config/legacy-backup/2026-11-02_06-29-59/import-report.txt", "report");
+        final Path shared = root.resolve("config/legacy-backup/2026-11-02_06-29-59");
+
+        assertEquals(1, PlayerLists.importLegacy(root, WHEN, shared));
+
+        assertTrue(Files.exists(shared.resolve("whitelist.json")));
+        assertTrue(Files.exists(shared.resolve("import-report.txt")));
+        assertFalse(Files.exists(root.resolve(BACKUP)), "a second backup folder was made");
+        assertFalse(Files.exists(root.resolve("whitelist.json")));
+    }
+
+    @Test
     @DisplayName("an entry already in players.toml wins over the same person in the JSON")
     void existingWins(@TempDir final Path root) throws IOException {
         write(root, "config/players.toml", "[[whitelist]]\nuuid = \"w-1\"\nname = \"Renamed\"\n");

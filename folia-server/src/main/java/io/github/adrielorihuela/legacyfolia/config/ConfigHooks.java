@@ -78,9 +78,10 @@ public final class ConfigHooks {
      */
     public static void start(final Path serverRoot, final @Nullable Path worldContainer) throws IOException {
         final boolean existed = Files.exists(ConfigFile.DIRECTORY.resolve(ServerConfig.SERVER));
-        final boolean imported = LegacyImport.runIfNeeded(serverRoot, worldContainer).isPresent();
+        final java.util.Optional<LegacyImport.Result> result = LegacyImport.runIfNeeded(serverRoot, worldContainer);
+        final boolean imported = result.isPresent();
         LegacyImport.adoptOwnProperties(serverRoot);
-        io.github.adrielorihuela.legacyfolia.config.players.PlayerLists.importLegacy(serverRoot);
+        io.github.adrielorihuela.legacyfolia.config.players.PlayerLists.importLegacy(serverRoot, result.map(LegacyImport.Result::backupDirectory).orElse(null));
         firstStart = !existed && !imported;
         ServerConfig.load();
         log(ServerProperties.reconcile());
