@@ -377,6 +377,7 @@ disable-totems = true
 #  combat.enabled is on.
 [combat.attribute-limits]
 
+# The most health an entity can have, in half hearts: 1024 is 512 hearts.
 max-health = 1024.0
 max-absorption = 2048.0
 movement-speed = 1024.0

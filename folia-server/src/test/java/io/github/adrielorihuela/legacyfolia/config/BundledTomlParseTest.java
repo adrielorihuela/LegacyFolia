@@ -35,4 +35,30 @@ class BundledTomlParseTest {
             }
         }
     }
+
+    @Test
+    void everySettingHasACommentAboveIt() throws Exception {
+        final java.util.regex.Pattern setting = java.util.regex.Pattern.compile("^[A-Za-z0-9_.\"-]+ *=.*");
+        for (final String name : FILES) {
+            try (InputStream in = BundledTomlParseTest.class.getClassLoader()
+                    .getResourceAsStream("legacyfolia/" + name)) {
+                assertNotNull(in, name + " is not on the classpath");
+                final List<String> lines = new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+                for (int i = 0; i < lines.size(); i++) {
+                    if (setting.matcher(lines.get(i)).matches()) {
+                        // Documented by its own comment, or by what comes before it when that is a comment, the key
+                        // above it (checked in its turn) or the end of an array: blank lines and the [table] header it
+                        // opens are skipped, because a section's keys may share the comment block above its header.
+                        int above = i - 1;
+                        while (above >= 0 && (lines.get(above).isEmpty() || lines.get(above).startsWith("["))) {
+                            above--;
+                        }
+                        final String text = above < 0 ? "" : lines.get(above);
+                        assertTrue(text.startsWith("#") || text.equals("]") || setting.matcher(text).matches(),
+                            name + " line " + (i + 1) + " has no comment above it: " + lines.get(i));
+                    }
+                }
+            }
+        }
+    }
 }
