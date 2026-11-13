@@ -80,6 +80,7 @@ public final class ConfigHooks {
         final boolean existed = Files.exists(ConfigFile.DIRECTORY.resolve(ServerConfig.SERVER));
         final boolean imported = LegacyImport.runIfNeeded(serverRoot, worldContainer).isPresent();
         LegacyImport.adoptOwnProperties(serverRoot);
+        io.github.adrielorihuela.legacyfolia.config.players.PlayerLists.importLegacy(serverRoot);
         firstStart = !existed && !imported;
         ServerConfig.load();
         log(ServerProperties.reconcile());
