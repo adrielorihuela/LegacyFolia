@@ -126,6 +126,7 @@ final class Bot {
     final List<EffectEv> effects = Collections.synchronizedList(new ArrayList<>());
     final List<AddEv> adds = Collections.synchronizedList(new ArrayList<>());
     final List<SlotEv> slotEvents = Collections.synchronizedList(new ArrayList<>());
+    final List<String> teams = Collections.synchronizedList(new ArrayList<>());
     final List<Timed<String>> chat = Collections.synchronizedList(new ArrayList<>());
     final List<Timed<String>> dimensionChanges = Collections.synchronizedList(new ArrayList<>());
     /** (entity id, kind) for damage events, hurt animations and entity events. */
@@ -221,7 +222,56 @@ final class Bot {
         if (System.getenv("BOT_DEBUG") != null && (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z) || !Float.isFinite(yaw) || !Float.isFinite(pitch))) {
             System.err.println("[bot " + name + "] BAD tick " + x + " " + y + " " + z + " " + yaw + " " + pitch);
         }
-        send(new ServerboundMovePlayerPosRotPacket(onGround, false, x, y, z, yaw, pitch));
+        sendPos(false);
+    }
+
+    /** Ends the client tick; the server resets its once-per-tick position check on it. */
+    private void tickEnd() {
+        send(org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.ServerboundClientTickEndPacket.INSTANCE);
+    }
+
+    private long lastPos;
+    private double sx = Double.NaN, sy, sz;
+    private float syaw, spitch;
+    private int ticks;
+
+    /**
+     * Like the real client: a position packet only when the position changed (or every 20 ticks), a rotation or
+     * status packet otherwise. The server kicks a client that sends two position packets in one tick, so they are
+     * kept 55 ms apart and a blocking caller waits for its turn.
+     */
+    private synchronized void sendPos(boolean block) {
+        ticks++;
+        boolean moved = Double.isNaN(sx) || sx != x || sy != y || sz != z || ticks % 20 == 0;
+        if (moved) {
+            long wait = lastPos + 55 - now();
+            if (wait > 0) {
+                if (!block) {
+                    return;
+                }
+                try {
+                    Thread.sleep(wait);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            lastPos = now();
+            sx = x;
+            sy = y;
+            sz = z;
+            syaw = yaw;
+            spitch = pitch;
+            send(new ServerboundMovePlayerPosRotPacket(onGround, false, x, y, z, yaw, pitch));
+            tickEnd();
+        } else if (syaw != yaw || spitch != pitch) {
+            syaw = yaw;
+            spitch = pitch;
+            send(new org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerRotPacket(onGround, false, yaw, pitch));
+            tickEnd();
+        } else {
+            send(new org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerStatusOnlyPacket(onGround, false));
+            tickEnd();
+        }
     }
 
     // ---- packet handling ----
@@ -260,7 +310,6 @@ final class Bot {
                 }
                 lastTeleportId = p.getId();
                 send(new ServerboundAcceptTeleportationPacket(p.getId(), x, y, z, yaw, pitch));
-                send(new ServerboundMovePlayerPosRotPacket(false, false, x, y, z, yaw, pitch));
                 onGround = true;
                 if (positionPackets == 0) {
                     send(ServerboundPlayerLoadedPacket.INSTANCE);
@@ -298,6 +347,7 @@ final class Bot {
             case ClientboundDamageEventPacket p -> hurts.add(new Timed<>(t, p.getEntityId() + ":damage"));
             case ClientboundHurtAnimationPacket p -> hurts.add(new Timed<>(t, p.getId() + ":hurt"));
             case ClientboundEntityEventPacket p -> hurts.add(new Timed<>(t, p.getEntityId() + ":event:" + p.getEvent()));
+            case org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.scoreboard.ClientboundSetPlayerTeamPacket p -> teams.add(p.toString());
             case ClientboundSystemChatPacket p -> chat.add(new Timed<>(t, plain(p.getContent())));
             case ClientboundContainerSetSlotPacket p -> {
                 slotEvents.add(new SlotEv(t, p.getContainerId(), p.getSlot(), p.getItem()));
@@ -424,7 +474,7 @@ final class Bot {
         y = ny;
         z = nz;
         onGround = ground;
-        send(new ServerboundMovePlayerPosRotPacket(ground, false, x, y, z, yaw, pitch));
+        sendPos(true);
     }
 
     // ---- reading ----
