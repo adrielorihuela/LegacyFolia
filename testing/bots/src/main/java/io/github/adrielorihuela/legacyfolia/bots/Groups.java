@@ -320,7 +320,8 @@ final class Groups {
             String p = read(props);
             need(p.contains("white-list=true"), "white-list=true not written after /whitelist on");
             // Vanilla's /defaultgamemode only sets the level's game type (MinecraftServer.setDefaultGameType); the dedicated
-            // server's setGameMode, which would write server.properties, has no caller. So the line must stay out, as in vanilla.
+            // server's setGameMode, which would write server.properties, is called only by the management protocol
+            // (MinecraftServerSettingsServiceImpl), not by the command. So the line must stay out, as in vanilla.
             need(!p.contains("gamemode=creative"), "gamemode=creative was written after /defaultgamemode creative, which vanilla does not do");
             need(serverRef.cmdOut("defaultgamemode creative", 800).toLowerCase().contains("default game mode"), "/defaultgamemode creative did not answer with the new default game mode");
             need(p.contains("player-idle-timeout=5"), "player-idle-timeout=5 not written after /setidletimeout 5");
@@ -437,8 +438,101 @@ final class Groups {
             need(nBack && eBack, "after turning them back on the Nether=" + nBack + " End=" + eBack + " are not loaded");
             return "folders kept, both dimensions load again";
         });
-        notRun("7h", "Dimensions: disable-nether-roof refuses blocks above y=127", "a bot's use-item-on packet (ServerboundUseItemOnPacket) gets no reaction at all from the server, not even a block-changed ack, so no placement can be driven; not diagnosed");
-        notRun("7i", "Dimensions: spawn protection is 0 so a non-op can build at spawn", "same: the bot's block placement packet gets no reaction from the server; the setting default is checked by the TOML reading in 10b");
+        placement();
+    }
+
+    /** What one right-click on the top of a block did: the stone is there or not, and what the server sent back. */
+    record Click(boolean placed, int updates, int acks, String seen) {
+        @Override
+        public String toString() {
+            return (placed ? "placed" : "refused") + " (" + updates + " block update(s), " + acks + " ack(s)) " + seen;
+        }
+    }
+
+    /** Gives the bot stone, aims at the top of (bx, by, bz) and right-clicks it once; reports if stone appeared above. */
+    static Click clickStone(Ctx x, Bot a, int bx, int by, int bz) throws InterruptedException {
+        x.hold(a, "stone");
+        a.select(0);
+        Thread.sleep(300);
+        int u = a.blockUpdates.size();
+        int k = a.blockAcks.size();
+        a.lookAt(bx + 0.5, by + 1, bz + 0.5);
+        Thread.sleep(150);
+        a.useBlock(bx, by, bz);
+        // The server answers on the player's region tick, which can be a second or more behind while chunks load.
+        a.waitFor(p -> p.blockAcks.size() > k, 10000);
+        Thread.sleep(500);
+        java.util.List<String> seen = new java.util.ArrayList<>();
+        synchronized (a.blockUpdates) {
+            for (Bot.Timed<String> t : a.blockUpdates.subList(u, a.blockUpdates.size())) {
+                seen.add(t.value());
+            }
+        }
+        String key = bx + "," + (by + 1) + "," + bz + ":";
+        String last = seen.stream().filter(v -> v.startsWith(key)).reduce((p, q) -> q).orElse(null);
+        return new Click(last != null && !last.equals(key + "0"), seen.size(), a.blockAcks.size() - k, "target " + bx + "," + by + "," + bz + ", updates there " + seen.stream().filter(v -> v.startsWith(key) || v.startsWith(bx + "," + by + "," + bz + ":")).toList());
+    }
+
+    void placement() throws Exception {
+        // 7i: a flat world, one op, a non-op bot building two blocks from where it spawns (the world spawn).
+        Path d = dir("spawnbuild");
+        cfg(d, "server.toml", "[server]\neula = true\n");
+        cfg(d, "world.toml", "[world.generation]\nlevel-type = \"minecraft:flat\"\n");
+        ServerProc s = start(d, "--online-mode", "false");
+        Click spawn = null;
+        String why = null;
+        try {
+            Ctx x = new Ctx(s, port);
+            s.send("op BotOp");
+            Bot a = x.join("BotA");
+            s.send("gamemode survival BotA");
+            Thread.sleep(800);
+            spawn = clickStone(x, a, (int) Math.floor(a.x) + 2, (int) Math.floor(a.y) - 1, (int) Math.floor(a.z));
+            a.disconnect();
+        } catch (Exception e) {
+            why = e.toString();
+        } finally {
+            s.stop();
+        }
+        Click sp = spawn;
+        String err = why;
+        run("7i", "Dimensions: spawn protection is 0 so a non-op can build at spawn", () -> {
+            need(err == null, "bench error: " + err);
+            need(sp.placed(), "a non-op could not place stone beside the world spawn: " + sp);
+            return "non-op placed stone beside the spawn with an op on the list: " + sp;
+        });
+
+        // 7h: a Nether roof placement with the setting off (the control, proves the click works) and on.
+        Click[] roof = new Click[2];
+        String[] whyRoof = new String[2];
+        for (int i = 0; i < 2; i++) {
+            Path r = dir("roof" + i);
+            cfg(r, "server.toml", "[server]\neula = true\n");
+            cfg(r, "world.toml", "[world]\ndisable-nether-roof = " + (i == 1) + "\n");
+            ServerProc t = start(r, "--online-mode", "false");
+            try {
+                Ctx x = new Ctx(t, port);
+                Bot a = x.join("BotA");
+                t.send("gamemode survival BotA");
+                x.tpIn("minecraft:the_nether", a, 8.5, 128, 8.5);
+                t.send("execute in minecraft:the_nether run fill 6 127 6 12 127 10 minecraft:bedrock");
+                t.send("execute in minecraft:the_nether run fill 6 128 6 12 140 10 minecraft:air");
+                Thread.sleep(800);
+                roof[i] = clickStone(x, a, 10, 127, 8);
+                a.disconnect();
+            } catch (Exception e) {
+                whyRoof[i] = e.toString();
+            } finally {
+                t.stop();
+            }
+        }
+        run("7h", "Dimensions: disable-nether-roof refuses blocks above y=127", () -> {
+            need(whyRoof[0] == null && whyRoof[1] == null, "bench error: " + whyRoof[0] + " / " + whyRoof[1]);
+            need(roof[0].placed(), "control: with disable-nether-roof = false the stone was not placed at y=128: " + roof[0]);
+            need(roof[1].acks() > 0, "with disable-nether-roof = true the server never answered the click, so the refusal proves nothing: " + roof[1]);
+            need(!roof[1].placed(), "disable-nether-roof = true still let a block go in at y=128: " + roof[1]);
+            return "off: " + roof[0] + "; on: " + roof[1];
+        });
     }
 
     // ---- lobby ----
@@ -528,6 +622,8 @@ final class Groups {
             String wl = s.cmdOut("whitelist list", 1200);
             String motd = Net.motd(Net.status("127.0.0.1", port));
             boolean nether = dimensionWorks(s, "minecraft:the_nether");
+            boolean end = dimensionWorks(s, "minecraft:the_end");
+            boolean overworld = dimensionWorks(s, "minecraft:overworld");
             String rc = Net.rcon("127.0.0.1", 25613, rconPw, "list");
             String json = Net.status("127.0.0.1", port);
             s.stop();
@@ -575,8 +671,12 @@ final class Groups {
                 return "started without a prompt";
             });
             run("6g" + sfx, "Migration (" + kind + "): dimensions the old server had off stay off", () -> {
+                need(overworld, "control: the overworld did not load, so 'off' proves nothing (probe through 'execute in' is broken)");
                 need(!nether, "the Nether loaded although allow-nether=false");
-                return "the Nether stayed off";
+                if (!kind.equals("vanilla")) {
+                    need(!end, "the End loaded although bukkit.yml had allow-end: false");
+                }
+                return "the overworld loaded; the Nether stayed off" + (kind.equals("vanilla") ? "" : ", and so did the End");
             });
             if (kind.equals("paper")) {
                 Map<String, String> before = snapshot(d);

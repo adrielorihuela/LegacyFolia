@@ -127,6 +127,10 @@ final class Bot {
     final List<AddEv> adds = Collections.synchronizedList(new ArrayList<>());
     final List<SlotEv> slotEvents = Collections.synchronizedList(new ArrayList<>());
     final List<String> teams = Collections.synchronizedList(new ArrayList<>());
+    /** Block updates the server sent: "x,y,z:stateId". */
+    final List<Timed<String>> blockUpdates = Collections.synchronizedList(new ArrayList<>());
+    /** Sequence numbers of the block-changed acknowledgements. */
+    final List<Timed<Integer>> blockAcks = Collections.synchronizedList(new ArrayList<>());
     final List<Timed<String>> chat = Collections.synchronizedList(new ArrayList<>());
     final List<Timed<String>> dimensionChanges = Collections.synchronizedList(new ArrayList<>());
     /** (entity id, kind) for damage events, hurt animations and entity events. */
@@ -138,6 +142,8 @@ final class Bot {
     final List<Timed<ClientboundContainerSetContentPacket>> contents = Collections.synchronizedList(new ArrayList<>());
     final List<Timed<ClientboundOpenScreenPacket>> screens = Collections.synchronizedList(new ArrayList<>());
     int lastTeleportId;
+    /** A client says it has loaded the world after joining and after each dimension change; until then the server ignores its clicks. */
+    private volatile boolean needLoaded;
 
     /** Wraps the session so the field can be assigned after construction. */
     static final class ClientSessionHolder {
@@ -284,8 +290,10 @@ final class Bot {
                 dimension = p.getCommonPlayerSpawnInfo().getWorldName().asString();
                 dimensionChanges.add(new Timed<>(t, dimension));
                 play = true;
+                needLoaded = true;
             }
             case ClientboundRespawnPacket p -> {
+                needLoaded = true;
                 dimension = p.getCommonPlayerSpawnInfo().getWorldName().asString();
                 dimensionChanges.add(new Timed<>(t, dimension));
                 dead = false;
@@ -311,7 +319,8 @@ final class Bot {
                 lastTeleportId = p.getId();
                 send(new ServerboundAcceptTeleportationPacket(p.getId(), x, y, z, yaw, pitch));
                 onGround = true;
-                if (positionPackets == 0) {
+                if (needLoaded) {
+                    needLoaded = false;
                     send(ServerboundPlayerLoadedPacket.INSTANCE);
                 }
                 positionPackets++;
@@ -348,6 +357,11 @@ final class Bot {
             case ClientboundHurtAnimationPacket p -> hurts.add(new Timed<>(t, p.getId() + ":hurt"));
             case ClientboundEntityEventPacket p -> hurts.add(new Timed<>(t, p.getEntityId() + ":event:" + p.getEvent()));
             case org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.scoreboard.ClientboundSetPlayerTeamPacket p -> teams.add(p.toString());
+            case org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundBlockUpdatePacket p -> {
+                var e = p.getEntry();
+                blockUpdates.add(new Timed<>(t, e.getPosition().getX() + "," + e.getPosition().getY() + "," + e.getPosition().getZ() + ":" + e.getBlock()));
+            }
+            case org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundBlockChangedAckPacket p -> blockAcks.add(new Timed<>(t, p.getSequence()));
             case ClientboundSystemChatPacket p -> chat.add(new Timed<>(t, plain(p.getContent())));
             case ClientboundContainerSetSlotPacket p -> {
                 slotEvents.add(new SlotEv(t, p.getContainerId(), p.getSlot(), p.getItem()));
@@ -439,8 +453,15 @@ final class Bot {
         send(new ServerboundPlayerActionPacket(PlayerAction.SWAP_HANDS, Vector3i.ZERO, Direction.DOWN, 0));
     }
 
+    private int blockSequence;
+
+    /** Right-clicks the given face of a block, as a client placing the held block does (the sequence grows per click). */
+    void useBlock(int bx, int by, int bz, Direction face) {
+        send(new ServerboundUseItemOnPacket(Vector3i.from(bx, by, bz), face, Hand.MAIN_HAND, 0.5f, 0.5f, 0.5f, false, false, ++blockSequence));
+    }
+
     void useBlock(int bx, int by, int bz) {
-        send(new ServerboundUseItemOnPacket(Vector3i.from(bx, by, bz), Direction.UP, Hand.MAIN_HAND, 0.5f, 1f, 0.5f, false, false, 0));
+        useBlock(bx, by, bz, Direction.UP);
     }
 
     void select(int hotbar) {
