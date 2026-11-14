@@ -3,8 +3,8 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-10-31 · **Último tag de fase:** `v0.19.0` · **Prerelease de prueba:**
-`v1.0.0-rc.1` · **Base:** Folia `ver/26.3.x` en `73865e0` (2026-10-29, merge `e5e16b3`), Minecraft
+**Última actualización:** 2026-11-14 · **Último tag de fase:** `v0.19.0` · **Prerelease de prueba:**
+`v1.0.0-rc.2` (preparada en `main`, aún sin tag; la anterior, `v1.0.0-rc.1`) · **Base:** Folia `ver/26.3.x` en `73865e0` (2026-10-29, merge `e5e16b3`), Minecraft
 26.3, Paper `804dd0c3`, Java 25.
 
 ---
@@ -69,22 +69,27 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.18.0 | 10-31 | Locator bar idéntica a la de vanilla: solo la dimensión propia, la máquina de estados de conexiones de vanilla sobre snapshots, todos los paquetes en el hilo del receptor |
 | v0.19.0 | 10-31 | PvP 1.8 idéntico a Spigot 1.8.8: daño, protección, bloqueo, knockback, alcance, proyectiles, caña, explosiones, pociones, comida, invulnerabilidad al entrar; 12 claves nuevas (parches 0038–0057) |
 | v1.0.0-rc.1 | 10-31 | Prerelease para probar antes de `v1.0.0`: upstream al día (Paper `804dd0c3`), documentación entera revisada contra el código, jar paperclip adjunto en GitHub |
+| v1.0.0-rc.2 | 11-14 | Segunda prerelease (el tag se pone al publicarla, no antes): `server.properties` en la raíz, whitelist, ops y bans en `config/players.toml`, contraseña del keystore de gestión en `config/management-keystore.secret`, jar `legacyfolia-paperclip-1.0.0-rc.2.jar`, el aviso del updater cuenta `GITHUB_TOKEN`, `allow-nether` se importa, la copia de las listas va con el resto del respaldo, la TNT activada explota a media altura (parche 0058), `max-health` comentado; bancos de pruebas en `testing/` (bots, bot18, client, load) |
 
 **Estado del código hoy** (comprobado leyendo el árbol, no los documentos):
-- Parches propios: minecraft 0012–0057 (46) y paper 0007–0013 (7), encima de los de Folia (minecraft
-  0001–0011 y paper 0001–0006, idénticos a upstream). El mapa por número está en `CLAUDE.md`.
+- Parches propios: minecraft 0012–0058 (47) y paper 0007–0013 (7), encima de los de Folia (minecraft
+  0001–0011 y paper 0001–0006, idénticos a upstream). El mapa por número está en `.claude/rules/patches.md`.
 - Catálogo (`legacyfolia/catalog.tsv`): **593 claves**; 303 admiten override por mundo, 19 las
   reescribe el servidor en caliente (`mutable`), 3 son secretos y 513 tienen origen heredado
   (Paper global 88, Paper por mundo 182, Spigot 35, Spigot por mundo 105, Bukkit 30, `commands.yml`
   3, `server.properties` 69, `eula.txt` 1); las 80 restantes son propias. Por archivo: gameplay 207,
   performance 132 (`[chunks]` 31 y `[performance.*]` 101), server 76, combat 62, network 45, world
   40 (`[dimensions]` 3 y `[world.*]` 37), plugins 31; `worlds.toml` solo tiene ejemplos.
-- **Tests:** 325 en `LegacyFoliaTestSuite`, en 39 archivos de resultados, sin fallos ni omitidos
-  (2026-10-31, tras el merge de Paper `804dd0c3`). La ejecución completa de `:folia-server:test`
-  da 10461 tests con 86 omitidos, todos de upstream.
+- **Tests:** 352 en `LegacyFoliaTestSuite`, en 44 archivos de resultados, sin fallos ni omitidos
+  (2026-11-14, `./gradlew :folia-server:test` sobre `main`). La ejecución completa de
+  `:folia-server:test` dio 10461 tests con 86 omitidos, todos de upstream, el 2026-10-31 (con 325 propios).
 - El jar que sale de `./build.sh` es `folia-server/build/libs/legacyfolia-paperclip-<versión>.jar`;
-  la versión la pone `settings.gradle.kts` (`26.3.local-SNAPSHOT` sin `BUILD_NUMBER`), es decir, la
-  de Minecraft y no la de LegacyFolia.
+  la versión es `projectVersion` de `gradle.properties` (hoy `1.0.0-rc.2`), no la de Minecraft:
+  `/version` sigue dando 26.3.
+- Archivos de `config/`: los ocho TOML de ajustes más `players.toml` (whitelist, ops y bans, datos y
+  no ajustes). `server.properties` vive en la raíz del servidor desde `rc.2` (antes, en `config/`).
+  Los secretos son cuatro archivos: `rcon.secret`, `forwarding.secret`, `github.token` y
+  `management-keystore.secret` (este nunca se crea solo).
 - Defaults que difieren de Folia/Paper/vanilla, todos comprobables en los TOML de
   `folia-server/src/main/resources/legacyfolia/`: `white-list = false`, `spawn-protection-radius = 0`,
   `[network.rcon]` encendido en `127.0.0.1` con `config/rcon.secret`, `[combat] enabled = true`.
@@ -198,15 +203,25 @@ fuente de todo lo que lee el servidor.
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-10-31), `main` es la única rama y está publicada. Todo lo que había que hacer
-antes de `v1.0.0` está hecho: la fase de enganche (`v0.15.0`), el daño de las armas y su tooltip
-(`v0.16.0`, `v0.17.0`), la locator bar (`v0.18.0`), el PvP 1.8 idéntico (`v0.19.0`), la
-actualización de upstream a Paper `804dd0c3` (§7) y el `/init`, que revisó la documentación entera
-contra el código.
+Al escribir esto (2026-11-14), `main` es la única rama, con los commits de `rc.2` **sin subir** a
+origin y sin tag (`git log origin/main..main`). Todo lo que había que hacer antes de `v1.0.0` está
+hecho: la fase de enganche (`v0.15.0`), el daño de las armas y su tooltip (`v0.16.0`, `v0.17.0`), la
+locator bar (`v0.18.0`), el PvP 1.8 idéntico (`v0.19.0`), la actualización de upstream a Paper
+`804dd0c3` (§7), `rc.1` y, tras ella, los cambios de `rc.2` (§2) y la documentación entera revisada
+otra vez contra el código.
 
-**Lo siguiente es probar `v1.0.0-rc.1`**, la prerelease de GitHub con el jar adjunto (§5, punto 1).
-Lo que se encuentre se corrige en `main` y, si hace falta otra ronda, sale un `rc.2`.
+**Lo siguiente es que el usuario pruebe `v1.0.0-rc.2`**: publicarla (tag y jar adjunto, con la
+habilidad `release`) y que la pruebe a mano con `docs/TESTING.md` (§5, punto 1). Lo que encuentre se
+corrige en `main` y, si hace falta otra ronda, sale un `rc.3`.
 **`v1.0.0` solo se publica cuando el usuario lo diga** (§5, punto 2).
+
+Resultados de los bancos de `testing/` sobre el jar final de `rc.2` (el detalle y cómo ejecutarlos,
+en `docs/TESTING.md`): **bots** 81 PASS, 0 FAIL y 16 NOT_RUN (`1j-team`, `2h-arrow`, `5i`, EULA
+`4a`/`4b`/`4c`/`4e`, updater `9b` a `9h`, `3d` y `10c`); **bot18** (cliente 1.8.8 vía ViaVersion) 5 de 5;
+**cliente real** (HeadlessMC con Fabric 26.3) 4 de 4. Folia no tiene `/data`, `/item`, `/loot` ni
+`/team`, y eso cambia algunas comprobaciones manuales. **Prueba de carga local: no hay cifra de
+capacidad.** SoulFire en Windows se cae y sus bots se desconectan hacia los 14; con 10 a 14 bots el
+servidor mantuvo TPS 20 y MSPT de 13 a 23 (`docs/LOAD-TESTING.md`).
 
 La comprobación de arranque está hecha sobre 26.3: con `run/config/*.toml` borrados,
 `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo arranque con los archivos
@@ -216,7 +231,9 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 
 ## 5. Qué falta, en orden
 
-1. **Probar `v1.0.0-rc.1`.** Lo que no se ha podido comprobar sin clientes reales:
+1. **Probar `v1.0.0-rc.2`** (la publica el usuario o se lo pide a la sesión; §4). Los bancos de
+   `testing/` ya pasan (§4), pero un bot solo comprueba los paquetes que lee. Lo que sigue sin
+   comprobar con personas y clientes reales, y los 16 puntos que el banco de bots no puede hacer:
    - **PvP 1.8:** golpes, combos y knockback entre dos jugadores; bloqueo con espada y su animación;
      el indicador de cooldown oculto; alcance a través de hierba; caña, perlas y flechas; explosiones
      de TNT y creeper; pociones y manzana de Notch; reaparecer y recibir un golpe al momento; el
@@ -225,10 +242,11 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
    - **Locator bar:** dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con
      cabeza puesta.
    - **EULA:** el prompt en Linux con una TTY real (ENTER acepta, ESC cancela).
-   - **Configuración:** un servidor nuevo (en la raíz solo el jar y las carpetas que genera; los ocho
-     TOML y `config/server.properties` con solo la cabecera), una migración desde un Paper o Folia
-     real, `/legacyfolia properties on|off|status`, `/whitelist on` y `/paper reload` con un plugin
-     que lea los valores de Bukkit, Spigot y Paper.
+   - **Configuración:** un servidor nuevo (en la raíz solo el jar, `server.properties` con solo la
+     cabecera y las carpetas que genera; en `config/` los ocho TOML y `players.toml`), una migración
+     desde un Paper o Folia real (las listas de jugadores acaban en `players.toml`),
+     `/legacyfolia properties on|off|status`, `/whitelist on` y `/paper reload` con un plugin que lea
+     los valores de Bukkit, Spigot y Paper, y pasar de una `rc.1` con su `config/server.properties`.
    - **Auto-updater** con al menos una fuente activada, y los interruptores de dimensiones, lobby y
      techo del Nether.
    - ViaVersion 5.11.0 da un error al arrancar porque no soporta 26.3 (§7); para probar con clientes
@@ -313,6 +331,9 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 5. **Actualización de upstream a Paper `804dd0c3`. HECHO (2026-10-31).** Detalles en §7.
 6. **`/init`. HECHO (2026-10-31).** Documentación entera revisada contra el código; desde ahora
    `/init` significa eso (`CLAUDE.md`, «Talking to the user»).
+7. **Preparar `rc.2`. HECHO (2026-11-14), sin publicar.** Los cambios de la fila `rc.2` de §2, los
+   bancos de pruebas de `testing/` y la documentación revisada. Pendiente de publicar: el tag y el
+   jar en GitHub, solo cuando el usuario lo pida.
 
 ## 6. Decisiones del usuario (decididas)
 
@@ -351,8 +372,10 @@ aquí (mensajes traducibles, `rcon.password` y lobby en multimundo) y a las reco
    - Los comandos que cambian ajustes (`/whitelist on`, `/difficulty`...) funcionan siempre; solo
      cambia dónde escriben: en `server.properties` con el modo encendido, en el TOML con el modo
      apagado.
-   - Los secretos (`rcon.secret`, `forwarding.secret`, `github.token`) nunca van a
-     `server.properties`.
+   - Los secretos (`rcon.secret`, `forwarding.secret`, `github.token` y, desde `rc.2`,
+     `management-keystore.secret`) nunca van a `server.properties`.
+   - Desde `rc.2` el archivo vive en la **raíz del servidor**, junto al jar, y no en `config/`; un
+     `config/server.properties` de `rc.1` se mueve a la raíz en el primer arranque.
 7. **Migración:** si el jar arranca donde antes había vanilla, Spigot, Paper o Folia, lee todos los
    archivos antiguos: `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml`,
    `config/paper-global.yml`, `paper-world-defaults.yml`, el `paper-world.yml` de cada mundo,
@@ -360,7 +383,9 @@ aquí (mensajes traducibles, `rcon.password` y lobby en multimundo) y a las reco
    que es por mundo a `worlds.toml`. Las colisiones se resuelven igual que el servidor original
    (p. ej. `-1` en Paper significa que manda bukkit). Los originales se mueven a
    `config/legacy-backup/<fecha>/`. Con el modo encendido, lo que no es default acaba en
-   `server.properties`.
+   `server.properties`. Desde `rc.2`, la whitelist, los ops y los bans se importan a
+   `config/players.toml` y sus JSON van a ese mismo respaldo, y `allow-nether` de un
+   `server.properties` antiguo apaga el Nether.
 8. **EULA:** pasa a ser una clave de configuración y deja de existir `eula.txt`.
 9. Los `bukkit.yml`, `spigot.yml` y `paper-*.yml` **desaparecen del disco**, pero los plugins siguen
    viendo los valores a través de objetos en memoria.
@@ -455,9 +480,10 @@ LegacyFolia mantiene el modelo de hilos por regiones de Folia sin tocarlo; los p
   fuente, y los objetos que leen los plugins (`YamlConfiguration` de Bukkit y Spigot, nodos de
   Configurate de Paper, `DedicatedServerProperties`) se construyen en memoria (paper 0010–0012,
   minecraft 0032). `/paper reload`, `/spigot reload` y el reload de Bukkit releen los TOML.
-- **`server.properties`** es opcional y vive en `config/`: solo lo que difiere del default, y manda
-  sobre los TOML (§6, decisión 6). Whitelist, bans, ops y secretos en `config/`, la caché de usuarios
-  en `cache/` (minecraft 0018–0019).
+- **`server.properties`** es opcional y vive en la raíz del servidor (en `config/` hasta `rc.1`): solo
+  lo que difiere del default, y manda sobre los TOML (§6, decisión 6). Whitelist, ops y bans en
+  `config/players.toml`, los secretos en `config/` y la caché de usuarios en `cache/` (minecraft
+  0018–0019).
 - **Migración** automática desde vanilla, Spigot, Paper o Folia en el primer arranque (§6,
   decisión 7).
 - **Defaults distintos:** whitelist apagada (26.3 la enciende), spawn protection 0 (vanilla 16),
