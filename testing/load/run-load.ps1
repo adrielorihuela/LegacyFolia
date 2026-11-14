@@ -22,7 +22,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $cache = Join-Path $root 'testing\.cache'
 New-Item -ItemType Directory -Force $cache | Out-Null
 
-$javaVersion = (& java -version 2>&1 | Select-Object -First 1) -replace '.*"(\d+).*', '$1'
+$javaVersion = ((cmd /c 'java -version 2>&1' | Select-Object -First 1) -as [string]) -replace '.*"(\d+).*', '$1'
 if ([int]$javaVersion -lt 25) { throw "Java 25 or newer is required (found $javaVersion)." }
 
 if ($SoulFireVersion -eq 'latest') {

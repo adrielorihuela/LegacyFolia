@@ -113,7 +113,15 @@ public class LoadTest {
             } finally {
                 socket.setSoTimeout(15000);
             }
-            return sb.toString().replaceAll("§.", "");
+            // read() keeps the bytes as they came; servers differ in sending UTF-8 or Latin-1 for the colour sign
+            byte[] raw = sb.toString().getBytes(StandardCharsets.ISO_8859_1);
+            String text;
+            try {
+                text = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(raw)).toString();
+            } catch (java.nio.charset.CharacterCodingException notUtf8) {
+                text = new String(raw, StandardCharsets.ISO_8859_1);
+            }
+            return text.replaceAll("§.", "");
         }
 
         @Override
@@ -283,16 +291,27 @@ public class LoadTest {
     static Path soulfireLog;
 
     static Process startBots(String jar, Path accounts, String host, int port, int delay, String ram) throws IOException {
+        // Own SoulFire home, so that bots and accounts of other runs (SoulFire restores them) never come back;
+        // the downloaded runtime in it is kept, only the database of instances is dropped before each start.
+        Path home = Path.of(opt("work-dir", "testing/.cache/load-work")).toAbsolutePath().getParent().resolve("soulfire-home");
+        Files.createDirectories(home);
+        for (String f : List.of("soulfire.sqlite", "soulfire.sqlite-wal", "soulfire.sqlite-shm", "soulfire.sqlite-journal")) {
+            try {
+                Files.deleteIfExists(home.resolve(f));
+            } catch (IOException ignored) {
+                // still locked by a dying process; the stale state is then reported by the kick check
+            }
+        }
         List<String> cmd = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", windows() ? "java.exe" : "java").toString(),
-            "-Dsf.vulkan.software=true", "-Xmx" + ram, "-jar", jar, "--start", "--account-file", accounts.toString(),
+            "-Dsf.cliHomeDir=" + home, "-Dsf.vulkan.software=true", "-Xmx" + ram, "-jar", jar, "--start", "--account-file", accounts.toString(),
             "--account-type", "OFFLINE", "--bot-address", host + ":" + port, "--bot-join-delay-min", String.valueOf(delay),
             "--bot-join-delay-max", String.valueOf(delay), "--bot-concurrent-connects", opt("concurrent", "2"),
-            "--auto-respawn-enabled", "--anti-afk-enabled"));
+            "--auto-respawn-enabled", "--auto-jump-enabled"));
         if (!opt("protocol", "").isEmpty()) {
             cmd.add("--bot-protocol-version");
             cmd.add(opt("protocol", ""));
         }
-        ProcessBuilder pb = new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(soulfireLog.toFile());
+        ProcessBuilder pb = new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(soulfireLog.toFile()));
         // Software rendering: the bots draw nothing, and a GPU driver that crashes at start-up takes SoulFire with it.
         pb.environment().put("VK_LOADER_DRIVERS_DISABLE", "*");
         return pb.start();
@@ -317,9 +336,44 @@ public class LoadTest {
     static int areas;
     static int spacing;
     static final Random RNG = new Random(7);
+    static long lastReport;
+    static Tps lastTps;
 
     /** One round: who is online, place the new ones. */
+    static String sfJar;
+    static Path sfAccounts;
+    static String sfHost;
+    static int sfPort;
+    static int sfDelay;
+    static String sfRam;
+    static int generatorStarts = 1;
+    static boolean generatorDead;
+
+    /** SoulFire sometimes dies in native code; start it again (up to 5 starts) and let the bots rejoin. */
+    static void ensureGenerator() throws IOException {
+        if (soulfire.isAlive() || generatorDead) {
+            return;
+        }
+        if (generatorStarts >= 5) {
+            generatorDead = true;
+            return;
+        }
+        generatorStarts++;
+        System.out.println("SoulFire exited (code " + soulfire.exitValue() + "); starting it again (start " + generatorStarts + " of 5), "
+            + online.size() + " bots were online.");
+        everJoined.clear();
+        online.clear();
+        placed.clear();
+        placeTries.clear();
+        lastGrowth = System.currentTimeMillis();
+        soulfire = startBots(sfJar, sfAccounts, sfHost, sfPort, sfDelay, sfRam);
+    }
+
     static void poll() throws IOException {
+        ensureGenerator();
+        if (generatorDead) {
+            return;
+        }
         Matcher m = LIST.matcher(rcon.cmd("list"));
         if (!m.find()) {
             return;
@@ -328,8 +382,20 @@ public class LoadTest {
         Set<String> now = new TreeSet<>();
         for (String n : m.group(3).split(",")) {
             n = n.trim();
-            if (n.startsWith(prefix)) {
+            if (n.matches(Pattern.quote(prefix) + "[0-9]{4}")) { // SoulFire keeps old accounts of earlier runs; ignore them
                 now.add(n);
+            }
+        }
+        if (!now.containsAll(everJoined)) {
+            // Several bots gone at once may be SoulFire dying, not the server kicking: give it time to show.
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            ensureGenerator();
+            if (everJoined.isEmpty() || generatorDead) {
+                return;
             }
         }
         if (!everJoined.containsAll(now)) {
@@ -350,16 +416,41 @@ public class LoadTest {
         }
     }
 
+    static int openAreas;
+    static long lastOpen;
+    static int assigned;
+    static long lastTpsCheck;
+    static double calmLow = 20;
+
     static void place(String name) throws IOException {
-        int idx = Integer.parseInt(name.substring(prefix.length())) - 1;
-        int area = idx % areas;
+        // Fresh terrain costs far more than playing on it, so areas are opened one at a time, each only once the
+        // server has caught up. Bots go round-robin over the areas open so far.
+        long now = System.currentTimeMillis();
+        if (openAreas < areas && (openAreas == 0 || now - lastOpen > 15000)) {
+            if (now - lastTpsCheck > 4000) {
+                lastTpsCheck = now;
+                Tps t = parseTps(rcon.cmd("tps"));
+                calmLow = t == null ? 20 : t.low();
+            }
+            if (openAreas == 0 || calmLow >= 19) {
+                openAreas++;
+                lastOpen = now;
+            }
+        }
+        if (openAreas == 0) {
+            return;
+        }
+        int area = assigned % openAreas;
         int cols = (int) Math.ceil(Math.sqrt(areas));
         int x = (area % cols - cols / 2) * spacing + RNG.nextInt(97) - 48;
         int z = (area / cols - cols / 2) * spacing + RNG.nextInt(97) - 48;
-        // Slow falling so that the drop from the top of the world is harmless wherever the ground turns out to be.
-        rcon.cmd("effect give " + name + " minecraft:slow_falling infinite 0 true");
+        // Creative: the bots drop from the top of the world into whatever is there (often an ocean they cannot swim
+        // out of) and must neither die nor be kicked for floating. This is a caveat of the result: they do not fight,
+        // take damage or build.
+        rcon.cmd("gamemode creative " + name);
         if (rcon.cmd("tp " + name + " " + x + " 319 " + z).contains("Teleported")) {
             placed.add(name);
+            assigned++;
         }
     }
 
@@ -459,9 +550,10 @@ public class LoadTest {
                 + "\nEnable it on the server (network.rcon in config/network.toml) and give the password; see docs/LOAD-TESTING.md.");
             System.exit(2);
         }
-        Tps first = parseTps(rcon.cmd("tps"));
+        String firstRaw = rcon.cmd("tps");
+        Tps first = parseTps(firstRaw);
         if (first == null) {
-            System.err.println("The server did not answer /tps in the Folia format. This tool needs Folia or LegacyFolia.");
+            System.err.println("The server did not answer /tps in the Folia format. This tool needs Folia or LegacyFolia. It said:\n" + firstRaw);
             System.exit(2);
         }
         Matcher lm = LIST.matcher(rcon.cmd("list"));
@@ -516,8 +608,13 @@ public class LoadTest {
                 + "worst_region_players,heap_used_mb,heap_max_mb,heap_pct,gc_count,gc_time_ms,server_rss_mb,load_host_cpu_pct,mem_source,violations");
             Runtime.getRuntime().addShutdownHook(new Thread(LoadTest::stopBots));
 
-            soulfire = startBots(jar, accounts, host, port, delay, opt("bot-ram", "2G"));
-            int attempts = 1;
+            sfJar = jar;
+            sfAccounts = accounts;
+            sfHost = host;
+            sfPort = port;
+            sfDelay = delay;
+            sfRam = opt("bot-ram", "2G");
+            soulfire = startBots(sfJar, sfAccounts, sfHost, sfPort, sfDelay, sfRam);
             System.out.println("SoulFire started (log: " + soulfireLog + "), bots join every " + delay + " ms.");
 
             String stop = null; // why the run ended; null means --max was reached
@@ -537,38 +634,53 @@ public class LoadTest {
             for (int target : targets) {
                 // ---- wait for the bots to arrive
                 while (online.size() < target) {
-                    if (!soulfire.isAlive()) {
-                        if (everJoined.isEmpty() && attempts < 3) {
-                            attempts++;
-                            System.out.println("SoulFire exited before any bot joined; starting it again (attempt " + attempts + ").");
-                            soulfire = startBots(jar, accounts, host, port, delay, opt("bot-ram", "2G"));
-                        } else {
-                            stop = "the load generator (SoulFire) exited; the result is not a server limit";
-                            break outer;
-                        }
-                    }
                     poll();
+                    if (generatorDead) {
+                        stop = "the load generator (SoulFire) kept crashing; the result is not a server limit";
+                        break outer;
+                    }
                     if (everJoined.size() - online.size() > tolerance) {
                         stop = "bots were kicked: " + (everJoined.size() - online.size()) + " of " + everJoined.size() + " lost";
                         failedAt = target;
                         failDetail = stop;
                         break outer;
                     }
-                    if (System.currentTimeMillis() - lastGrowth > stall * 1000L && soulfire.isAlive()
-                        && (!everJoined.isEmpty() || attempts >= 3 && System.currentTimeMillis() - lastGrowth > 3L * stall * 1000L)) {
-                        stop = "bots stopped joining for " + stall + " s at " + online.size() + " (server full, whitelist, throttle or the load generator is saturated)";
+                    if (System.currentTimeMillis() - lastGrowth > (everJoined.isEmpty() ? 5 : 1) * stall * 1000L) { // SoulFire needs a while to start
+                        boolean slow = lastTps != null && (lastTps.low() < 18 || lastTps.worstMspt() > 50);
+                        stop = "bots stopped joining for " + stall + " s at " + online.size() + (slow
+                            ? ", while the server was overloaded (low TPS " + fmt(lastTps.low()) + ", worst MSPT " + fmt(lastTps.worstMspt()) + "): a server limit"
+                            : " (server full, whitelist, throttle or the load generator is saturated)");
                         failedAt = target;
                         failDetail = stop;
                         break outer;
                     }
+                    if (System.currentTimeMillis() - lastReport > 15000) {
+                        lastReport = System.currentTimeMillis();
+                        lastTps = parseTps(rcon.cmd("tps"));
+                        System.out.println("  waiting for " + target + ": " + online.size() + " online, " + everJoined.size() + " joined"
+                            + (lastTps == null ? "" : ", low TPS " + fmt(lastTps.low()) + ", worst MSPT " + fmt(lastTps.worstMspt()))
+                            + ", host CPU " + fmt(OS.getCpuLoad() * 100) + "%");
+                    }
                     Thread.sleep(optInt("poll-ms", 2000));
                 }
                 System.out.println("Step " + target + ": " + online.size() + " bots online, settling " + settle + " s.");
-                long until = System.currentTimeMillis() + settle * 1000L;
-                while (System.currentTimeMillis() < until) {
+                // Wait at least --settle-seconds, then until the lowest region TPS is back near 20 twice in a row
+                // (fresh terrain is generated when bots reach a new area), but no longer than --settle-max-seconds.
+                long settleStart = System.currentTimeMillis();
+                long settleEnd = settleStart + optInt("settle-max-seconds", 240) * 1000L;
+                int calm = 0;
+                while (System.currentTimeMillis() < settleEnd) {
                     poll();
+                    if (System.currentTimeMillis() - settleStart >= settle * 1000L) {
+                        Tps t = parseTps(rcon.cmd("tps"));
+                        calm = t != null && t.low() >= 19.0 ? calm + 1 : 0;
+                        if (calm >= 2) {
+                            break;
+                        }
+                    }
                     Thread.sleep(optInt("poll-ms", 2000));
                 }
+                System.out.println("  settled after " + (System.currentTimeMillis() - settleStart) / 1000 + " s");
 
                 // ---- measure
                 int bad = 0;
@@ -603,6 +715,10 @@ public class LoadTest {
                     System.out.println("  sample " + (k + 1) + ": " + s.online() + " bots, " + (s.tps() == null ? "?" : s.tps().regions() + " regions, low TPS "
                         + fmt(s.tps().low()) + ", worst MSPT " + fmt(s.tps().worstMspt())) + ", heap " + fmt(heapPct(s)) + "%, host CPU " + fmt(s.hostCpu()) + "%"
                         + (v.isEmpty() ? "" : "  <-- " + v));
+                    if (generatorDead) {
+                        stop = "the load generator (SoulFire) kept crashing; the result is not a server limit";
+                        break outer;
+                    }
                     if (s.kicked() > tolerance) {
                         stop = "bots were kicked: " + s.kicked() + " of " + everJoined.size() + " lost";
                         failedAt = target;

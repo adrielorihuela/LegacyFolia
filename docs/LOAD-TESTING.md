@@ -12,10 +12,15 @@ Only test servers you own or have permission to test, and check that your host a
 1. Writes an account file with `--max` offline accounts (`lfb0001`, `lfb0002`, ...) and starts one
    [SoulFire](https://github.com/soulfiremc-com/SoulFire) CLI process (Java 25, protocol 26.3) with
    them. The bots join one every `JoinDelayMs`.
-2. Teleports every new bot, over RCON, to one of `Areas` areas 1000 blocks apart (`effect give
-   slow_falling` and `tp` to the top of the world, so the drop is harmless). Far-apart areas land in
-   different Folia regions, so the load is spread the way real players spread.
-3. Whenever the online count reaches a multiple of `Step` it waits `--settle-seconds` (15), then takes
+2. Puts every new bot in creative mode and teleports it, over RCON, to the top of one of `Areas` areas
+   1000 blocks apart. Far-apart areas land in different Folia regions, so the load is spread the way
+   real players spread. Areas are opened one at a time, each only 15 s after the previous one and once
+   the lowest region TPS is back at 19 or more, because generating fresh terrain costs far more than
+   playing on it; bots then go round-robin over the areas open so far. Creative is needed because the
+   bots drop from y=319 into whatever is there (often an ocean they cannot swim out of): in survival
+   they drowned or were kicked for floating.
+3. Whenever the online count reaches a multiple of `Step` it waits `--settle-seconds` (15, and then
+   until the lowest region TPS is 19 or more twice in a row, at most `--settle-max-seconds`, 240), then takes
    `--samples` (3) samples over `--hold-seconds` (30): `/tps` for the regions, and heap and GC.
 4. Stops when any of these holds, and reports it:
    - a region's MSPT is over 50, or the lowest region TPS is under 18, in at least half of the
@@ -24,7 +29,8 @@ Only test servers you own or have permission to test, and check that your host a
    - bots start being kicked (any bot that joined and is gone; `--kick-tolerance` allows some);
    - bots stop joining for `--stall-seconds` (120): server full, whitelist, connection throttle, or the
      bot machine is saturated;
-   - SoulFire itself dies, which is reported as inconclusive and not as a server limit.
+   - SoulFire itself dies five times, which is reported as inconclusive and not as a server limit. A
+     SoulFire that dies is started again, and its bots rejoin.
 
 The steps are checkpoints, not pauses: SoulFire keeps joining bots at `JoinDelayMs` while a step is
 measured, and the CSV records the real number online in every row.
@@ -73,6 +79,8 @@ More options go straight to `LoadTest.java` (`--area-spacing`, `--hold-seconds`,
   tool. RCON listens on `127.0.0.1` by default; to test from another machine set `ip` or use an SSH
   tunnel (`ssh -L 25575:127.0.0.1:25575 host`) and pass `-RconPort 25575` with `-ServerHost` set to the
   game address.
+- **Flying.** Set `allow-flight=true` while measuring. The bots are in creative, which should not need
+  it, but the local runs used it.
 - **Player limit.** `max-players` must be at least `-Max`, or bots are refused and the run stops
   with "bots stopped joining".
 - **Connection throttle.** The default `connection-throttle = 4000` in `config/network.toml`
@@ -134,3 +142,37 @@ matters.
 - **The tool is only as stable as SoulFire.** On some Windows machines SoulFire's graphics start-up crashed
   with a GPU driver; the tool forces software rendering and restarts SoulFire if it dies before any
   bot has joined. A SoulFire crash later is reported as inconclusive.
+
+## Status of the local measurement (RC 2, Windows, 8 cores, 16 GB)
+
+**There is no capacity figure yet.** The server never reached a limit; the load generator did.
+
+What was run: the RC 2 jar, `-Xmx4G`, a fresh world per run, default settings except what the bots need
+(`online-mode=false`, `max-players=1000`, `network.limits.connection-throttle=0`, `allow-flight=true`),
+SoulFire 2.10.7 with `-BotRam 3G`, on the same laptop. Twelve runs against RC 2, after first probing the tool against RC 1.
+
+The only measurement that completed a step: the 10-bot step, with 14 bots online in 2
+regions, lowest TPS 19.6 to 20.0, worst region MSPT 13 to 17, heap 19 to 23 % of 4 GB, host CPU 56 to
+94 %. That is the server at ease, not its limit.
+
+What stopped the runs, and what the tool now does about it:
+
+| Cause | Seen as | In the tool |
+| --- | --- | --- |
+| SoulFire dies at start-up in native code (exit codes -1073741819, -1073740791) on this Windows machine | no bot joined, process gone | restarted up to 5 times; software rendering is forced (`-Dsf.vulkan.software=true`, `VK_LOADER_DRIVERS_DISABLE=*`) |
+| SoulFire restores the bots of earlier runs from `~/.soulfire` | old names rejoin, new accounts "removed before authentication" | own SoulFire home in `testing/.cache/soulfire-home`, instance database deleted before each start |
+| `--anti-afk-enabled` runs a pathfinder that burns the CPU and breaks blocks | host CPU 100 % with 14 bots, bots stop joining | the bots run `--auto-jump-enabled` and `--auto-respawn-enabled` only |
+| Bots dropped into oceans drown; floating bots are kicked ("Flying is not enabled on this server") | bots lost while joining | creative mode, see above |
+| Teleporting 16 bots at once to unexplored areas generates terrain for all of them | TPS 11 to 16 and keep-alive time-outs | areas opened one at a time |
+| Several bots lost at once are SoulFire dying, not a kick | false "bots were kicked" | the tool waits 4 s and checks SoulFire before calling it a kick |
+| Bots join and then disconnect by themselves within seconds | about 14 online however long the run, 131 distinct joins and 133 disconnects in 2.5 minutes; server TPS 20 and MSPT 15 to 23 | **not solved**; the cause is on the bot side (the disconnect is reported by the server as a plain "Disconnected", SoulFire logs no reason). A run with 10 accounts kept all 10 for three minutes, so it may depend on loading 300 accounts at once. The tool reports it as "bots stopped joining" |
+
+What you need to do to measure your own server, which is the way to get a trustworthy number:
+
+1. Run the bots on a different machine from the server (see the limits above). On this laptop the two
+   compete for the same 8 cores, and SoulFire alone takes most of them while it starts.
+2. Start with `-CheckOnly`, then `-Step 10 -Max 100`, and read the SoulFire log named in the summary
+   if the online count stops growing while the server TPS is fine: that is the bot side, not your server.
+3. Keep `-BotRam` at 3G or more and do not share the machine with other Minecraft clients.
+4. If SoulFire keeps crashing at start-up on your system, check its issues for your platform; on Linux
+   it uses the bundled software renderer without further help.
