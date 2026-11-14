@@ -5,9 +5,10 @@ Paper and Folia keep their settings in a properties file and five YAML files: `s
 `config/paper-world-defaults.yml`, plus a `paper-world.yml` in every world and the EULA answer in
 `eula.txt`. LegacyFolia replaces
 all of them with **eight commented TOML files in `config/`**, grouped by what each setting does,
-and an optional `config/server.properties` that holds only what you changed. Plugins notice
-nothing: every value they read through the Bukkit, Spigot and Paper APIs is still there, built in
-memory from the TOML files.
+and an optional `server.properties`, in the server root where panels expect it, that holds only what
+you changed. The whitelist, operators and bans are in a ninth file, `config/players.toml`. Plugins
+notice nothing: every value they read through the Bukkit, Spigot and Paper APIs is still there, built
+in memory from the TOML files.
 
 This page explains how that works. Every key is documented in the file that holds it, with what
 it does, what it accepts and its default, so this page does not repeat them. Where each key came
@@ -19,10 +20,11 @@ from (which legacy file, which path, which fallbacks) is in [SETTINGS-MAP.md](SE
 - [Per-world settings: worlds.toml](#per-world-settings-worldstoml)
 - [server.properties mode (for Pterodactyl and other panels)](#serverproperties-mode-for-pterodactyl-and-other-panels)
 - [/legacyfolia properties](#legacyfolia-properties)
+- [Whitelist, operators and bans: players.toml](#whitelist-operators-and-bans-playerstoml)
 - [Migrating from vanilla, Spigot, Paper or Folia](#migrating-from-vanilla-spigot-paper-or-folia)
 - [Plugin compatibility: the legacy files in memory](#plugin-compatibility-the-legacy-files-in-memory)
 - [The EULA](#the-eula)
-- [Secrets: rcon.secret, forwarding.secret, github.token](#secrets-rconsecret-forwardingsecret-githubtoken)
+- [Secrets: rcon.secret, forwarding.secret, github.token, management-keystore.secret](#secrets-rconsecret-forwardingsecret-githubtoken-management-keystoresecret)
 - [RCON, on and local by default](#rcon-on-and-local-by-default)
 - [Lobby: always spawn at the world spawn](#lobby-always-spawn-at-the-world-spawn)
 - [Spawn protection and the Nether roof](#spawn-protection-and-the-nether-roof)
@@ -34,12 +36,13 @@ from (which legacy file, which path, which fallbacks) is in [SETTINGS-MAP.md](SE
 
 | | Paper / Folia | LegacyFolia |
 |---|---|---|
-| Configuration files | `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml` in the root; `paper-global.yml`, `paper-world-defaults.yml` in `config/`; `paper-world.yml` per world | eight TOML files in `config/`, plus an optional `config/server.properties` holding only non-defaults. No YAML configuration file is read or written |
+| Configuration files | `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml` in the root; `paper-global.yml`, `paper-world-defaults.yml` in `config/`; `paper-world.yml` per world | eight TOML files in `config/`, plus an optional `server.properties` in the root holding only non-defaults. No YAML configuration file is read or written |
 | Per-world settings | `world-settings.<world>` in `spigot.yml` and `<world>/paper-world.yml` | `[worlds.<world>]` in `config/worlds.toml` |
 | EULA | `eula.txt` | `eula` in `config/server.toml`, asked at the console on a first start |
-| Whitelist, ops, bans | JSON files in the root | the same JSON files, in `config/` |
+| Whitelist, ops, bans | JSON files in the root | `config/players.toml`; the JSON files are imported once |
 | User cache | `usercache.json` in the root | `cache/usercache.json` |
 | Velocity secret | `proxies.velocity.secret` in `paper-global.yml` | `config/forwarding.secret` |
+| Management server keystore password | `management-server-tls-keystore-password` in `server.properties` | `config/management-keystore.secret` |
 | RCON | off, password in `server.properties` | on, bound to `127.0.0.1`, password generated into `config/rcon.secret` |
 | Whitelist default | on for a new server (vanilla 26.3) | off |
 | Spawn protection default | 16 | 0 |
@@ -77,7 +80,8 @@ section. The few names that changed on the way, and why, are listed in SETTINGS-
 
 **How the files are read and written.**
 
-- A new server writes all eight files on its first start, from templates in the jar.
+- A new server writes all eight files on its first start, from templates in the jar, and
+  `players.toml` beside them.
 - A file that cannot be parsed stops the server instead of being replaced: it is somebody's
   configuration, and starting with defaults would apply a setup nobody chose.
 - The server only ever writes these files as text. A change (a command, the server.properties
@@ -126,7 +130,7 @@ monsters = 24
 ## server.properties mode (for Pterodactyl and other panels)
 
 Panels such as Pterodactyl read and write `server.properties`, and operators have been editing it
-for fifteen years. So LegacyFolia keeps one, **on by default**, at `config/server.properties`:
+for fifteen years. So LegacyFolia keeps one, **on by default**, in the server root, beside the jar:
 
 - It holds **only the settings that differ from their defaults**, and **it wins** over the TOML
   files. The TOML files stay complete, at their defaults, as a commented reference.
@@ -152,15 +156,17 @@ for fifteen years. So LegacyFolia keeps one, **on by default**, at `config/serve
 - Never in `server.properties`: the secrets (their file names live in the TOML files), the EULA
   agreement and the switch itself.
 
-The file is `config/server.properties`, not the one in the server root: point the panel's
-configuration editor there. A `server.properties` in the server root is not read; if it looks like
-an older server's, the first start imports it (see [Migrating](#migrating-from-vanilla-spigot-paper-or-folia)),
-otherwise it is left alone.
+The file is `server.properties` in the server root, as in Paper, so a panel's configuration editor
+finds it where it always looked. Up to `v1.0.0-rc.1` it was `config/server.properties`: on the
+first start the server moves such a copy to the root, unless the root already has one, in which case
+both are left alone and the log says the one in `config/` is ignored. A root `server.properties` that
+looks like an older server's is imported first (see
+[Migrating](#migrating-from-vanilla-spigot-paper-or-folia)).
 
 Turn the mode off with `use-server-properties = false` in `server.toml` (applied at the next start
 or reload), or at once with the command below. Turning it off writes every value of
 `server.properties` into its TOML file, then deletes `server.properties`. Lines that cannot be
-moved (unknown keys, invalid values) are kept in `config/server.properties.unused` rather than
+moved (unknown keys, invalid values) are kept in `server.properties.unused`, beside it, rather than
 deleted (`.unused.2`, `.unused.3`... if that exists).
 
 ## /legacyfolia properties
@@ -174,6 +180,26 @@ deleted (`.unused.2`, `.unused.3`... if that exists).
 For the console and operators of level 4 only. The work runs off the region threads and the
 answer arrives when it is done; a failure deletes nothing and is logged in full on the console.
 
+## Whitelist, operators and bans: players.toml
+
+`config/players.toml` holds the four lists that vanilla keeps in `whitelist.json`, `ops.json`,
+`banned-players.json` and `banned-ips.json`, as one table per entry: `[[whitelist]]`, `[[ops]]`,
+`[[banned-players]]` and `[[banned-ips]]`, with the fields of the JSON in kebab case
+(`bypasses-player-limit`). A new file starts with a header that shows an example of each.
+
+- `/whitelist`, `/op`, `/ban`, `/ban-ip`, their pardons and plugins use the lists as before; only
+  where they are kept changed. Every save rewrites the one list that changed. A comment above an
+  entry and any table of your own are kept, but edit by hand only while the server is stopped, or
+  follow with `/whitelist reload`: a running server writes its own copy back.
+- `/whitelist reload` reads the whitelist again, and `/reload` the two ban lists.
+- **Import.** On a start where the JSON files exist, in the root or in `config/`, their entries are
+  added to `players.toml` (an entry already there wins; two entries are the same person by `uuid`,
+  the same address by `ip`) and the files are moved into the backup folder of the import
+  (`config/legacy-backup/<date_time>/`, the same folder as the other legacy files when the same
+  start imports them). A JSON file that cannot be read is left where it is, with a warning.
+- The server writes no JSON list file any more: a plugin that opens `whitelist.json` with
+  `new File(...)` finds nothing.
+
 ## Migrating from vanilla, Spigot, Paper or Folia
 
 Drop the LegacyFolia jar where another server used to run and start it. Before anything reads a
@@ -186,16 +212,18 @@ setting, it looks for every file that server kept its configuration in, in the s
 `<level>/dimensions/<namespace>/<path>/` layout).
 
 - When a file is both in the root and in `config/`, the one in `config/` is imported; the other is
-  backed up but not read.
+  backed up but not read. `server.properties` is the exception: it lives in the root, so the root
+  copy is imported and one in `config/` is the stray.
 - A `server.properties` is imported only if it is an older server's: it sits beside a `bukkit.yml`
   or `spigot.yml`, or starts with vanilla's `#Minecraft server properties`, or has a key the mode's
   own file never holds (such as `rcon.password`). One whose header mentions LegacyFolia is the
-  mode's own and is left where it is.
+  mode's own and is left where it is (in `config/`, it is moved to the root; see above).
 - Each value goes to its TOML key, and per-world values to `worlds.toml`. Where two files decided
   the same thing, the conflict is resolved the way the original server resolved it (Paper's `-1`
   spawn limit means Bukkit's applies; Spigot's `default` view distance means `server.properties`';
   `pause-when-empty-seconds` is not imported from a Bukkit-family server, because Paper forces
-  `-1`).
+  `-1`). `allow-nether=false` in an older `server.properties` turns the Nether off
+  (`dimensions.nether`); if Paper's `misc.enable-nether` is also there, Paper's switch wins.
 - Only values that differ from LegacyFolia's defaults are written. With the server.properties mode
   on, the mode then moves them into `server.properties`, where you would look for them.
 - Secrets are not written to the TOML files: `rcon.password` goes to `config/rcon.secret` and
@@ -211,9 +239,10 @@ server before anything is moved. An import that is interrupted leaves a marker i
 and is finished on the next start.
 
 The whitelist, operators and bans (`whitelist.json`, `ops.json`, `banned-players.json`,
-`banned-ips.json`) are data rather than settings: they are moved from the root into `config/` the
-first time the server opens them, and used as they are. `usercache.json` moves to `cache/`. If a
-copy already exists in `config/`, it wins and the root copy is left alone, with a warning.
+`banned-ips.json`) are data rather than settings: their entries go into `config/players.toml`
+(see [above](#whitelist-operators-and-bans-playerstoml)) and the files into the same backup folder.
+`usercache.json` moves to `cache/`. If a copy already exists in `cache/`, it wins and the root copy
+is left alone, with a warning.
 
 ## Plugin compatibility: the legacy files in memory
 
@@ -270,9 +299,9 @@ message saying what to set. Paper's `-Dcom.mojang.eula.agree=true` is still hono
 The agreement never goes to `server.properties`, even with the mode on: that file gets copied from
 one server to another, and a copy must not agree to the EULA on behalf of another operator.
 
-## Secrets: rcon.secret, forwarding.secret, github.token
+## Secrets: rcon.secret, forwarding.secret, github.token, management-keystore.secret
 
-Three files hold one value each and nothing else. The whole content, trimmed, is the value. The
+Four files hold one value each and nothing else. The whole content, trimmed, is the value. The
 TOML files only name them (`network.rcon.password-file`, `network.velocity.secret-file`,
 `plugins.auto-update.github-token-file`): a name is relative to `config/`, an absolute path is used
 as given, so a secret can be mounted from elsewhere.
@@ -284,15 +313,21 @@ as given, so a secret can be mounted from elsewhere.
   so the proxy's file can be copied straight across. The `PAPER_VELOCITY_SECRET` environment
   variable overrides it. A secret still in an old `paper-global.yml` is moved into this file. With
   Velocity enabled and no secret, Velocity forwarding is turned off with an error, as in Paper.
-- **`github.token`**: an optional GitHub token for the plugin updater. `GITHUB_TOKEN` overrides it.
+- **`github.token`**: an optional GitHub token for the plugin updater. `GITHUB_TOKEN` overrides it,
+  and the start-up notice about GitHub's sixty-requests-an-hour limit looks at both: it appears only
+  when a `github` plugin is listed and neither holds a token.
+- **`management-keystore.secret`**: the password of the management server's TLS keystore, for a
+  keystore that has one. The name is fixed and the file is never created or generated for you: it
+  has to be the password the keystore was made with. Without it the keystore is read with an empty
+  password, as vanilla does.
 
 `forwarding.secret` and `github.token` are created empty whenever they are missing, so the file to
 fill in is there to be found. Configuration gets pasted into issues and screenshots; keeping each
 secret in its own file keeps the rest safe to share.
 
-The management server's `management-server-secret` and `management-server-tls-keystore-password`
-are not settings here: vanilla generates the first anew on every start, and the second always
-takes vanilla's default (empty), so a keystore protected by a password cannot be used yet.
+The management server's `management-server-secret` is not a setting here: vanilla generates it
+anew on every start. `management-server-tls-keystore-password` is not one either: it comes from
+`management-keystore.secret`, and is never imported or written to `server.properties`.
 
 ## RCON, on and local by default
 
