@@ -7,14 +7,15 @@ linked where they explain the reason.
 
 The tests of `LegacyFoliaTestSuite` check formulas, file handling and packet contents. None of
 them has a person holding a mouse. In particular nobody has yet tried the locator bar, the 1.8 PvP or
-the weapon tooltip with real clients (see `PROGRESS.md` §5).
+the weapon tooltip with real clients (see `PROGRESS.md` §5). Bots now cover most of the list (see
+[the automated benches](#the-automated-benches)); this page is for what they cannot judge.
 
 ## What you need
 
 - **Java 25.**
-- **The jar.** `legacyfolia-paperclip-<version>.jar` from the GitHub pre-release. The paperclip jar
-  is the server; it downloads the Minecraft server jar on first start. Nothing else from the build
-  is needed.
+- **The jar.** `legacyfolia-paperclip-<version>.jar` from the GitHub pre-release
+  (`legacyfolia-paperclip-1.0.0-rc.2.jar` for RC 2). The paperclip jar is the server; it downloads
+  the Minecraft server jar on first start. Nothing else from the build is needed.
 - **Two Minecraft 26.3 clients**, on two accounts, for everything that involves two players.
 - **A 1.8.9 client** for the ViaVersion items, with ViaVersion, ViaBackwards and ViaRewind on the
   server in builds that support Minecraft 26.3 and Folia. The plugin updater can fetch them; see
@@ -49,13 +50,62 @@ For every FAIL, add:
 3. `logs/latest.log` from the server, whole. The `version` line in it records the commit the jar was
    built from.
 4. The files of `config/` involved. The TOML files hold no secrets and can be shared as they are.
-   **Never share `config/rcon.secret`, `config/forwarding.secret` or `config/github.token`.**
+   **Never share `config/rcon.secret`, `config/forwarding.secret`, `config/github.token` or
+   `config/management-keystore.secret`.**
 5. The plugin list (`plugins` in the console) and a video or screenshots when it is visual.
 
 Send the report to the maintainer who published the pre-release. The fork's GitHub issue tracker is
 currently off, and PaperMC does not support forks, so problems with anything on this page must not be
 reported to Paper or Folia. Results are recorded in `docs/PROGRESS.md`; any FAIL is fixed, and its
 item retested, before `v1.0.0`.
+
+---
+
+## The automated benches
+
+Since `v1.0.0-rc.2` four programs in `testing/` run part of this list without people. They start the
+jar in fresh temporary folders (offline mode, the EULA accepted only there), never touch a Minecraft
+account and write their results to `testing/results/` (git-ignored). Pass them the RC 2 jar
+(`legacyfolia-paperclip-1.0.0-rc.2.jar`, from the pre-release or from `./build.sh`); where the
+tables below say **bench**, the item has a PASS, FAIL or NOT_RUN of its own in the report. They need
+Java 25; `bot18` and `client` also need Node 24 (`load` runs `java LoadTest.java`).
+
+| Bench | What it is | Run it | Ports | Result |
+|---|---|---|---|---|
+| `testing/bots` | Protocol bots (MCProtocolLib 26.3-2) and the console: one result per item of this page, with the groups `locator`, `pvp`, `tooltips`, `off`, `fresh`, `dims`, `lobby`, `migration` and `eula` | `pwsh testing/bots/run-all.ps1 -Jar <jar> -Properties root [-Only locator,pvp] [-Keep]`<br>`testing/bots/run-all.sh -j <jar> -P root [-O locator,pvp] [-k]` | 25611 (game), 25612 and 25613 (RCON) | `bots.json` |
+| `testing/bot18` | Two Minecraft 1.8.8 clients (mineflayer 4.37.1) through ViaVersion 5.12.2, ViaBackwards 5.12.2 and ViaRewind 4.2.0: join, damage, no cooldown, sword blocking, the weapon tooltip | `pwsh testing/bot18/run.ps1 -Jar <jar> [-Port 25621] [-Keep]`<br>`testing/bot18/run.sh --jar <jar> [--port 25621] [--keep]` | 25621 | `bot18.json` |
+| `testing/client` | A real 26.3 client (HeadlessMC 3.0.0-RC8 with Fabric, offline) joins, reads and sends a chat line, and leaves | `pwsh testing/client/run.ps1 -Jar <jar> [-Port 25622] [-Keep] [-ShowOutput]`<br>`testing/client/run.sh --jar <jar> [--port 25622] [--keep] [--verbose]` | 25622 | `client.json` |
+| `testing/load` | Adds bots in steps and reads the server over RCON; see [LOAD-TESTING.md](LOAD-TESTING.md) | `testing/load/run-load.ps1` or `run-load.sh`, with the options of that page | the server's | `load-<date>.csv` |
+
+Notes on running them:
+
+- **`-Properties root` (`-P root`) is needed for RC 2.** The bots bench looks for `server.properties` in
+  `config/` by default, which is where RC 1 kept it; RC 2 keeps it in the server root.
+- Without a jar the bots bench takes the newest `testing/.cache/*.jar`. It builds itself with Gradle
+  (from the PATH, or the repository's wrapper).
+- The first run of each downloads what it needs into `testing/.cache`: the Via plugins and
+  mineflayer (`npm install`) for `bot18`, and for `client` HeadlessMC and the game files, about
+  600 MB from Mojang's servers. `-Keep` keeps the temporary server folder for a failing run.
+
+Results on the final RC 2 jar:
+
+| Bench | Result |
+|---|---|
+| bots | 81 PASS, 0 FAIL, 16 NOT_RUN |
+| bot18 | 5 of 5 (`join`, `melee_damage`, `no_attack_cooldown`, `sword_blocking`, `tooltip_damage`) |
+| client | 4 of 4 (`join`, `read_chat`, `send_chat`, `leave`) |
+| load | No capacity figure: SoulFire on Windows crashes and its bots drop at about 14. At 10 to 14 bots the server held TPS 20 and MSPT 13 to 23. Details in [LOAD-TESTING.md](LOAD-TESTING.md) |
+
+The 16 items the bots bench cannot do, and which therefore stay yours: `1j` with a team (Folia has no
+`/team`), `2h` arrows (the shooter's motion belongs to the client), `3d` (`bot18` only checks the
+modifier, not what the client draws), `4a`, `4b`, `4c` and `4e` (the EULA prompt needs a real
+terminal), `5i` (needs a plugin), `9b` to `9h` (the updater downloads from Hangar and GitHub) and
+`10c` (a soak with ViaVersion). A PASS from a bot is a PASS of the packets it reads; nobody has felt
+the combat or watched the bar yet.
+
+Folia has no `/data`, `/item`, `/loot` or `/team`, so some checks differ from what the vanilla commands
+would allow: read health from the client's bar (the bots read the health packets), compare stored
+items by their tooltip, and colour the locator dot with `/waypoint` only.
 
 ---
 
@@ -81,7 +131,7 @@ with `/gamerule locator_bar`.
 | 1g | B goes to the Nether. | B disappears from A's bar at once, and A's bar shows nothing of B while B is in the Nether. A in the overworld and B in the Nether never see each other. |
 | 1h | A follows B into the Nether, then both go to the End and back. | They see each other in whichever dimension they share. |
 | 1i | `/gamerule locator_bar false`, then `true`. Nobody moves. | The dots go at once, and come back without anyone having to move. |
-| 1j | `/team add red`, `/team modify red color red`, `/team join red B`. Then `/waypoint modify B color blue`. | B's dot changes colour each time. |
+| 1j | `/waypoint modify B color blue`. (Folia has no `/team`, so a team colour cannot be set; skip that part.) | B's dot changes colour. **Bench:** the `/waypoint` part; the team part is NOT_RUN. |
 | 1k | B dies and respawns, and B logs out and back in. | The bar keeps working for both. |
 
 A difference from vanilla that is expected: what a transmitter does reaches a receiver up to one
@@ -126,7 +176,7 @@ the 1.8 figure; the item stored on the server keeps its modern components.
 | 3a | 26.3 client: hover a diamond sword, a diamond axe, an iron pickaxe and a wooden shovel. | 8, 7, 5 and 2 Attack Damage (26.3 would show 7, 9, 4 and 2.5). |
 | 3b | Same items held by another player, in a chest, in an item frame, in a villager trade and dropped on the ground. | The same figures everywhere. |
 | 3c | Creative mode: take a diamond sword from the creative menu, move it around, put it in a chest. Check what is stored (Folia has no `/data`; the bot bench compares the stored item's modifiers with 26.3's default using `execute if items`). | Tooltip shows 8. The stored item has no `attribute_modifiers` component added. No item flickers: the server sends the creative slot back once, with the same 1.8 figure the client already shows, because it cannot tell a stack the client was shown from one it built itself ([PVP-1.8.md](PVP-1.8.md), the creative-mode safeguard). |
-| 3d | 1.8.9 client through ViaVersion: hover a diamond sword. | The figure a 1.8 server shows for it: the modifier, +7, without the player's own 1. Record exactly what is shown. |
+| 3d | 1.8.9 client through ViaVersion: hover a diamond sword. | The figure a 1.8 server shows for it: the modifier, +7, without the player's own 1. Record exactly what is shown. **Bench:** `bot18` checks that the 1.8 client receives the modifier 7; what it draws is still NOT_RUN. |
 | 3e | Set `legacy-weapon-damage = false` in `combat.toml` and run `/paper reload` (or restart). | The open inventory refreshes and the tooltips show 26.3's figures. |
 
 ## 4. EULA prompt
@@ -148,20 +198,21 @@ TTY has not been tried yet. Under systemd or in a container 4f is what should ha
 
 ## 5. server.properties mode
 
-On by default. `config/server.properties` holds only the settings that differ from their defaults,
-and wins over the TOML files. Details: [CONFIGURATION.md](CONFIGURATION.md).
+On by default. `server.properties`, in the server root beside the jar, holds only the settings that
+differ from their defaults, and wins over the TOML files. Details: [CONFIGURATION.md](CONFIGURATION.md).
 
 | # | Do | Expect |
 |---|---|---|
-| 5a | Fresh server, start once. | `config/server.properties` exists with only its explanatory header and no settings. |
+| 5a | Fresh server, start once. | `server.properties` exists in the root, not in `config/`, with only its explanatory header and no settings. |
 | 5b | Stop, add `motd=Test` and `gameplay.hunger.jump-walk-exhaustion=0.1` to it, start. | The server list shows "Test"; jumping costs the new figure. The TOML files still show the defaults. |
 | 5c | Stop, change `max-players` in `config/server.toml` to 5, start. | The change is moved into `server.properties` as `max-players=5`, and `server.toml` goes back to the default. |
 | 5d | Stop, delete the `motd` line, start. | The MOTD is back to the default. |
 | 5e | In game: `/whitelist on`, `/defaultgamemode creative`, `/setidletimeout 5`. | `white-list=true` and `player-idle-timeout=5` appear in `server.properties` without a restart. `/defaultgamemode` does not write `gamemode`: in vanilla it only sets the level's game type (the dedicated server's `setGameMode`, which would write the file, is called only by the management protocol, not by the command). `/difficulty` changes the world's difficulty only, as in vanilla and Paper. |
-| 5f | Console: `legacyfolia properties status`, then `legacyfolia properties off`. | `off` moves every setting into the TOML files and deletes `server.properties`; lines that are not settings are kept in `config/server.properties.unused`. |
+| 5f | Console: `legacyfolia properties status`, then `legacyfolia properties off`. | `off` moves every setting into the TOML files and deletes `server.properties`; lines that are not settings are kept in `server.properties.unused`, in the root. |
 | 5g | `/whitelist off` with the mode off, then `legacyfolia properties on`. | The change is written to `server.toml`; `on` moves every non-default back into a new `server.properties`. |
 | 5h | Look through `server.properties` at every step. | Never an `eula` line, and never a password, secret or token. |
 | 5i | Run a plugin that reads `getServer().getMotd()`, `Bukkit.spigot().getConfig()` or Paper's configuration (any plugin that shows the server's settings). | It sees the values from the TOML files and `server.properties`. There is no `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-global.yml` or `paper-world-defaults.yml` on disk. |
+| 5j | Stop a server, put an RC 1 `config/server.properties` with `motd=Old` into `config/` (and none in the root), start. | The log says it moved `config/server.properties` to the server root; the MOTD is "Old". With a `server.properties` in the root as well, nothing is moved and the log says the one in `config/` is ignored. |
 
 ## 6. Migration from Paper, Spigot and vanilla
 
@@ -179,11 +230,11 @@ For each of a Paper (or Folia), a Spigot and a vanilla server directory, on a co
 |---|---|
 | 6a | The log says "Found the configuration of an older server; importing it into config/" and then how many settings were imported from how many files. |
 | 6b | `config/legacy-backup/<date_time>/` holds the original files and `import-report.txt`, which names every setting that could not be imported and why. |
-| 6c | The noted settings are in effect. With the mode on, the non-default ones are in `config/server.properties`; per-world ones under `worlds.<world>.` |
-| 6d | `whitelist.json`, `ops.json`, `banned-players.json` and `banned-ips.json` are in `config/` with their contents; `usercache.json` is in `cache/`. |
+| 6c | The noted settings are in effect. With the mode on, the non-default ones are in `server.properties` in the root; per-world ones under `worlds.<world>.` |
+| 6d | The whitelist, the op and the ban are in `config/players.toml` (`[[whitelist]]`, `[[ops]]`, `[[banned-players]]`, `[[banned-ips]]`) and in effect; the JSON files are gone from the root and are in the same `config/legacy-backup/<date_time>/` as the other originals; `usercache.json` is in `cache/`. |
 | 6e | The RCON password is in `config/rcon.secret`, the Velocity secret in `config/forwarding.secret`, and neither appears in any TOML file or in `server.properties`. |
 | 6f | An `eula.txt` that said `true` means no prompt. |
-| 6g | The worlds load as they were. The Nether and the End stay off if the old server had them off. |
+| 6g | The worlds load as they were. The Nether and the End stay off if the old server had them off, including `allow-nether=false` in an old `server.properties`. |
 | 6h | A second start imports nothing and changes no file. |
 
 ## 7. Dimension toggles, lobby and Nether roof
@@ -228,12 +279,12 @@ Off by default. Rules in [PLUGIN-UPDATER.md](PLUGIN-UPDATER.md).
 | 9e | Add a slug that does not exist, start. | Start-up stops and the log names the entry and the reason. |
 | 9f | Remove that entry; start once with the network off. | Warnings for each plugin, and the server starts with the jars it has. |
 | 9g | With the network off, delete one of the jars, start. | Start-up stops: a listed plugin is missing. |
-| 9h | Put a GitHub token in `github.token` and add a `github` entry. | No message about the sixty-request limit. |
+| 9h | Put a GitHub token in `github.token` and add a `github` entry. Then empty the file and start with the `GITHUB_TOKEN` environment variable set to a token. | No message about the sixty-request limit in either case; with neither, the message appears. |
 
 ## 10. General
 
 | # | Do | Expect |
 |---|---|---|
-| 10a | Fresh directory, start, accept the EULA, stop. | No `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-*.yml`, `eula.txt`, `whitelist.json`, `ops.json`, ban lists or `usercache.json` in the root: they are in `config/` and `cache/`, or not written at all. `help.yml` and `permissions.yml` are still read from the root, as before. |
-| 10b | `config/` | Eight TOML files (`server`, `world`, `network`, `performance`, `gameplay`, `combat`, `plugins`, `worlds`), every setting commented. |
+| 10a | Fresh directory, start, accept the EULA, stop. | `server.properties` is in the root, beside the jar. No `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-*.yml`, `eula.txt`, `whitelist.json`, `ops.json`, ban lists or `usercache.json` in the root: they are in `config/` and `cache/`, or not written at all. `help.yml` and `permissions.yml` are still read from the root, as before. |
+| 10b | `config/` | Nine TOML files (`server`, `world`, `network`, `performance`, `gameplay`, `combat`, `plugins`, `worlds`, and `players`), the eight settings files with every setting commented, and `players.toml`, which holds the whitelist, ops and bans as data. |
 | 10c | Play normally for a while with several players spread far apart, with ViaVersion loaded. | No errors in the log other than ones a plugin causes. |
