@@ -44,8 +44,8 @@ On Windows, `applyAllPatches` needs long paths:
 
 - Apply patches: `./gradlew applyAllPatches` (or `patch.sh`/`patch.bat`)
 - Build jar: `./build.sh`/`build.bat` → `applyAllPatches` + `build createPaperclipJar`; the runnable jar
-  is `folia-server/build/libs/legacyfolia-paperclip-<version>.jar` (version from `settings.gradle.kts`:
-  `26.3.local-SNAPSHOT` without `BUILD_NUMBER`)
+  is `folia-server/build/libs/legacyfolia-paperclip-<version>.jar` (`<version>` is `projectVersion` in
+  `gradle.properties`, e.g. `1.0.0-rc.2`; `/version` still reports Minecraft's `26.3`)
 - Rebuild patches after editing generated trees: `./gradlew rebuildAllServerPatches` (`rb.sh`/`rb.bat`
   run the four `rebuild*Patches` tasks, API ones included)
 - Compile: `./gradlew :folia-server:compileJava`
@@ -70,7 +70,9 @@ On Windows, `applyAllPatches` needs long paths:
 
 - Folia commit style: short imperative English title, no prefix, one commit per change. Annotated tag per finished phase (`vX.Y.0`), pushed with `main`.
 - Only `main` on origin; never force-push.
-- Secrets (`forwarding.secret`, `rcon.secret`, `github.token`) never go into `server.properties`.
+- Secrets (`forwarding.secret`, `rcon.secret`, `github.token`, `management-keystore.secret`) never go
+  into `server.properties`. That file lives in the server root, not in `config/`; the whitelist, ops
+  and bans live in `config/players.toml`.
 
 ## Where things live
 
@@ -78,4 +80,6 @@ On Windows, `applyAllPatches` needs long paths:
 - `.claude/rules/patches.md`: patch workflow and patch map, loads on patch paths
 - `.claude/skills/release/`: tagging and publishing pre-releases
 - `.claude/lean-check.md`: weekly LeanFlow self-check
+- `testing/`: functional benches (`bots`, `bot18`, `client`, `load`); how to run them is in
+  `docs/TESTING.md`. Folia has no `/data`, `/item`, `/loot` or `/team`.
 - Other docs: `docs/SETTINGS-MAP.md`, `docs/CONFIGURATION.md`, `docs/PVP-1.8.md`, `docs/PLUGIN-UPDATER.md`, `docs/UPDATING.md`, `docs/TESTING.md`
