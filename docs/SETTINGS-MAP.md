@@ -2,7 +2,8 @@
 
 Referencia de **dónde vive cada ajuste del servidor y de dónde vino**. LegacyFolia sustituye los
 archivos de configuración de vanilla, Bukkit, Spigot y Paper/Folia por ocho TOML en `config/`
-(más un `config/server.properties` opcional que sólo guarda lo que difiere del default). Este
+(más un `server.properties` opcional, en la raíz del servidor, que sólo guarda lo que difiere del
+default, y `config/players.toml` con la whitelist, los ops y los bans). Este
 documento explica la correspondencia, los conflictos entre archivos y cómo se resolvieron, el orden
 en que el servidor lee cada cosa y lo que se dejó fuera a propósito. La guía de uso, en inglés, es
 [CONFIGURATION.md](CONFIGURATION.md).
@@ -91,7 +92,8 @@ text-filtering-config text-filtering-version use-native-transport view-distance 
 - `resource-pack-hash` → `also-from` de `server.resource-pack.sha1` (vanilla cae a ella si `sha1`
   está vacía, L153 y L212-215).
 - Excluidas (§8): `announce-player-achievements` (muerta), `management-server-secret`,
-  `management-server-tls-keystore-password`.
+  `management-server-tls-keystore-password` (la contraseña sale de
+  `config/management-keystore.secret`).
 
 ### 1.2 `bukkit.yml`
 
@@ -253,7 +255,7 @@ de Spigot; la migración toma `true` si cualquiera lo es) y `server.resource-pac
 
 | Orden | Punto | Archivo:línea | Qué queda poblado |
 |---:|---|---|---|
-| 1 | `ConfigHooks.start` | `folia-server/src/minecraft/java/net/minecraft/server/Main.java:130` → `.../legacyfolia/config/ConfigHooks.java:79-86` | `LegacyImport.runIfNeeded` (§6), `ServerConfig.load()` (los ocho TOML, creándolos o completándolos desde la plantilla), `ServerProperties.reconcile()` (§5.3). Un fallo detiene el servidor sin borrar nada |
+| 1 | `ConfigHooks.start` | `folia-server/src/minecraft/java/net/minecraft/server/Main.java:130` → `.../legacyfolia/config/ConfigHooks.java:79-89` | `LegacyImport.runIfNeeded` (§6), `LegacyImport.adoptOwnProperties` (mueve a la raíz un `config/server.properties` de `v1.0.0-rc.1`, §5.3), `PlayerLists.importLegacy` (los JSON de whitelist, ops y bans a `config/players.toml`, §5.4), `ServerConfig.load()` (los ocho TOML, creándolos o completándolos desde la plantilla), `ServerProperties.reconcile()` (§5.3). Un fallo detiene el servidor sin borrar nada |
 | 2 | `AdaptiveDistance.reload()`, `Combat.reload()` | `Main.java:135-136` | los dos módulos propios que cachean configuración |
 | 3 | `new DedicatedServerSettings(options)` | `Main.java:138` → `DedicatedServerSettings.java:13` | `DedicatedServerProperties` desde `ConfigHooks.serverProperties()` (`ServerPropertiesBridge` + `RconSecret`), **sin leer archivo**; `forceSave()` es un no-op (`DedicatedServerSettings.java:21-30`) |
 | 4 | `RegionFileVersion.configure(...)` | `Main.java:146` | compresión de regiones, ya desde el TOML (antes no hacía nada) |
@@ -272,7 +274,7 @@ de Spigot; la migración toma `true` si cualquiera lo es) y `server.resource-pac
 El cargador de plugins lee `settings.update-folder` antes del paso 1
 (`paper-server/src/main/java/io/papermc/paper/plugin/PluginInitializerManager.java:42`):
 `ConfigHooks.earlyUpdateFolder` lo resuelve como lo hará el servidor, en este orden: un `bukkit.yml`
-heredado aún sin importar, una línea `plugins.api.update-folder` en `config/server.properties`,
+heredado aún sin importar, una línea `plugins.api.update-folder` en el `server.properties` de la raíz,
 `plugins.toml`, y `"update"`.
 
 ### 4.2 Recarga y parada
@@ -343,7 +345,10 @@ siguiente recarga.
 ### 5.3 El modo `server.properties`
 
 `.../legacyfolia/config/ServerProperties.java`. Encendido por defecto
-(`server.use-server-properties = true`); vive en `config/server.properties`.
+(`server.use-server-properties = true`); vive en `server.properties`, en la raíz del servidor
+(`ServerConfig.root()`), junto al jar y donde lo buscan los paneles. Hasta `v1.0.0-rc.1` vivía en
+`config/`: `LegacyImport.adoptOwnProperties` mueve ese archivo a la raíz en el primer arranque, salvo
+que la raíz ya tenga uno (entonces no toca ninguno y avisa de que el de `config/` se ignora).
 
 - Sólo contiene lo que difiere del default y gana a los TOML. `reconcile()` (arranque y recarga)
   mueve al archivo lo que se editó en un TOML y devuelve el TOML a su default; si ambos dicen algo
@@ -358,15 +363,32 @@ siguiente recarga.
   `network.velocity.secret-file`, `plugins.auto-update.github-token-file`), `server.eula` y el propio
   interruptor (`SettingEntry.allowedInServerProperties`).
 - Apagarlo (`/legacyfolia properties off`, o `use-server-properties = false` a mano) escribe cada
-  línea válida en su TOML, guarda en `config/server.properties.unused` lo que no se pudo mover y
+  línea válida en su TOML, guarda en `server.properties.unused` (en la raíz, junto a él) lo que no se pudo mover y
   sólo entonces borra el archivo. Encenderlo mueve al archivo todo lo que no es default.
 - El archivo se escribe con `PropertiesDocument`, que conserva comentarios y orden y agrupa las
   líneas nuevas bajo un comentario con su archivo TOML o su mundo. Los TOML se escriben con
   `TomlText` (el `save()` de night-config borra comentarios).
 - La migración no reconoce como heredado un `server.properties` cuya cabecera mencione LegacyFolia
-  (`.../legacyfolia/config/migration/LegacyFiles.java:30-50`).
+  (`.../legacyfolia/config/migration/LegacyFiles.java`, `isLegacyServerProperties`).
 
-### 5.4 Lecturas por ruta de archivo
+### 5.4 La whitelist, los ops y los bans: `config/players.toml`
+
+`.../legacyfolia/config/players/` (`PlayerLists`, `PlayersFile`). `StoredUserList` sigue guardando
+las listas en memoria y sigue produciendo y leyendo `JsonObject`s; el parche 0018 enchufa
+`PlayerLists.save` y `PlayerLists.load` en su `save()` y su `load()`, y el archivo `*.json` sólo da
+nombre a la lista (nunca se crea). Las listas son tablas `[[whitelist]]`, `[[ops]]`,
+`[[banned-players]]` y `[[banned-ips]]` con los campos del JSON en kebab case. Cada guardado
+reescribe sólo la lista que cambió, y conserva los comentarios de las entradas que siguen igual y
+las tablas que añada el operador. El enganche sólo actúa con el servidor arrancado
+(`ConfigHooks.isStarted`).
+
+Los cuatro JSON se importan una vez en `ConfigHooks.start` (`PlayerLists.importLegacy`), de la raíz
+o de `config/`: lo que ya está en `players.toml` gana (misma persona por `uuid`, misma dirección por
+`ip`, si no por nombre), y los originales se mueven a la carpeta de respaldo de la migración, o a una
+propia en `config/legacy-backup/` si ese arranque no migró nada más. Un JSON ilegible se deja donde
+está con un aviso. Tests: `PlayersFileTest`, `PlayerListsImportTest`.
+
+### 5.5 Lecturas por ruta de archivo
 
 - Las opciones `--config`, `--bukkit-settings`, `--spigot-settings`, `--commands-settings` y
   `--paper-settings` se siguen aceptando (sus defaults apuntan a `config/`,
@@ -384,10 +406,11 @@ siguiente recarga.
 
 - **Búsqueda** (`LegacyFiles`): `bukkit.yml`, `spigot.yml`, `commands.yml`, `eula.txt` y
   `server.properties` en la raíz y en `config/` (si está en los dos, el de `config/` se importa y
-  el otro se respalda sin leerse); `paper-global.yml` y `paper-world-defaults.yml` en `config/`;
+  el otro se respalda sin leerse; en `server.properties` es al revés, porque vive en la raíz: gana el
+  de la raíz); `paper-global.yml` y `paper-world-defaults.yml` en `config/`;
   cada `paper-world.yml` del contenedor de mundos, en las dos disposiciones (`world_nether/` y la de
   Paper 26, `<nivel>/dimensions/<ns>/<ruta>/`, nombrada como `PaperWorldLoader`). Los JSON de
-  moderación no se buscan: los mueve `ConfigPaths` a `config/` al abrirlos.
+  moderación no se buscan aquí: los importa `PlayerLists` a `config/players.toml` (§5.4).
 - **Planificación** (`ImportPlanner`): tres capas (servidor, todos los mundos, un mundo). Una clave
   que sólo existía por mundo pone su valor "todos los mundos" en la sección global del TOML y el de
   un mundo en `[worlds.<mundo>]`. Las que tenían valor de servidor y de todos los mundos
@@ -396,7 +419,8 @@ siguiente recarga.
   original: `-1` de Paper → Bukkit, `"default"` de Spigot → `server.properties`, `sha1` gana a
   `hash`, `debug` es `true` si cualquiera lo es, `replace-commands` antiguo, deducción de
   `enable-spam-exclusions`, `pause-when-empty-seconds` no se importa de la familia CraftBukkit
-  (Paper fuerza `-1`).
+  (Paper fuerza `-1`), `allow-nether` de `server.properties` (`also-from` de `dimensions.nether`; si
+  también está `misc.enable-nether` de Paper, gana el de Paper).
 - **Escritura** (`LegacyImport`): sólo valores distintos del default, sólo en los TOML (nunca en
   `server.properties`; el modo los mueve después). Los secretos van a su archivo, salvo que ya
   tenga otro valor. Se verifica leyendo de vuelta.
@@ -454,7 +478,7 @@ catálogo ni aquí. Una ruta excluye también todo lo que cuelga de ella.
 | paper-mundo | `chunks.entity-per-chunk-save-limit`, `entities.spawning.despawn-time` | mapas por tipo de entidad, todos `-1`/disabled por defecto |
 | paper-global | `packet-limiter.overrides` | indexado por **clase** Java de paquete |
 | server.properties | `management-server-secret` | secreto que vanilla genera de nuevo en cada arranque |
-| server.properties | `management-server-tls-keystore-password` | secreto sin archivo propio todavía; el puente no lo escribe, así que vale el default de vanilla (`""`) |
+| server.properties | `management-server-tls-keystore-password` | secreto: se lee de `config/management-keystore.secret` (`SecretFiles.MANAGEMENT_KEYSTORE`, nombre fijo, nunca se crea ni se genera) y `ServerPropertiesBridge` lo pone en las propiedades; sin ese archivo vale el default de vanilla (`""`). Nunca se importa ni se escribe en `server.properties` |
 | paper-mundo | `chunks.prevent-moving-into-unloaded-chunks` | Folia lo fuerza a `true` (`WorldConfiguration.java:535`) |
 | bukkit | `settings.compatibility` | código muerto: `CraftServer.loadCompatibilities()` empieza con `if (true) return;` (`CraftServer.java:476-477`) |
 | paper-mundo | `feature-seeds.features` | mapa `Reference2LongMap<Holder<Feature>>` (`WorldConfiguration.java:567`) que Paper rellena él mismo cuando `world.generation.random-feature-seeds` está activo |
