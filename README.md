@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://minecraft.net)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://adoptium.net)
 [![Upstream](https://img.shields.io/badge/fork%20of-PaperMC%2FFolia-blue)](https://github.com/PaperMC/Folia)
-[![Status](https://img.shields.io/badge/status-v1.0.0--rc.1%20(testing)-yellow)](https://github.com/adrielorihuela/LegacyFolia/releases)
+[![Status](https://img.shields.io/badge/status-v1.0.0--rc.2%20(testing)-yellow)](https://github.com/adrielorihuela/LegacyFolia/releases)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0-lightgrey)](PATCHES-LICENSE)
 
 **LegacyFolia** is a fork of [Folia](https://github.com/PaperMC/Folia), PaperMC's multithreaded
@@ -12,9 +12,9 @@ Minecraft server, for Minecraft **26.3**. It keeps everything Folia is and adds:
 - **1.8 PvP** (old combat: no attack cooldown, 1.8 knockback, sword blocking, 1.8 weapon damage,
   armour, potions and more), read from the 1.8.8 source and on by default;
 - the **locator bar** working again, which Folia disables;
-- **eight commented TOML files** in `config/` instead of `server.properties`, `bukkit.yml`,
-  `spigot.yml`, `commands.yml` and Paper's YAML files, with an optional `server.properties` for
-  hosting panels such as Pterodactyl;
+- **eight commented TOML files** in `config/` instead of `bukkit.yml`, `spigot.yml`,
+  `commands.yml` and Paper's YAML files, a `players.toml` for the whitelist, operators and bans, and
+  a `server.properties` in the server root for hosting panels such as Pterodactyl;
 - **automatic migration** of an existing vanilla, Spigot, Paper or Folia server;
 - **plugin auto-updates** from Hangar, Modrinth, GitHub releases and LuckPerms;
 - switches to turn the **Nether and the End off**, a **lobby spawn**, a **Nether roof** block, an
@@ -24,9 +24,10 @@ It is a Folia server first: regionised multithreading, the Paper and Bukkit plug
 upstream commit merged in. Plugins keep reading Bukkit, Spigot and Paper configuration through the
 usual APIs. Every addition can be switched off.
 
-> **Status: release candidate `v1.0.0-rc.1`, for testing.** The code for 1.0.0 is complete and the
-> automated tests pass, but the 1.8 combat, the locator bar and the EULA prompt on a Linux terminal
-> have not yet been tried with real players. Download the jar from
+> **Status: release candidate `v1.0.0-rc.2`, for testing.** The code for 1.0.0 is complete and the
+> automated tests pass. The functional bench (protocol bots, a 1.8.8 client and a real 26.3 client,
+> see [docs/TESTING.md](docs/TESTING.md)) passes on the RC 2 jar, but the 1.8 combat, the locator
+> bar and the EULA prompt on a Linux terminal have not yet been tried by people. Download the jar from
 > [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), try it on a test server with the
 > checklist in [docs/TESTING.md](docs/TESTING.md), and report anything that behaves differently
 > from what is described here to the maintainer (the fork's issue tracker is off). `v1.0.0`
@@ -42,7 +43,7 @@ usual APIs. Every addition can be switched off.
 | Plugins | Bukkit, Spigot and Paper plugins | Only plugins declaring `folia-supported: true` | Same as Folia |
 | Combat | Modern (1.9+) | Modern (1.9+) | **1.8**, on by default; every mechanic has its own switch, and with `combat.enabled = false` it is modern combat again |
 | Locator bar (`/gamerule locator_bar`) | Works (vanilla) | Does nothing ([Folia#370](https://github.com/PaperMC/Folia/issues/370)) | **Works**, behaving as vanilla's |
-| Configuration on disk | `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml`, `config/paper-global.yml`, `config/paper-world-defaults.yml`, one `paper-world.yml` per world, `eula.txt` | Same as Paper | **Eight TOML files in `config/`**, every key commented, plus an optional `config/server.properties` with only what differs from the defaults. The YAML files are built in memory for plugins and never written |
+| Configuration on disk | `server.properties`, `bukkit.yml`, `spigot.yml`, `commands.yml`, `config/paper-global.yml`, `config/paper-world-defaults.yml`, one `paper-world.yml` per world, `eula.txt` | Same as Paper | **Eight TOML files in `config/`**, every key commented, plus `config/players.toml` and a `server.properties` in the root, optional and holding only what differs from the defaults. The YAML files are built in memory for plugins and never written |
 | Per-world settings | `spigot.yml` `world-settings` and each world's `paper-world.yml` | Same as Paper | One file, `config/worlds.toml`, using the same precedence |
 | Moving an existing server | — | — | Imported on first start; originals backed up to `config/legacy-backup/<date>/` with an `import-report.txt` |
 | EULA | Stops; you edit `eula.txt` and start again | Same as Paper | Asks at the console (Enter agrees, Escape stops); stored as `eula` in `server.toml` |
@@ -100,7 +101,7 @@ those snapshots on its own thread, so nothing reads another region's entities.
 ### TOML configuration
 
 `config/` holds eight TOML files grouped by what settings **do**, not by which server introduced
-them, with a comment on every key:
+them, with a comment on every key, and `players.toml` for the whitelist, operators and bans:
 
 | File | What it holds |
 |---|---|
@@ -112,6 +113,7 @@ them, with a comment on every key:
 | `combat.toml` | the 1.8 combat, attribute limits |
 | `plugins.toml` | plugin loading and the auto-updater |
 | `worlds.toml` | per-world overrides of any setting above |
+| `players.toml` | the whitelist, operators and the two ban lists: data, not settings (imported from the old JSON files) |
 
 Nearly 600 settings in total, every one from `server.properties`, `bukkit.yml`, `spigot.yml`,
 `commands.yml` and Paper's files included. Those files **are not written to disk any more**: the
@@ -119,7 +121,7 @@ Bukkit, Spigot and Paper configuration objects plugins read, including `Bukkit.s
 are built in memory from the TOML files.
 
 - **`server.properties` mode**, on by default, for Pterodactyl and other panels:
-  `config/server.properties` holds only the settings that differ from their defaults and wins over
+  `server.properties`, in the server root beside the jar, holds only the settings that differ from their defaults and wins over
   the TOML files. Vanilla keys keep their names (`motd`, `max-players`, `server-port`); everything
   else uses its TOML path. `/legacyfolia properties on|off|status` (console or op level 4) switches
   it at once. Secrets and the EULA never go into it.
@@ -128,7 +130,9 @@ are built in memory from the TOML files.
   resolved them.
 - **Secrets in their own files**: `config/rcon.secret` (generated), `config/forwarding.secret`,
   `config/github.token`.
-- **Whitelist, bans and ops** live in `config/`, the user cache in `cache/`.
+- **Whitelist, bans and ops** live in `config/players.toml`, imported from the JSON files of an older
+  server; the user cache is in `cache/`.
+- **The management server's keystore password** goes in `config/management-keystore.secret`.
 
 ```toml
 # world.toml
@@ -206,15 +210,15 @@ upstream does.
 1. Install **Java 25**.
 2. Download `legacyfolia-paperclip-<version>.jar` from
    [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), or build it (below). The
-   version in the file name is the build's Minecraft version (`26.3.local-SNAPSHOT` for a local
-   build), not the release tag.
+   version in the file name is `projectVersion` in `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.2.jar`),
+   also for a local build; `/version` still reports the Minecraft version.
 3. Start it in an empty folder, or in the folder of the server you want to migrate:
 
    ```bash
    java -Xms4G -Xmx4G -jar legacyfolia-paperclip-<version>.jar nogui
    ```
 
-4. Answer the EULA prompt. The server writes `config/`, generates `config/rcon.secret`, and creates
+4. Answer the EULA prompt. The server writes `config/` and `server.properties`, generates `config/rcon.secret`, and creates
    `config/forwarding.secret` and `config/github.token` empty for you to fill in when needed. An
    existing server's configuration is imported first and its files backed up.
 5. Open `config/`: every setting is there, and every one is commented. Restart to apply an edit;
@@ -251,7 +255,7 @@ Details: [docs/PVP-1.8.md](docs/PVP-1.8.md#what-could-not-be-made-identical).
 ```
 
 Applies the patches and builds the jars into `folia-server/build/libs/`; the one to run is
-`legacyfolia-paperclip-<version>.jar`. Requires Java 25. On Windows, applying the patches needs Git
+`legacyfolia-paperclip-<version>.jar`, named after `projectVersion` in `gradle.properties`. Requires Java 25. On Windows, applying the patches needs Git
 long paths for your user (`git config --global core.longpaths true`), since the patched sources are
 git repositories of their own.
 
@@ -274,7 +278,8 @@ into it, so merges stay cheap.
 | [docs/PVP-1.8.md](docs/PVP-1.8.md) | Every 1.8 combat mechanic, its formula, its setting, and what was verified |
 | [docs/PLUGIN-UPDATER.md](docs/PLUGIN-UPDATER.md) | The plugin auto-updater and each source |
 | [docs/UPDATING.md](docs/UPDATING.md) | Merging new Folia builds and handling patches |
-| [docs/TESTING.md](docs/TESTING.md) | The manual checklist for a release candidate |
+| [docs/TESTING.md](docs/TESTING.md) | The manual checklist for a release candidate, and the bots, 1.8 client and real client benches in `testing/` |
+| [docs/LOAD-TESTING.md](docs/LOAD-TESTING.md) | The load test tool and the state of the local measurement |
 | [docs/SETTINGS-MAP.md](docs/SETTINGS-MAP.md) | Where every inherited setting went (Spanish) |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Project state and history (Spanish) |
 
