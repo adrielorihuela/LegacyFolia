@@ -36,7 +36,7 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true ./gra
 **Which jar to run.** The build writes three jars to `folia-server/build/libs/`, named after the
 project and the version: `legacyfolia-<version>.jar`, `legacyfolia-bundler-<version>.jar` and
 `legacyfolia-paperclip-<version>.jar`. The paperclip jar is the server; the others are build
-by-products. A local build is versioned `26.3.local-SNAPSHOT`. The manifest records the commit it
+by-products. The jar is named after `projectVersion` in `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.2.jar`), also for a local build. The manifest records the commit it
 was built from (`Implementation-Version` is `26.3-DEV-<short hash>` without a `BUILD_NUMBER`).
 
 ## Why merges are usually painless
@@ -60,7 +60,7 @@ A patch that small only conflicts if upstream edits the exact lines around it.
 
 | Patch set | Folia's own | LegacyFolia's |
 |---|---|---|
-| `folia-server/minecraft-patches/features` (Minecraft's code) | 0001–0011 | 0012–0057 |
+| `folia-server/minecraft-patches/features` (Minecraft's code) | 0001–0011 | 0012–0058 |
 | `folia-server/paper-patches/features` (Paper's server code) | 0001–0006 | 0007–0013 |
 | `folia-api/paper-patches/features` (the API) | 0001–0004 | none |
 
