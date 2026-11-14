@@ -7,5 +7,5 @@ Moved from CLAUDE.md § Commands and § Repo conventions on 2026-11-06.
 
 - Pre-releases for testing are `v1.0.0-rc.N` with the paperclip jar attached on GitHub; `v1.0.0` is tagged and released only when the user says so.
 - The CI in `.github/workflows/` is upstream's: `build.yml` builds pushes, `release-26.3.yaml` only runs on `ver/26.3.x`, so release jars are built locally and attached to the GitHub release.
-- Build jar: `./build.sh`/`build.bat` → `applyAllPatches` + `build createPaperclipJar`; the runnable jar is `folia-server/build/libs/legacyfolia-paperclip-<version>.jar` (version from `settings.gradle.kts`: `26.3.local-SNAPSHOT` without `BUILD_NUMBER`).
+- Build jar: `./build.sh`/`build.bat` → `applyAllPatches` + `build createPaperclipJar`; the runnable jar is `folia-server/build/libs/legacyfolia-paperclip-<version>.jar` (version from `projectVersion` in `gradle.properties`; bump it before building a new release).
 - Publish with `gh release create <tag> --repo adrielorihuela/LegacyFolia --prerelease --latest=false`, the jar attached and its sha256 in the notes.
