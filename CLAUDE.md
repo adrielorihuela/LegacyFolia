@@ -45,7 +45,7 @@ On Windows, `applyAllPatches` needs long paths:
 - Apply patches: `./gradlew applyAllPatches` (or `patch.sh`/`patch.bat`)
 - Build jar: `./build.sh`/`build.bat` → `applyAllPatches` + `build createPaperclipJar`; the runnable jar
   is `folia-server/build/libs/legacyfolia-paperclip-<version>.jar` (`<version>` is `projectVersion` in
-  `gradle.properties`, e.g. `1.0.0-rc.2`; `/version` still reports Minecraft's `26.3`)
+  `gradle.properties`, e.g. `1.0.0-rc.3`; `/version` still reports Minecraft's `26.3`)
 - Rebuild patches after editing generated trees: `./gradlew rebuildAllServerPatches` (`rb.sh`/`rb.bat`
   run the four `rebuild*Patches` tasks, API ones included)
 - Compile: `./gradlew :folia-server:compileJava`

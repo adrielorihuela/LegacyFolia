@@ -26,8 +26,8 @@ Moved from CLAUDE.md § Patch workflow on 2026-11-06.
 - Upstream precedence: when upstream changes the same thing, upstream's behaviour wins and ours goes on
   top (exception: whitelist stays off by default).
 
-Our minecraft patches: 0012–0015 config load/EULA, plugin update, locator bar, adaptive distance;
-0016–0017, 0020–0027, 0035–0036, 0038–0058 combat; 0018–0019 file locations; 0028–0031 lobby, Nether
-roof, spawn protection, whitelist default; 0032–0034 start from TOML, hot writes, lobby main world;
-0037 vanilla locator bar. Paper: 0007 dimensions, 0008 forwarding secret, 0009 `canSee` by id,
-0010–0012 server.properties/Bukkit/Spigot/Paper files in memory, 0013 `/legacyfolia`.
+Our minecraft patches: 0015–0018 config load/EULA, plugin update, locator bar, adaptive distance;
+0019–0020, 0023–0030, 0038–0039, 0041–0061 combat; 0021–0022 file locations; 0031–0034 lobby, Nether
+roof, spawn protection, whitelist default; 0035–0037 start from TOML, hot writes, lobby main world;
+0040 vanilla locator bar. Paper: 0008 dimensions, 0009 forwarding secret, 0010 `canSee` by id,
+0011–0013 server.properties/Bukkit/Spigot/Paper files in memory, 0014 `/legacyfolia`.

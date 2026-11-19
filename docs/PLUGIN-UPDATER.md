@@ -185,4 +185,4 @@ download after five minutes.
   writes straight into the plugin directory.
 
 The code is in `folia-server/src/main/java/io/github/adrielorihuela/legacyfolia/update/`, hooked into
-start-up by minecraft patch 0013. Manual checks for a release are in [TESTING.md](TESTING.md).
+start-up by minecraft patch 0016. Manual checks for a release are in [TESTING.md](TESTING.md).

@@ -21,13 +21,13 @@ Moved from CLAUDE.md on 2026-11-06.
   1.8 rule; weapon tooltips show 1.8 damage on the wire only.
 - Upstream patches (minecraft 0001–0011, paper 0001–0006) are untouched; ours start at minecraft 0012
   (up to 0058) and paper 0007 (up to 0013). The runnable jar is named after `projectVersion` in
-  `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.2.jar`); `/version` reports Minecraft's.
+  `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.3.jar`); `/version` reports Minecraft's.
 
 ## Architecture (`folia-server/src/main/java/io/github/adrielorihuela/legacyfolia/`)
 
 - `config/` — the configuration system. `ConfigHooks` is the single entry point the patches call
   (`start`, `reload`, `stop`, the in-memory objects, `vanillaChanged` for hot writes). Flow:
-  `catalog/` (`SettingsCatalog`, data in `resources/legacyfolia/catalog.tsv`: 593 keys with type,
+  `catalog/` (`SettingsCatalog`, data in `resources/legacyfolia/catalog.tsv`: 595 keys with type,
   default, per-world flag, legacy origin, server.properties name) → `ServerConfig` / `forWorld(name)`
   reading the eight TOML files (defaults in `resources/legacyfolia/*.toml`; `[worlds.<name>]`, then
   `[worlds.default]`, then global) → `ServerProperties` overlay (`/legacyfolia properties
@@ -36,7 +36,7 @@ Moved from CLAUDE.md on 2026-11-06.
   old server files on first start and moves them to `config/legacy-backup/<date>/` with an
   `import-report.txt`, and `adoptOwnProperties` moves an rc.1 `config/server.properties` to the root.
   `players/` (`PlayerLists`, `PlayersFile`) keeps the whitelist, ops and bans in `config/players.toml`
-  (hooked into `StoredUserList.save/load`, patch 0018) and imports the old JSON files into it.
+  (hooked into `StoredUserList.save/load`, patch 0021) and imports the old JSON files into it.
   `SecretFiles` reads the secret files, `management-keystore.secret` included. All TOML writes go through `properties/TomlText` (night-config's `save()`
   destroys comments). `catalog/LegacyExclusions` + `LegacyCoverageTest` fail the build when Paper or
   Spigot add a setting we haven't catalogued.

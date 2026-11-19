@@ -423,7 +423,7 @@ are stopped by tall grass, flowers, torches and signs as well as solid blocks, a
 `World.rayTrace` was. The push lands only on what the explosion hurt, and always on primed TNT and
 falling blocks, and on an entity still invulnerable from a stronger hit (Spigot's SPIGOT-949); it is
 not reduced by Blast Protection, and a creative player is never sent it (the server's copy still
-moves, as in 1.8). Primed TNT is pushed from its feet, and explodes at half its height, as 1.8 did, not 0.0625 of the way up (patch 0058). An explosion something living set off (a
+moves, as in 1.8). Primed TNT is pushed from its feet, and explodes at half its height, as 1.8 did, not 0.0625 of the way up (patch 0061). An explosion something living set off (a
 creeper, whoever lit the TNT; not a ghast's fireball, a wither skull or an end crystal, which had no
 cause in 1.8) also knocks back away from it, under `legacy-knockback`. Paper's
 `gameplay.environment.disable-explosion-knockback` still applies.

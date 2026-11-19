@@ -47,7 +47,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>{@link #runIfNeeded(Path, Path)} must run <b>before</b> {@code ServerConfig.load()}, that is
  * in {@code Main.main} just ahead of the {@code ServerConfig.load()} call the "unified
- * configuration" block of patch 0030 placed before {@code new DedicatedServerSettings}, and after
+ * configuration" block of patch 0033 placed before {@code new DedicatedServerSettings}, and after
  * the command line has been parsed so that {@code --universe} can be passed as the world container.
  * Three reasons. The importer writes the TOML files, and {@code ServerConfig} keeps what it read in
  * memory, so it would go on answering with the values from before the import if it had loaded first.

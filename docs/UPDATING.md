@@ -36,7 +36,7 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true ./gra
 **Which jar to run.** The build writes three jars to `folia-server/build/libs/`, named after the
 project and the version: `legacyfolia-<version>.jar`, `legacyfolia-bundler-<version>.jar` and
 `legacyfolia-paperclip-<version>.jar`. The paperclip jar is the server; the others are build
-by-products. The jar is named after `projectVersion` in `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.2.jar`), also for a local build. The manifest records the commit it
+by-products. The jar is named after `projectVersion` in `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.3.jar`), also for a local build. The manifest records the commit it
 was built from (`Implementation-Version` is `26.3-DEV-<short hash>` without a `BUILD_NUMBER`).
 
 ## Why merges are usually painless
@@ -48,7 +48,7 @@ directory, so they cannot conflict.
 
 What does touch Minecraft's and Paper's code is a set of feature patches, each kept as thin as
 possible: a call into the fork's own classes. The dimension switch, for example, is one line in
-`CraftServer` (paper patch 0007):
+`CraftServer` (paper patch 0008):
 
 ```java
 return io.github.adrielorihuela.legacyfolia.world.Dimensions.netherEnabled(GlobalConfiguration.get().misc.enableNether);
@@ -60,8 +60,8 @@ A patch that small only conflicts if upstream edits the exact lines around it.
 
 | Patch set | Folia's own | LegacyFolia's |
 |---|---|---|
-| `folia-server/minecraft-patches/features` (Minecraft's code) | 0001–0011 | 0012–0058 |
-| `folia-server/paper-patches/features` (Paper's server code) | 0001–0006 | 0007–0013 |
+| `folia-server/minecraft-patches/features` (Minecraft's code) | 0001–0014 | 0015–0061 |
+| `folia-server/paper-patches/features` (Paper's server code) | 0001–0007 | 0008–0014 |
 | `folia-api/paper-patches/features` (the API) | 0001–0004 | none |
 
 The fork has no file patches, only feature patches. Folia's patches should stay byte-identical to
@@ -161,7 +161,7 @@ lines, the way Paper marks its own changes.
 
 When upstream starts doing the same thing the fork does, upstream's code wins and the fork's goes
 on top or is removed. The one deliberate exception is the whitelist, which stays off on a new server
-(minecraft patch 0031) although 26.3 turns it on.
+(minecraft patch 0034) although 26.3 turns it on.
 
 ## Moving to a new Minecraft version
 
@@ -172,11 +172,11 @@ When Folia opens the branch for the next version:
 2. Run the update. `mcVersion`, `apiVersion` and `paperRef` come from upstream in the merge; do not
    edit them by hand.
 3. Expect hooks to need moving by hand: a Minecraft version moves code that a point release does
-   not. On the move to 26.3 the 1.8 combat patch 0017 had to follow the rename of
+   not. On the move to 26.3 the 1.8 combat patch 0020 had to follow the rename of
    `invulnerableTime` to `damageCooldownTime`, `ServerboundSwingPacket` became
    `ServerboundPunchPacket`, and the mache context in `build.gradle.kts.patch` changed. Paper or
    Mojang changing a default can collide with a fork decision too: 26.3 turned the whitelist on and
-   patch 0031 had to be added to keep it off.
+   patch 0034 had to be added to keep it off.
 4. Update the version in `README.md`, `CLAUDE.md` and the docs.
 
 The combat mechanics deserve a second look on any version, since they depend most on the shape of
