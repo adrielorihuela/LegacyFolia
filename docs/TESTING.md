@@ -96,7 +96,7 @@ Results on the final RC 2 jar:
 | client | 4 of 4 (`join`, `read_chat`, `send_chat`, `leave`) |
 | load | No capacity figure: SoulFire on Windows crashes and its bots drop at about 14. At 10 to 14 bots the server held TPS 20 and MSPT 13 to 23. Details in [LOAD-TESTING.md](LOAD-TESTING.md) |
 
-The 16 items the bots bench cannot do, and which therefore stay yours: `1j` with a team (Folia has no
+The 16 items the bots bench cannot do on its own (the results of the unattended ones are in [the unattended run](#unattended-run-of-the-not_run-items-rc-3)): `1j` with a team (Folia has no
 `/team`), `2h` arrows (the shooter's motion belongs to the client), `3d` (`bot18` only checks the
 modifier, not what the client draws), `4a`, `4b`, `4c` and `4e` (the EULA prompt needs a real
 terminal), `5i` (needs a plugin), `9b` to `9h` (the updater downloads from Hangar and GitHub) and
@@ -108,6 +108,43 @@ would allow: read health from the client's bar (the bots read the health packets
 items by their tooltip, and colour the locator dot with `/waypoint` only.
 
 ---
+
+## Unattended run of the NOT_RUN items (RC 3)
+
+The items the bots bench cannot do, run on 2026-11-19 without people or real clients, on
+`legacyfolia-paperclip-1.0.0-rc.3.jar` (`version`: LegacyFolia 26.3-DEV-main@9c76923).
+OS: Windows 11 (10.0.26300). Java: Temurin 25.0.2. Node 24.19. Offline mode, ports 25670 to 25689, one
+server at a time, `-Xmx2G`. Linux was not available (WSL has no distribution), so there was no Linux
+TTY. Still yours: `2h`, `3d`, `10c`, the Linux TTY of item 4, and a person looking at the bar and the
+combat.
+
+| # | Result | Evidence |
+|---|---|---|
+| 4a | PASS | Real Windows pseudo-terminal (ConPTY through node-pty 1.1.0), fresh directory. The prompt is "Press ENTER to agree, or ESC to stop the server. (Agreeing writes eula = true to config/server.toml.)", under the aka.ms link |
+| 4b | PASS | ESC and Ctrl-C (`\x03`) each print "Not agreed, so the server will not start. config/server.toml still says eula = false."; exit code 0, `eula = false` kept |
+| 4c | PASS | ENTER: "Agreed. config/server.toml now says eula = true; you will not be asked again." and "Done (20s)" follows |
+| 4d | PASS | Next start: no prompt, "Done (14s)" |
+| 4e | PASS | `eula = false`, `eula-prompt-timeout-seconds = 10`: "Nobody answered, so nothing was agreed to.", and the server stops about 10 s after the prompt. The non-default timeout moves into `server.properties` on that start, as in 5c |
+| 4f | PASS | Piped input (`echo \| java -jar`) and `--noconsole`: "You need to agree to the EULA (https://aka.ms/MinecraftEULA) in order to run the server. Set eula = true in config/server.toml to agree." |
+| 5i | PASS, with notes | `testing/probe-plugin` (LegacyProbe) logs `Bukkit.getMotd()`, `getMaxPlayers()`, `getViewDistance()`, `hasWhitelist()`, the whitelist, ops and bans, the spawn limits, and `Bukkit.spigot().getBukkitConfig()`, `getSpigotConfig()` and `getPaperConfig()`. At start-up every value equals the TOML or `server.properties` value (motd "Probe One", max-players 23, view-distance 8, spawn-limits.monsters 44, mob-spawn-range 6, merge-radius.item 1.5, Velocity enabled). Of the old files the root holds only `server.properties` (and `config/server.toml`): no `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-*.yml`, `whitelist.json`, `ops.json` or `eula.txt`. `/legacyfolia properties status`, `off` and `on` and `/whitelist on` and `off` (`hasWhitelist` true and false, `white-list=true` appears in `server.properties`) behave as in 5e to 5g. Notes: (1) after `/paper reload` only the Paper object changes (`proxies.velocity.enabled` true to false) and after `/spigot reload` only the Spigot one (mob-spawn-range 6 to 7, merge-radius 1.5 to 2.5); the `bukkit.yml` values, the MOTD and the view distance that a plugin sees stay at their start-up values until a restart, and `/reload` does not exist on Folia. [CONFIGURATION.md](CONFIGURATION.md) ("Reloading") says all the objects are rebuilt on any reload. (2) The Velocity secret is not in `getPaperConfig()` (`proxies.velocity.secret` is empty): it lives in `config/forwarding.secret` |
+| 5j | PASS | `config/server.properties` with `motd=Old` only: "Moved config\server.properties to the server root", MOTD "Old". With a root `server.properties` (`motd=Root`) as well: a warning that both exist, the root one wins and the other stays |
+| 6a to 6h | PASS | Real Paper 26.3 build 256 and Folia 26.3 build 26 jars from fill.papermc.io (SHA-256 checked against the API), each run once with the EULA accepted only there. Then `whitelist add Alice`, `op Bob`, `ban Mallory`, `ban-ip`, and `motd`, `max-players`, `difficulty`, `view-distance`, `spawn-protection`, an RCON password, `spigot.yml`, `bukkit.yml`, `paper-global.yml` (Velocity on, with a secret), `paper-world-defaults.yml` and a per-world `paper-world.yml` changed. LegacyFolia then logs "Found the configuration of an older server" and "Imported 19 setting(s) from 10 file(s)"; 10 are listed as not importable in `import-report.txt` (maps with no TOML form, `management-server-secret` and the like). The values are in `server.properties` (18 lines, the per-world one as `worlds.world.chunks.max-auto-save-chunks-per-tick=7`); the lists in `config/players.toml`; the JSON files, `eula.txt`, the old YAML and `server.properties` in `config/legacy-backup/<date_time>/` beside `import-report.txt`; `usercache.json` in `cache/`; the secrets in `rcon.secret` and `forwarding.secret`, and `grep` finds them in no TOML file and not in `server.properties`. The root holds the jar, `server.properties` and the generated directories. A second start changed no file (checksums of everything outside `logs`, `world` and `cache` equal). Folia with `misc.enable-nether: false` in `paper-global.yml`: "The Nether is disabled in the configuration, so its world will not be loaded.", `dimensions.nether=false`, the folder kept. `allow-nether=false` alone in the old `server.properties` is not imported, because `paper-global.yml` wins "as the original server read it" (`import-report.txt`); that was not checked against the real server |
+| 1j-team | FAIL (Folia) | A team colour does not reach the dot. Folia's `Scoreboard#registerNewTeam` throws `UnsupportedOperationException`, so `probeteam` makes the team on the NMS scoreboard by reflection. The bots bench (`LEGACYFOLIA_PROBE_PLUGIN=testing/probe-plugin/build/LegacyProbe.jar`, scenario `1j-team`) finds B in team `pt_red`, colour RED, and A receives TRACK and UPDATE packets for B, all with an empty colour, also after B moves and after the team is recoloured. Cause: Folia's patch makes `Entity#getTeam()` return null (`Entity.java`, "Folia start - region threading") and `Waypoint.Icon#cloneAndAssignStyle` reads the team from it. `/waypoint modify ... color` works (1j) |
+| 7a to 7i | PASS | `bots -Only dims,lobby`: 9 PASS. New scenarios `7a-portal` and `7b-portal` put a creative bot in a lit nether portal and in an end portal: with the dimension on it travels (the control), with `nether = false` or `end = false` it stays in the overworld. `-Only dims`: 8 PASS |
+| 9a | PASS | `config/github.token` is created empty at the first start |
+| 9b | FAIL | `hangar = ["ViaBackwards"]`, `modrinth = ["viaversion"]`, `github = ["ViaVersion/ViaRewind"]`. Each is downloaded and checksummed into `plugins/` ("Updating viaversion to 5.12.2 from modrinth...", "ViaBackwards 5.12.2 installed.") but is **not loaded in that start**: the plugin directory was read before ("PluginInitializerManager: Initialized 1 plugin" at 15:54:13, the updater at 15:54:26), so ViaRewind fails with "Unknown/missing dependency plugins: [ViaVersion, ViaBackwards]" and `plugins` lists only it. They load on the next start. LuckPerms was not enabled (it installs unverified) |
+| 9c | PASS | Start again: "viaversion 5.12.2 is up to date.", "ViaBackwards 5.12.2 is up to date.", "ViaVersion/ViaRewind 4.2.0 is up to date."; nothing downloaded; all three load |
+| 9d | FAIL (Windows) | An old `ViaRewind-4.1.1.jar` (a real release, SHA-256 equal to the one GitHub publishes) in `plugins/`: the updater downloads 4.2.0 but cannot remove the old jar ("could not be removed ... being used by another process") and keeps the old one. The jar is already open because the directory was read first (9b). Same with a corrupted jar (right name, wrong bytes): the checksum mismatch is noticed, "Updating ViaBackwards...", but the file cannot be replaced. Deleting the old jar by hand and starting again installs 4.2.0. Linux not tried |
+| 9e | PASS | A made-up Modrinth slug: "Could not install no-such-plugin-zzz-404: Modrinth has no project called ...", "Could not update plugins: ...", and start-up stops (it also writes a crash report) |
+| 9f | PASS | All traffic sent to a closed proxy port: a warning per plugin ("could not reach api.modrinth.com (null)"), and the server starts with the jars it has |
+| 9g | PASS | Same, with `ViaVersion-5.12.2.jar` deleted: "Could not install viaversion: could not reach api.modrinth.com", and start-up stops |
+| 9h | PASS | With neither a token in `github.token` nor `GITHUB_TOKEN`, the log says GitHub allows sixty requests an hour; with `GITHUB_TOKEN` set, and with a token in the file, that line is gone. A made-up token was used, so GitHub answered 401 and the check of ViaRewind failed with a warning; no real token was used |
+
+To run the new checks again: `pwsh testing/bots/run-all.ps1 -Jar <jar> -Properties root -Only dims`; for
+`1j-team`, build the plugin with `testing/probe-plugin/build.sh <a server folder that has started once>`
+(it compiles against that folder's `libraries/`), set `LEGACYFOLIA_PROBE_PLUGIN` to
+`testing/probe-plugin/build/LegacyProbe.jar` and run with `-Only locator`. Without the variable
+`1j-team` stays NOT_RUN.
 
 ## 1. Locator bar
 
@@ -131,7 +168,7 @@ with `/gamerule locator_bar`.
 | 1g | B goes to the Nether. | B disappears from A's bar at once, and A's bar shows nothing of B while B is in the Nether. A in the overworld and B in the Nether never see each other. |
 | 1h | A follows B into the Nether, then both go to the End and back. | They see each other in whichever dimension they share. |
 | 1i | `/gamerule locator_bar false`, then `true`. Nobody moves. | The dots go at once, and come back without anyone having to move. |
-| 1j | `/waypoint modify B color blue`. (Folia has no `/team`, so a team colour cannot be set; skip that part.) | B's dot changes colour. **Bench:** the `/waypoint` part; the team part is NOT_RUN. |
+| 1j | `/waypoint modify B color blue`. (Folia has no `/team`, so a team colour cannot be set; skip that part.) | B's dot changes colour. **Bench:** the `/waypoint` part; the team part is FAIL on Folia, see [the unattended run](#unattended-run-of-the-not_run-items-rc-3). |
 | 1k | B dies and respawns, and B logs out and back in. | The bar keeps working for both. |
 
 A difference from vanilla that is expected: what a transmitter does reaches a receiver up to one
