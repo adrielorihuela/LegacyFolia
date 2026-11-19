@@ -12,3 +12,5 @@
 *.jar           binary
 
 *.patch          text eol=lf
+*.java          text eol=lf
+*.kts           text eol=lf
