@@ -8,7 +8,7 @@ Moved from CLAUDE.md on 2026-11-06.
   `paper-world.yml` or `eula.txt` on disk: eight TOML files in `config/` (`server`, `world`,
   `network`, `performance`, `gameplay`, `combat`, `plugins`, `worlds` for per-world overrides) are
   the source, and the YAML/Configurate/`DedicatedServerProperties` objects plugins read are built in
-  memory. `/paper reload`, `/spigot reload` and Bukkit's reload re-read the TOML files.
+  memory. `/paper reload` and `/spigot reload` re-read the TOML files but rebuild only their own object (Paper's or Spigot's); Bukkit's settings, the MOTD and the view distance need a restart, and Folia has no `/reload`.
 - `server.properties` is optional (mode on by default) and lives in the server root, as in Paper (in
   `config/` up to rc.1): it holds only non-default values and wins over the TOML files. Whitelist, ops
   and bans live in `config/players.toml`, the secrets in `config/`, the user cache in `cache/`; the
@@ -16,11 +16,16 @@ Moved from CLAUDE.md on 2026-11-06.
 - Defaults that differ: `white-list = false` (26.3 has `true`), `spawn-protection-radius = 0`
   (vanilla 16), RCON on, bound to `127.0.0.1`, with a generated `config/rcon.secret`, and 1.8 combat
   on. Velocity's secret comes from `config/forwarding.secret`.
+- Folia limitation, unchanged on purpose: `Entity#getTeam()` returns null under regionised threading
+  (`Entity.java`, "Folia start - region threading") and `Scoreboard#registerNewTeam` throws
+  `UnsupportedOperationException`, so a team colour never reaches the locator bar (vanilla reads the
+  team in `Waypoint.Icon#cloneAndAssignStyle`). `/waypoint modify <entity> color ...` is not
+  affected and does colour the dot (TESTING 1j).
 - API-visible changes: `getAllowNether/End` answer from `[dimensions]`; with 1.8 combat on, the NMS
   `Player.canCriticalAttack`, which Paper made public for its API in `bc68acd74`, follows the
   1.8 rule; weapon tooltips show 1.8 damage on the wire only.
 - Upstream patches (minecraft 0001–0014, paper 0001–0007) are untouched; ours start at minecraft 0015
-  (up to 0061) and paper 0008 (up to 0014). The runnable jar is named after `projectVersion` in
+  (up to 0062) and paper 0008 (up to 0014). The runnable jar is named after `projectVersion` in
   `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.3.jar`); `/version` reports Minecraft's.
 
 ## Architecture (`folia-server/src/main/java/io/github/adrielorihuela/legacyfolia/`)

@@ -281,7 +281,7 @@ heredado aún sin importar, una línea `plugins.api.update-folder` en el `server
 
 | Disparador | Archivo:línea | Qué hace |
 |---|---|---|
-| `/reload`, `Bukkit.reload()` | `CraftServer.java:949-980` | `ConfigHooks.reloadOrWarn()` (TOML + reconcile + `AdaptiveDistance`/`Combat`), reconstruye bukkit/commands, `DedicatedServerSettings`, `SpigotConfig.init(spigotForLoadedWorlds())`, `paperConfigurations.reloadConfigs` |
+| `/reload` (no existe en Folia), `Bukkit.reload()` | `CraftServer.java:949-980` | `ConfigHooks.reloadOrWarn()` (TOML + reconcile + `AdaptiveDistance`/`Combat`), reconstruye bukkit/commands, `DedicatedServerSettings`, `SpigotConfig.init(spigotForLoadedWorlds())`, `paperConfigurations.reloadConfigs` |
 | `/spigot reload` | `paper-server/src/main/java/org/spigotmc/SpigotCommand.java:40-41` | ídem para Spigot |
 | `/paper reload` | `paper-server/src/main/java/io/papermc/paper/command/subcommands/ReloadCommand.java:30` | ídem para Paper |
 | `Server#reloadCommandAliases` | `CraftServer.java:2925-2933` | `ConfigHooks.reload()` y `commands.yml` de nuevo |
@@ -419,8 +419,7 @@ está con un aviso. Tests: `PlayersFileTest`, `PlayerListsImportTest`.
   original: `-1` de Paper → Bukkit, `"default"` de Spigot → `server.properties`, `sha1` gana a
   `hash`, `debug` es `true` si cualquiera lo es, `replace-commands` antiguo, deducción de
   `enable-spam-exclusions`, `pause-when-empty-seconds` no se importa de la familia CraftBukkit
-  (Paper fuerza `-1`), `allow-nether` de `server.properties` (`also-from` de `dimensions.nether`; si
-  también está `misc.enable-nether` de Paper, gana el de Paper).
+  (Paper fuerza `-1`), `allow-nether` de `server.properties` (`also-from` de `dimensions.nether`; con `misc.enable-nether` de Paper a la vez, manda lo que obedece Paper: `V31_AllowNetherPropertiesToConfig` copia `allow-nether` sobre `enable-nether` si el `_version` de `paper-global.yml` es menor que 31, y si no, gana `enable-nether`; sin `paper-global.yml` se respeta `allow-nether` por cautela, aunque Paper lo ignoraría).
 - **Escritura** (`LegacyImport`): sólo valores distintos del default, sólo en los TOML (nunca en
   `server.properties`; el modo los mueve después). Los secretos van a su archivo, salvo que ya
   tenga otro valor. Se verifica leyendo de vuelta.

@@ -394,10 +394,15 @@ left off. The switches are read once, at start-up, so a change needs a restart.
 
 ## Reloading, restarts and commands that change settings
 
-- **Reload** (`/reload`, `/spigot reload`, `/paper reload`, and `Server#reloadCommandAliases`): the
-  TOML files and `server.properties` are read again and compared, the in-memory Bukkit, Spigot and
-  Paper objects are rebuilt, and every world's view is worked out again. The adaptive view
-  distance and the 1.8 combat settings are re-read too. The migration never runs on a reload.
+- **Reload** (`/paper reload`, `/spigot reload`, `Server#reloadCommandAliases`): the TOML files and
+  `server.properties` are read again and compared, the adaptive view distance and the 1.8 combat
+  settings are re-read, and then **only the object the command is about is rebuilt**:
+  `/paper reload` rebuilds Paper's global and world configuration, `/spigot reload` Spigot's
+  (and each world's Spigot settings), `reloadCommandAliases` `commands.yml`. The other objects keep
+  what they had at start-up, so a plugin reading `Bukkit.spigot().getBukkitConfig()` still sees the
+  start-up values after `/paper reload`. This is upstream's behaviour and is left as it is.
+  **Folia has no `/reload`**, so Bukkit's own settings (what `bukkit.yml` held), the MOTD and the
+  view distance a plugin reads from the server need a restart. The migration never runs on a reload.
 - **Restart only**: settings consumed once at start-up, such as `chunks.region-file-compression`,
   `network.netty-threads`, `world.storage.world-container` and the `[dimensions]` switches.
 - **Commands that change a setting** (`/whitelist on|off`, `Server#setMaxPlayers`,
