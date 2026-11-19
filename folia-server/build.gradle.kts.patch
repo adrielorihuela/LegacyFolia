@@ -1,6 +1,6 @@
 --- a/paper-server/build.gradle.kts
 +++ b/paper-server/build.gradle.kts
-@@ -13,6 +_,10 @@
+@@ -14,6 +_,10 @@
  
  val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
  
@@ -19,9 +19,9 @@
 +}
 +
  dependencies {
-     mache("io.papermc:mache:26.3+build.1")
+     mache("io.papermc:mache:26.3+build.2")
      paperclip("io.papermc:paperclip:3.0.4")
-@@ -20,8 +_,26 @@
+@@ -21,15 +_,33 @@
  
  paperweight {
      minecraftVersion = providers.gradleProperty("mcVersion")
@@ -48,7 +48,19 @@
      updatingMinecraft {
          //oldPaperCommit = "e5fe71723e2ffde7cc9fafc085ac3bb73e63175e"
      }
-@@ -86,7 +_,19 @@
+ }
+ 
+ paperCheckstyle {
+-    directoriesToSkipFile = layout.projectDirectory.file(".checkstyle/ignored_directories.txt")
++    directoriesToSkipFile = layout.projectDirectory.file("../paper-server/.checkstyle/ignored_directories.txt")
++}
++
++tasks.named<io.papermc.paperweight.checkstyle.tasks.MergeCheckstyleConfigs>("mergeCheckstyleConfigs") {
++    overrideConfigFile.set(layout.projectDirectory.file("../paper-server/.checkstyle/checkstyle.xml"))
+ }
+ 
+ tasks.generateDevelopmentBundle {
+@@ -91,7 +_,19 @@
      }
  }
  
@@ -69,7 +81,7 @@
  configurations.named(log4jPlugins.compileClasspathConfigurationName) {
      extendsFrom(configurations.compileClasspath.get())
  }
-@@ -109,12 +_,13 @@
+@@ -114,12 +_,13 @@
  }
  
  dependencies {
@@ -92,7 +104,7 @@
  
      // Deps that were previously in the API but have now been moved here for backwards compat, eventually to be removed
      runtimeOnly("commons-lang:commons-lang:2.6")
-@@ -174,14 +_,14 @@
+@@ -179,14 +_,14 @@
          val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()
          attributes(
              "Main-Class" to "org.bukkit.craftbukkit.Main",
@@ -112,7 +124,7 @@
              "Build-Number" to (build ?: ""),
              "Build-Time" to buildTime.toString(),
              "Git-Branch" to gitBranch,
-@@ -259,7 +_,7 @@
+@@ -264,7 +_,7 @@
      )
  }
  
@@ -121,7 +133,7 @@
  idea {
      module {
          generatedSourceDirs.add(generatedDir.toFile())
-@@ -342,7 +_,7 @@
+@@ -347,7 +_,7 @@
  }
  
  fill {

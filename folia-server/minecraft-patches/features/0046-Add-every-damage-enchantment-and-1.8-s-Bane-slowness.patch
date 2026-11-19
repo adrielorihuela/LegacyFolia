@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Sat, 31 Oct 2026 10:24:21 -0500
+Subject: [PATCH] Add every damage enchantment and 1.8's Bane slowness
+
+
+diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
+index 840afe6767608405f645d67c4a1f53b5e50a07c7..4c751dd100fddb21d7ac1562342eb79039937502 100644
+--- a/net/minecraft/server/level/ServerPlayer.java
++++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -3459,12 +3459,8 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         // LegacyFolia start - 1.8's sharpness is a flat 1.25 per level
+         // Every caller of this already keeps the bonus out of the term the critical multiplier
+         // touches, which is where 1.8 wanted it, so only the figure itself has to change.
+-        final net.minecraft.world.item.ItemStack legacyWeapon = this.getWeaponItem();
+-        if (io.github.adrielorihuela.legacyfolia.combat.Combat.legacySharpness(legacyWeapon)) {
+-            return dmg + io.github.adrielorihuela.legacyfolia.combat.Combat.sharpnessBonus(legacyWeapon);
+-        }
++        return io.github.adrielorihuela.legacyfolia.combat.Combat.enchantedDamage(this.level(), this.getWeaponItem(), entity, damageSource, dmg);
+         // LegacyFolia end - 1.8's sharpness is a flat 1.25 per level
+-        return EnchantmentHelper.modifyDamage(this.level(), this.getWeaponItem(), entity, damageSource, dmg);
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/Mob.java b/net/minecraft/world/entity/Mob.java
+index 225a52c36ce301541bd86b9a0670cf14080a1733..0ab9e18248800b6f71ecdb111bb2b480aef79775 100644
+--- a/net/minecraft/world/entity/Mob.java
++++ b/net/minecraft/world/entity/Mob.java
+@@ -1635,7 +1635,7 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+         float dmg = (float)io.github.adrielorihuela.legacyfolia.combat.Combat.attackDamage(this); // LegacyFolia - 1.8 weapon damage
+         ItemStack weaponItem = this.getWeaponItem();
+         DamageSource damageSource = weaponItem.getDamageSource(this);
+-        dmg = EnchantmentHelper.modifyDamage(level, weaponItem, target, damageSource, dmg);
++        dmg = io.github.adrielorihuela.legacyfolia.combat.Combat.enchantedDamage(level, weaponItem, target, damageSource, dmg); // LegacyFolia - 1.8's sharpness for mobs too
+         dmg += weaponItem.getItem().getAttackDamageBonus(target, dmg, damageSource);
+         Vec3 oldMovement = target.getDeltaMovement();
+         boolean wasHurt = target.hurtServer(level, damageSource, dmg);
+@@ -1645,7 +1645,9 @@ public abstract class Mob extends LivingEntity implements Targeting, EquipmentUs
+                 weaponItem.hurtEnemy(livingTarget, this);
+             }
+ 
++            final Object legacyBane = io.github.adrielorihuela.legacyfolia.combat.Combat.baneBefore(target, weaponItem); // LegacyFolia - 1.8's Bane of Arthropods slowness
+             EnchantmentHelper.doPostAttackEffects(level, target, damageSource);
++            io.github.adrielorihuela.legacyfolia.combat.Combat.baneAfter(legacyBane); // LegacyFolia - 1.8's Bane of Arthropods slowness
+             this.setLastHurtMob(target);
+             this.playAttackSound();
+         }
+diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
+index 6c51180ca16d41e87d6f9d28bde0259191957426..d18f82e3ced74fed06c75068ba3318f8d46f5e12 100644
+--- a/net/minecraft/world/entity/player/Player.java
++++ b/net/minecraft/world/entity/player/Player.java
+@@ -1267,7 +1267,9 @@ public abstract class Player extends Avatar implements ContainerUser {
+             }
+ 
+             if (applyToTarget) {
++                final Object legacyBane = io.github.adrielorihuela.legacyfolia.combat.Combat.baneBefore(hurtTarget, attackingItemStack); // LegacyFolia - 1.8's Bane of Arthropods slowness
+                 EnchantmentHelper.doPostAttackEffectsWithItemSource(serverLevel, entity, damageSource, attackingItemStack);
++                io.github.adrielorihuela.legacyfolia.combat.Combat.baneAfter(legacyBane); // LegacyFolia - 1.8's Bane of Arthropods slowness
+             }
+         }
+ 
