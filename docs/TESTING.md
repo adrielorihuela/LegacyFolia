@@ -63,7 +63,7 @@ item retested, before `v1.0.0`.
 
 ## The automated benches
 
-Since `v1.0.0-rc.3` four programs in `testing/` run part of this list without people. They start the
+Since `v1.0.0-rc.2` four programs in `testing/` run part of this list without people. They start the
 jar in fresh temporary folders (offline mode, the EULA accepted only there), never touch a Minecraft
 account and write their results to `testing/results/` (git-ignored). Pass them the RC 3 jar
 (`legacyfolia-paperclip-1.0.0-rc.3.jar`, from the pre-release or from `./build.sh`); where the
