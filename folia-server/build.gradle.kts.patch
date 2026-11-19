@@ -21,7 +21,7 @@
  dependencies {
      mache("io.papermc:mache:26.3+build.2")
      paperclip("io.papermc:paperclip:3.0.4")
-@@ -21,15 +_,33 @@
+@@ -21,15 +_,38 @@
  
  paperweight {
      minecraftVersion = providers.gradleProperty("mcVersion")
@@ -59,6 +59,11 @@
 +    overrideConfigFile.set(layout.projectDirectory.file("../paper-server/.checkstyle/checkstyle.xml"))
  }
  
++// The fork's own package is not Paper code, so Paper's checkstyle does not apply to it.
++tasks.withType<Checkstyle>().configureEach {
++    exclude("io/github/adrielorihuela/legacyfolia/**")
++}
++
  tasks.generateDevelopmentBundle {
 @@ -91,7 +_,19 @@
      }
