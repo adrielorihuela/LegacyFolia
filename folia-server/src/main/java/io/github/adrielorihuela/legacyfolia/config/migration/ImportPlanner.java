@@ -101,6 +101,16 @@ final class ImportPlanner {
     private boolean craftBukkitFamily;
 
     /**
+     * The {@code _version} of paper-global.yml, or null when there is no file or it has none (Paper
+     * then assumes the latest). Below {@link #ALLOW_NETHER_MOVED} Paper moves server.properties'
+     * allow-nether over misc.enable-nether on its first start.
+     */
+    private @Nullable Integer paperGlobalVersion;
+
+    /** The paper-global.yml version in which V31_AllowNetherPropertiesToConfig moved the switch. */
+    private static final int ALLOW_NETHER_MOVED = 31;
+
+    /**
      * Plans the import of a set of files.
      *
      * @param files each file with its parsed contents
@@ -137,6 +147,7 @@ final class ImportPlanner {
             case COMMANDS -> walk(LegacySource.COMMANDS, label, tree, "", "", null);
             case PAPER_GLOBAL -> {
                 this.craftBukkitFamily = true;
+                this.paperGlobalVersion = tree.get("_version") instanceof final Number number ? number.intValue() : null;
                 walk(LegacySource.PAPER_GLOBAL, label, tree, "", "", null);
             }
             case PAPER_WORLD_DEFAULTS -> {
@@ -351,6 +362,12 @@ final class ImportPlanner {
         if ("plugins.commands.replace-commands".equals(entry.tomlPath())) {
             // SpigotConfig moves a root replace-commands under commands., overwriting what is there.
             order.sort((a, b) -> a.path().equals("replace-commands") ? -1 : b.path().equals("replace-commands") ? 1 : 0);
+        }
+        if ("dimensions.nether".equals(entry.tomlPath()) && this.paperGlobalVersion != null
+            && this.paperGlobalVersion < ALLOW_NETHER_MOVED) {
+            // V31 copies allow-nether over misc.enable-nether when the file is older than 31, so there
+            // the property is what the server obeyed; from 31 on Paper reads only misc.enable-nether.
+            order.sort((a, b) -> a.source() == LegacySource.SERVER_PROPERTIES ? -1 : b.source() == LegacySource.SERVER_PROPERTIES ? 1 : 0);
         }
         Hit winner = null;
         for (final LegacyRef ref : order) {

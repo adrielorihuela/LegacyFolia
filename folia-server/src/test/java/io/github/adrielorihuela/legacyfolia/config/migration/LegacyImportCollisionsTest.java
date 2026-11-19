@@ -41,8 +41,9 @@ class LegacyImportCollisionsTest {
     }
 
     @Test
-    @DisplayName("3.1 dimensions: allow-nether in server.properties turns the Nether off, Paper's switch wins when both are there")
-    void allowNetherInServerProperties(@TempDir final Path vanilla, @TempDir final Path both) throws IOException {
+    @DisplayName("3.1 dimensions: allow-nether in server.properties turns the Nether off; with both, Paper's V31 rule decides (older than 31 the property, else misc.enable-nether)")
+    void allowNetherInServerProperties(@TempDir final Path vanilla, @TempDir final Path both,
+                                       @TempDir final Path older, @TempDir final Path unversioned) throws IOException {
         write(vanilla, "server.properties", "allow-nether=false\n");
         run(vanilla).orElseThrow();
         assertEquals(false, toml(vanilla, "world.toml", "dimensions.nether"));
@@ -51,6 +52,18 @@ class LegacyImportCollisionsTest {
         write(both, "config/paper-global.yml", "misc:\n  enable-nether: true\n");
         run(both).orElseThrow();
         assertEquals(true, toml(both, "world.toml", "dimensions.nether"));
+
+        // paper-global.yml from before 31: Paper moves the property over misc.enable-nether.
+        write(older, "server.properties", "allow-nether=false\n");
+        write(older, "config/paper-global.yml", "_version: 30\nmisc:\n  enable-nether: true\n");
+        run(older).orElseThrow();
+        assertEquals(false, toml(older, "world.toml", "dimensions.nether"));
+
+        // No _version: Paper assumes the latest and never migrates, so the yml wins.
+        write(unversioned, "server.properties", "allow-nether=false\n");
+        write(unversioned, "config/paper-global.yml", "misc:\n  enable-nether: true\n");
+        run(unversioned).orElseThrow();
+        assertEquals(true, toml(unversioned, "world.toml", "dimensions.nether"));
     }
 
     @Test
