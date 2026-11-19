@@ -60,7 +60,7 @@ A patch that small only conflicts if upstream edits the exact lines around it.
 
 | Patch set | Folia's own | LegacyFolia's |
 |---|---|---|
-| `folia-server/minecraft-patches/features` (Minecraft's code) | 0001–0014 | 0015–0061 |
+| `folia-server/minecraft-patches/features` (Minecraft's code) | 0001–0014 | 0015–0062 |
 | `folia-server/paper-patches/features` (Paper's server code) | 0001–0007 | 0008–0014 |
 | `folia-api/paper-patches/features` (the API) | 0001–0004 | none |
 

@@ -185,4 +185,4 @@ download after five minutes.
   writes straight into the plugin directory.
 
 The code is in `folia-server/src/main/java/io/github/adrielorihuela/legacyfolia/update/`, hooked into
-start-up by minecraft patch 0016. Manual checks for a release are in [TESTING.md](TESTING.md).
+start-up by minecraft patches 0016 and 0062 (at the very start of `Main`, ahead of Paper's plugin loader, which reads `plugins/` before `Bootstrap`, so a jar downloaded here loads in the same start and no jar is open yet to be replaced on Windows). Manual checks for a release are in [TESTING.md](TESTING.md).

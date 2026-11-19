@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AdrielOrihuela <adriel.orihuela.m@gmail.com>
+Date: Thu, 19 Nov 2026 16:32:31 -0500
+Subject: [PATCH] Update plugins before Paper reads the plugin directory
+
+Paper turns plugins/ into providers in PluginInitializerManager.load, at
+the very start of Main, so the update that ran from DedicatedServer was
+always one start late: what it downloaded only loaded on the next start,
+and a plugin whose dependency had just been downloaded failed to load.
+
+The TOML files are now read ahead of that call and the updater runs
+right after them. With no jar open yet, replacing an old one no longer
+fails on Windows.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 724dd713f30ee3b9f80af0068befc1f73ac7bcdb..333097eced385759df2115bd9a47ff6c51abf44b 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -110,17 +110,7 @@ public class Main {
+                 JvmProfiler.INSTANCE.start(Environment.SERVER);
+             }
+ 
+-            io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
+-            Bootstrap.bootStrap();
+-            Bootstrap.validate();
+-            // Paper start - Perf: Init DataConverter asynchronously
+-            // Init for both of these are fairly expensive class-loading wise. Both are called again below/in MinecraftServer.spin,
+-            // so failure during class init will become visible there.
+-            Thread.ofPlatform().daemon().name("DataConverter MCTypeRegistry init thread").start(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry::init);
+-            Thread.ofPlatform().daemon().name("DataFixers init thread").start(DataFixers::getDataFixer);
+-            // Paper end - Perf: Init DataConverter asynchronously
+-            Util.startTimerHackThread();
+-            // LegacyFolia start - unified configuration
++            // LegacyFolia start - unified configuration, ahead of the plugin loader
+             // Here, before anything reads a setting. An older server's files are imported into the
+             // TOML files first, so that what is read next is what that server used; then the TOML
+             // files are read and server.properties is reconciled with them. A failed import stops
+@@ -132,6 +122,35 @@ public class Main {
+                 LOGGER.error("Could not set up the configuration in config/, so the server will not start. Nothing was deleted; fix the cause and start again.", e);
+                 return;
+             }
++            // LegacyFolia end - unified configuration, ahead of the plugin loader
++            // LegacyFolia start - update plugins before Paper reads the plugin directory
++            // Paper turns the directory into providers inside PluginInitializerManager.load, so a
++            // jar downloaded any later is only loaded on the next start. The updater needs the
++            // TOML files, hence they are read above.
++            try {
++                io.github.adrielorihuela.legacyfolia.update.PluginUpdates.run(
++                    ((File) options.valueOf("plugins")).toPath(),
++                    net.minecraft.SharedConstants.getCurrentVersion().name());
++            } catch (io.github.adrielorihuela.legacyfolia.update.PluginUpdateException e) {
++                LOGGER.error("Could not update plugins: {}", e.getMessage());
++                LOGGER.error("Starting without a plugin somebody listed on purpose is not safe -- it "
++                    + "may be the one granting permissions. Fix the entry, or set "
++                    + "plugins.auto-update.enabled to false in config/plugins.toml.");
++                return;
++            }
++            // LegacyFolia end - update plugins before Paper reads the plugin directory
++            io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
++            Bootstrap.bootStrap();
++            Bootstrap.validate();
++            // Paper start - Perf: Init DataConverter asynchronously
++            // Init for both of these are fairly expensive class-loading wise. Both are called again below/in MinecraftServer.spin,
++            // so failure during class init will become visible there.
++            Thread.ofPlatform().daemon().name("DataConverter MCTypeRegistry init thread").start(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry::init);
++            Thread.ofPlatform().daemon().name("DataFixers init thread").start(DataFixers::getDataFixer);
++            // Paper end - Perf: Init DataConverter asynchronously
++            Util.startTimerHackThread();
++            // LegacyFolia start - unified configuration
++            // The TOML files are read before Paper's plugin loader, see above.
+             io.github.adrielorihuela.legacyfolia.chunks.AdaptiveDistance.reload();
+             io.github.adrielorihuela.legacyfolia.combat.Combat.reload();
+             // LegacyFolia end - unified configuration
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index 73f9698073dd5e1461607c1575bba395747b2e8d..fa1bf8f6ca7f96561ad57beb585608618b62dec8 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -293,21 +293,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             return false;
+         }
+ 
+-        // LegacyFolia start - update plugins before they are loaded
+-        // Here and nowhere later: by the time loadPlugins reads the directory, every jar it is
+-        // meant to find has to already be there.
+-        try {
+-            io.github.adrielorihuela.legacyfolia.update.PluginUpdates.run(
+-                this.getPluginsFolder().toPath(),
+-                net.minecraft.SharedConstants.getCurrentVersion().name());
+-        } catch (io.github.adrielorihuela.legacyfolia.update.PluginUpdateException e) {
+-            LOGGER.error("Could not update plugins: {}", e.getMessage());
+-            LOGGER.error("Starting without a plugin somebody listed on purpose is not safe -- it "
+-                + "may be the one granting permissions. Fix the entry, or set "
+-                + "plugins.auto-update.enabled to false in config/plugins.toml.");
+-            return false;
+-        }
+-        // LegacyFolia end - update plugins before they are loaded
+         // CraftBukkit start
+         this.server.loadPlugins();
+         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
