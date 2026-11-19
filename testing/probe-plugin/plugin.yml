@@ -1,0 +1,13 @@
+name: LegacyProbe
+main: probe.LegacyProbe
+version: 1.0
+api-version: "26.3"
+folia-supported: true
+description: Test plugin for LegacyFolia. Logs what a plugin sees of the server's settings and puts players in scoreboard teams.
+commands:
+  probe:
+    description: Log the settings a plugin can read, tagged with the argument.
+    usage: /probe <tag>
+  probeteam:
+    description: Scoreboard team helper for the locator bar test.
+    usage: /probeteam <add|remove|list> ...

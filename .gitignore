@@ -28,3 +28,4 @@ testing/.cache/
 testing/results/
 testing/bots/.gradle/
 testing/bots/build/
+testing/probe-plugin/build/

@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -114,6 +115,12 @@ final class Groups {
         Path d = dir("main");
         cfg(d, "server.toml", "[server]\neula = true\n");
         cfg(d, "world.toml", "[world.generation]\nlevel-type = \"minecraft:flat\"\n");
+        String probe = System.getenv("LEGACYFOLIA_PROBE_PLUGIN");
+        if (probe != null) {
+            // testing/probe-plugin: lets the locator group put players in scoreboard teams (Folia has no /team)
+            Files.createDirectories(d.resolve("plugins"));
+            Files.copy(Path.of(probe), d.resolve("plugins").resolve("LegacyProbe.jar"));
+        }
         ServerProc s = start(d, "--online-mode", "false");
         Ctx x = new Ctx(s, port);
         try {
@@ -439,6 +446,68 @@ final class Groups {
             return "folders kept, both dimensions load again";
         });
         placement();
+        portals();
+    }
+
+    /**
+     * 7a and 7b, the part the log checks cannot do: a creative bot is put into a lit nether portal and into an end portal,
+     * once with the dimensions on (the control, which must travel) and once with them off (which must stay where it is).
+     */
+    void portals() throws Exception {
+        String[] nether = new String[2];
+        String[] end = new String[2];
+        String[] why = new String[2];
+        for (int i = 0; i < 2; i++) {
+            boolean on = i == 0;
+            Path d = dir("portals" + i);
+            cfg(d, "server.toml", "[server]\neula = true\n");
+            cfg(d, "world.toml", "[world.generation]\nlevel-type = \"minecraft:flat\"\n\n[dimensions]\nnether = " + on + "\nend = " + on + "\n");
+            ServerProc s = start(d, "--online-mode", "false");
+            try {
+                Ctx x = new Ctx(s, port);
+                Bot a = x.join("BotA");
+                int y0 = (int) Math.floor(a.y);
+                int bx = (int) Math.floor(a.x) + 6;
+                int bz = (int) Math.floor(a.z);
+                s.send("gamemode creative BotA");
+                // A nether portal: a 4 by 5 obsidian frame in the X axis, lit with fire inside.
+                s.send("fill " + bx + " " + y0 + " " + bz + " " + (bx + 3) + " " + (y0 + 4) + " " + bz + " minecraft:obsidian");
+                Thread.sleep(800);
+                s.send("fill " + (bx + 1) + " " + (y0 + 1) + " " + bz + " " + (bx + 2) + " " + (y0 + 3) + " " + bz + " minecraft:air");
+                Thread.sleep(800);
+                s.send("setblock " + (bx + 1) + " " + (y0 + 1) + " " + bz + " minecraft:fire");
+                Thread.sleep(1500);
+                s.send(String.format(Locale.ROOT, "tp BotA %.2f %d %.2f", bx + 1.5, y0 + 1, bz + 0.5));
+                boolean went = a.waitFor(p -> p.dimension.equals("minecraft:the_nether"), 45000);
+                nether[i] = went ? "travelled to the Nether" : "stayed in " + a.dimension;
+                if (went) {
+                    x.tpIn("minecraft:overworld", a, bx + 8.5, y0, bz + 0.5);
+                }
+                // An end portal: three by three blocks replacing the floor, the bot dropped onto them.
+                s.send("fill " + (bx + 8) + " " + (y0 - 1) + " " + (bz - 1) + " " + (bx + 10) + " " + (y0 - 1) + " " + (bz + 1) + " minecraft:end_portal");
+                Thread.sleep(800);
+                s.send(String.format(Locale.ROOT, "tp BotA %.2f %.2f %.2f", bx + 9.5, y0 + 0.3, bz + 0.5));
+                boolean wentEnd = a.waitFor(p -> p.dimension.equals("minecraft:the_end"), 12000);
+                end[i] = wentEnd ? "travelled to the End" : "stayed in " + a.dimension;
+                a.disconnect();
+            } catch (Exception e) {
+                why[i] = e.toString();
+            } finally {
+                s.stop();
+            }
+        }
+        run("7a-portal", "Dimensions: with nether = false a nether portal does nothing", () -> {
+            need(why[0] == null && why[1] == null, "bench error: " + why[0] + " / " + why[1]);
+            need(nether[0].startsWith("travelled"), "control: with the Nether on the bot " + nether[0] + ", so the portal test proves nothing");
+            need(nether[1].startsWith("stayed in minecraft:overworld"), "with nether = false the bot " + nether[1]);
+            return "on: " + nether[0] + "; off: " + nether[1];
+        });
+        run("7b-portal", "Dimensions: with end = false an end portal does nothing", () -> {
+            need(why[0] == null && why[1] == null, "bench error: " + why[0] + " / " + why[1]);
+            need(end[0].startsWith("travelled"), "control: with the End on the bot " + end[0] + ", so the portal test proves nothing");
+            need(end[1].startsWith("stayed in minecraft:overworld"), "with end = false the bot " + end[1]);
+            return "on: " + end[0] + "; off: " + end[1];
+        });
     }
 
     /** What one right-click on the top of a block did: the stone is there or not, and what the server sent back. */

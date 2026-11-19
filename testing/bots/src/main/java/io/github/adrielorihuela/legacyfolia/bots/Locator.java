@@ -19,6 +19,16 @@ final class Locator {
         return e == null ? "none" : e.wp().type().name();
     }
 
+    static int colour(Bot o, Bot t) {
+        Bot.WpEvent e = o.waypointOf(t.uuid);
+        return e == null || e.wp().icon().color().isEmpty() ? -1 : e.wp().icon().color().get() & 0xFFFFFF;
+    }
+
+    static String colourText(Bot o, Bot t) {
+        int c = colour(o, t);
+        return c < 0 ? "none" : String.format("0x%06X", c);
+    }
+
     static boolean visible(Bot o, Bot t, long ms) throws InterruptedException {
         return o.waitFor(p -> p.waypointOf(t.uuid) != null, ms);
     }
@@ -172,7 +182,35 @@ final class Locator {
             return "dots go and return at once";
         });
 
-        Scn.notRun("1j-team", "Locator: a team colour changes B's dot", "the /team command does not exist on this server (Folia removes it), so no team can be created from the console; the colour itself is drawn by the client from the team packet");
+        if (System.getenv("LEGACYFOLIA_PROBE_PLUGIN") == null) {
+            Scn.notRun("1j-team", "Locator: a team colour changes B's dot", "the /team command does not exist on this server (Folia removes it); set LEGACYFOLIA_PROBE_PLUGIN to testing/probe-plugin/build/LegacyProbe.jar (testing/probe-plugin/build.sh) to put B in scoreboard teams through its API");
+        } else {
+            run("1j-team", "Locator: B's dot follows the colour of B's scoreboard team", () -> {
+                x.reset(a, b, x.c);
+                x.tp(a, x.ox, x.gy, x.oz, 0, 0);
+                x.tp(b, x.ox + 3, x.gy, x.oz, 0, 0);
+                need(visible(a, b, 6000), "A never received a waypoint for B");
+                Bot.WpEvent before = a.waypointOf(b.uuid);
+                long tTeam = System.currentTimeMillis();
+                String o1 = x.run("probeteam add pt_red red BotB");
+                boolean red = a.waitFor(p -> colour(p, b) == 0xFF5555, 5000);
+                if (!red) {
+                    String which = x.run("probeteam which BotB");
+                    x.tp(b, x.ox + 4, x.gy, x.oz, 0, 0);
+                    boolean afterMove = a.waitFor(p -> colour(p, b) == 0xFF5555, 3000);
+                    x.run("probeteam color pt_red red");
+                    boolean afterRecolour = a.waitFor(p -> colour(p, b) == 0xFF5555, 3000);
+                    throw new Fail("red team: dot colour is " + colourText(a, b) + "; plugin said: " + o1.trim() + " | " + which.trim() + " | after B moved: " + afterMove + " | after recolouring the team: " + afterRecolour + " | waypoint packets for B since the team command: " + a.waypointEventsSince(tTeam, b.uuid).stream().map(e -> e.op() + "/" + e.wp().icon().color()).toList());
+                }
+                String o2 = x.run("probeteam add pt_blue blue BotB");
+                need(a.waitFor(p -> colour(p, b) == 0x5555FF, 5000), "moved to the blue team: dot colour is " + colourText(a, b) + "; plugin said: " + o2.trim());
+                x.run("probeteam remove pt_blue");
+                x.run("probeteam remove pt_red");
+                need(a.waitFor(p -> colour(p, b) == -1, 5000), "team removed: dot colour is " + colourText(a, b));
+                return "colour before any team: " + (before.wp().icon().color().isPresent() ? Integer.toHexString(before.wp().icon().color().get()) : "none")
+                    + "; red team -> 0xFF5555; blue team -> 0x5555FF; team removed -> none";
+            });
+        }
         run("1j", "Locator: /waypoint modify changes B's dot", () -> {
             String out = x.run("waypoint modify BotB color hex 0000FF");
             need(a.waitFor(p -> {
