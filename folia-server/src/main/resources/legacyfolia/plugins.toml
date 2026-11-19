@@ -244,6 +244,11 @@ replace-commands = ["setblock", "summon", "testforblock", "tellraw"]
 # this off.
 suggest-player-names-when-null-tab-completions = true
 
+# Whether the server suggests dimension names itself when a command argument asks for one,
+# instead of leaving the client to build the list. Turn off only if a client or a plugin
+# misbehaves with the server-supplied suggestions.
+server-side-dimension-suggestions = true
+
 # Vanilla commands that command blocks may run even when the block's own
 # permission check would refuse, or ["*"] for all of them.
 #

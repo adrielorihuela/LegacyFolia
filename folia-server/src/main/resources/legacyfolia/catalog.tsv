@@ -404,6 +404,7 @@ plugins.commands.send-namespaced	BOOLEAN	false	SPIGOT	commands.send-namespaced	-
 plugins.commands.silent-commandblock-console	BOOLEAN	false	SPIGOT	commands.silent-commandblock-console	-	-	false	false	-	false	-
 plugins.commands.replace-commands	STRING_LIST	false	SPIGOT	commands.replace-commands	SPIGOT:replace-commands	-	false	false	-	["setblock", "summon", "testforblock", "tellraw"]	a root replace-commands is the pre-v1 location; SpigotConfig moves it under commands.
 plugins.commands.suggest-player-names-when-null-tab-completions	BOOLEAN	false	PAPER_GLOBAL	commands.suggest-player-names-when-null-tab-completions	-	-	false	false	-	true	-
+plugins.commands.server-side-dimension-suggestions	BOOLEAN	false	PAPER_GLOBAL	commands.server-side-dimension-suggestions	-	-	false	false	-	true	-
 plugins.commands.command-block-overrides	STRING_LIST	false	COMMANDS	command-block-overrides	-	-	false	false	-	[]	-
 plugins.commands.ignore-vanilla-permissions	BOOLEAN	false	COMMANDS	ignore-vanilla-permissions	-	-	false	false	-	false	-
 plugins.commands.aliases	TABLE	false	COMMANDS	aliases	-	-	false	false	-	{ "icanhasbukkit" = ["version $1-"] }	map of alias -> list of commands; bukkit.yml aliases: now-in-commands.yml is only a pointer
@@ -506,6 +507,7 @@ gameplay.environment.frosted-ice-delay-max	INT	true	PAPER_WORLD	environment.fros
 gameplay.environment.optimize-explosions	BOOLEAN	true	PAPER_WORLD	environment.optimize-explosions	-	-	false	false	-	false	-
 gameplay.environment.disable-explosion-knockback	BOOLEAN	true	PAPER_WORLD	environment.disable-explosion-knockback	-	-	false	false	-	false	-
 gameplay.environment.generate-flat-bedrock	BOOLEAN	true	PAPER_WORLD	environment.generate-flat-bedrock	-	-	false	false	-	false	-
+gameplay.environment.fix-missing-tree-snow	BOOLEAN	true	PAPER_WORLD	environment.fix-missing-tree-snow	-	-	false	false	-	false	-
 gameplay.environment.void-damage-amount	DOUBLE_OR_DISABLED	true	PAPER_WORLD	environment.void-damage-amount	-	-	false	false	-	4.0	DoubleOr.Disabled
 gameplay.environment.void-damage-min-build-height-offset	DOUBLE	true	PAPER_WORLD	environment.void-damage-min-build-height-offset	-	-	false	false	-	-64.0	-
 gameplay.environment.nether-ceiling-void-damage-height	INT_OR_DISABLED	true	PAPER_WORLD	environment.nether-ceiling-void-damage-height	-	-	false	false	-	"disabled"	IntOr.Disabled

@@ -66,7 +66,7 @@ setting by setting (see [Plugin compatibility](#plugin-compatibility-the-legacy-
 | `config/plugins.toml` | `[plugins.auto-update]`, `[plugins.api]`, `[plugins.commands]` | 31 | 0 | The plugin auto-updater ([PLUGIN-UPDATER.md](PLUGIN-UPDATER.md)), plugin API behaviour, item validation, command handling and `commands.yml`'s aliases |
 | `config/worlds.toml` | `[worlds.default]`, `[worlds.<world>]` | 0 | | Overrides for every world, or for one world |
 
-593 keys in all (counted from `folia-server/src/main/resources/legacyfolia/catalog.tsv`, which
+595 keys in all (counted from `folia-server/src/main/resources/legacyfolia/catalog.tsv`, which
 `SettingsCatalogTest` keeps in step with the files). 80 of them are LegacyFolia's own; the rest
 come from `server.properties` (69), `bukkit.yml` (30), `spigot.yml` (35 global, 105 per world),
 `commands.yml` (3), `paper-global.yml` (88), `paper-world-defaults.yml` (182) and `eula.txt` (1),
@@ -94,7 +94,7 @@ section. The few names that changed on the way, and why, are listed in SETTINGS-
 ## Per-world settings: worlds.toml
 
 About half of the settings can differ per world, as Spigot's `world-settings` and Paper's
-`paper-world.yml` allowed: 303 keys, all in `gameplay.toml`, `performance.toml` or `world.toml`.
+`paper-world.yml` allowed: 304 keys, all in `gameplay.toml`, `performance.toml` or `world.toml`.
 `performance.toml` and `world.toml` mark them **PER WORLD** in the key's or the section's comment;
 in `gameplay.toml` almost everything is per world, and the exceptions are marked server-wide.
 `worlds.toml` holds only the differences:

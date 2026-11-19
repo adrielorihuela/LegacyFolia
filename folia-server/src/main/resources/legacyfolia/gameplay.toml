@@ -380,6 +380,10 @@ disable-explosion-knockback = false
 # chunks generated after the change, so an existing world will have a seam.
 generate-flat-bedrock = false
 
+# Put back the snow layer that vanilla world generation leaves out under some trees. Only
+# affects chunks generated after the change.
+fix-missing-tree-snow = false
+
 # Falling out of the world. The damage is dealt per tick spent below the line,
 # and the line is this many blocks under the world's minimum build height - so
 # -64.0 in a world with a floor at -64 means damage starts at y = -128. Set

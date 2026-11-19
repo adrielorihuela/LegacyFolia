@@ -20,7 +20,7 @@ Tras una actualización de upstream las líneas pueden moverse; los nombres de c
 lo estable.
 
 **Fuente de verdad: el catálogo.** `folia-server/src/main/resources/legacyfolia/catalog.tsv` tiene
-una fila por clave de los TOML (593): tipo, si admite override por mundo, archivo y ruta heredados,
+una fila por clave de los TOML (595): tipo, si admite override por mundo, archivo y ruta heredados,
 otras ubicaciones heredadas de la misma decisión (`also-from`), nombre vanilla en
 `server.properties`, si es mutable en caliente, si es un secreto, valores permitidos, default y
 notas. Los números de este documento salen de ahí. Tests que lo mantienen honesto:
@@ -54,12 +54,12 @@ existencia ni sus tipos.
 | `spigot.yml` global | `paper-server/src/main/java/org/spigotmc/SpigotConfig.java` | **35** | +`config-version` (L87-88), metadato. `replace-commands` en la raíz es la ubicación antigua de `commands.replace-commands` (L289-291) y va como `also-from` |
 | `spigot.yml` por mundo | `paper-server/src/main/java/org/spigotmc/SpigotWorldConfig.java` | **105** | Más `view-distance` y `simulation-distance`, que van como `also-from` de las claves vanilla (§3.3). 22 `growth.*`, 22 `seed-*` (26.3 añade `seed-abandonedcamp`, L379) |
 | `commands.yml` | plantilla `paper-server/src/main/resources/configurations/commands.yml`, leída en `CraftServer.java:416` | **3** | `command-block-overrides`, `ignore-vanilla-permissions`, `aliases` |
-| `config/paper-global.yml` | `paper-server/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java` (`CURRENT_VERSION = 31`, L31) | **88** | Folia añade `threaded-regions.*` (L401-403). 26.3 quitó `misc.send-full-pos-for-item-entities` y `misc.fix-far-end-terrain-generation`. `chunk-loading-basic.autoconfig-send-distance` es ruta antigua (`also-from`) |
-| `config/paper-world-defaults.yml` y `<mundo>/paper-world.yml` | `paper-server/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java` (`CURRENT_VERSION = 31`, L75) | **182** | +15 `also-from` (los 14 límites e intervalos de spawn por categoría y `chunks.auto-save-interval`). 26.3 añade `chunks.min-chunk-unload-count`/`-fraction`; Paper `804dd0c3` añade `entities.behavior.inactive-mob-goal-selector-throttle-rate` (L341) y `command-blocks.time-format-pattern` (L581). Nombres de archivo en `PaperConfigurations.java:95-97` |
+| `config/paper-global.yml` | `paper-server/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java` (`CURRENT_VERSION = 31`, L31) | **89** | Folia añade `threaded-regions.*` (L401-403). 26.3 quitó `misc.send-full-pos-for-item-entities` y `misc.fix-far-end-terrain-generation`. `chunk-loading-basic.autoconfig-send-distance` es ruta antigua (`also-from`) |
+| `config/paper-world-defaults.yml` y `<mundo>/paper-world.yml` | `paper-server/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java` (`CURRENT_VERSION = 31`, L75) | **183** | +15 `also-from` (los 14 límites e intervalos de spawn por categoría y `chunks.auto-save-interval`). 26.3 añade `chunks.min-chunk-unload-count`/`-fraction`; Paper `804dd0c3` añade `entities.behavior.inactive-mob-goal-selector-throttle-rate` (L341) y `command-blocks.time-format-pattern` (L581). Nombres de archivo en `PaperConfigurations.java:95-97` |
 | `eula.txt` | — | **1** | `server.eula` |
 | (propias del fork) | — | **80** | `[dimensions]`, `world.always-spawn-at-world-spawn`, `world.lobby-spawn-world`, `world.disable-nether-roof`, `[chunks.adaptive-view-distance]`, `[combat]` (58), `[plugins.auto-update]`, `server.eula-prompt-timeout-seconds`, `server.use-server-properties` |
 
-Total: **593 claves TOML**, de las cuales **303 admiten override por mundo**. A ellas se suman
+Total: **595 claves TOML**, de las cuales **304 admiten override por mundo**. A ellas se suman
 **21 ubicaciones `also-from`**: 15 de Paper por mundo, 2 de Spigot por mundo, 2 de Spigot global,
 1 de Paper global y 1 de `server.properties` (`resource-pack-hash`).
 
@@ -197,7 +197,7 @@ L60-70). Columnas: claves / con override por mundo / orígenes.
 - `[plugins.auto-update]` (6) es del fork: ver [PLUGIN-UPDATER.md](PLUGIN-UPDATER.md).
 - `[plugins.api]` (16, con `scoreboards` e `item-validation`): bukkit `settings.*` de plugins,
   paper-global `misc.load-permissions-yml-before-plugins`, `scoreboards.*`, `item-validation.*`.
-- `[plugins.commands]` (9, más la tabla `aliases`): spigot `commands.*`, paper-global
+- `[plugins.commands]` (10, más la tabla `aliases`): spigot `commands.*`, paper-global
   `commands.suggest-player-names-when-null-tab-completions`, los 3 de `commands.yml`.
 
 ### 2.7 `worlds.toml` (sin claves propias)
@@ -208,7 +208,7 @@ L60-70). Columnas: claves / con override por mundo / orígenes.
 (`.../legacyfolia/config/WorldConfig.java:9-41`), aplanada una vez por mundo y cacheada hasta la
 siguiente carga (`WorldConfigCache`, invalidado en `ServerConfig.load`, L252-268). Sólo se
 consultan `gameplay.toml`, `performance.toml` y `world.toml` (`PER_WORLD_FILES`, L81), y de ellos
-sólo las 303 claves marcadas por mundo llegan a los objetos por mundo de Spigot y Paper
+sólo las 304 claves marcadas por mundo llegan a los objetos por mundo de Spigot y Paper
 (`SpigotBridge.addWorld`, `PaperBridge.world`).
 
 Mundos nombrados por carpeta (`world_nether`); Spigot los nombra por clave de dimensión
@@ -546,7 +546,7 @@ obvia:
 | paper-mundo | `scoreboards.*` | `gameplay.scoreboards.*` |
 | paper-mundo | `feature-seeds.generate-random-seeds-for-all` | `world.generation.random-feature-seeds` |
 
-La columna `legacy-path` del catálogo tiene la correspondencia exacta de las 593 claves.
+La columna `legacy-path` del catálogo tiene la correspondencia exacta de las 595 claves.
 
 **Por qué las semillas son una sección de `world.toml` y no una tabla de `[worlds.*]`.** En
 `spigot.yml` cuelgan de `world-settings`, pero son ajustes por mundo corrientes: todos los mundos
