@@ -57,40 +57,40 @@ The combat patches in `folia-server/minecraft-patches/features/`:
 
 | Patch | What it hooks |
 |---|---|
-| 0016 | No attack cooldown, no sweep, the 1.8 knockback formula, loading the settings at start-up |
-| 0017 | Criticals, the critical multiplier, sprint knockback strength, the invulnerability window length, sword blocking (use duration, right click), shields and the off-hand swap |
-| 0020 | `(1 + damage) * 0.5` for a raised sword |
-| 0021 | Armour and Protection |
-| 0022 | The single slow regeneration track |
-| 0023 | Attack, regeneration and jump exhaustion |
-| 0024 | Instant Healing and Harming |
-| 0025 | Flat Sharpness |
-| 0026 | Fire Aspect lighting the target before the hit |
-| 0027 | `restore-velocity-after-knockback` |
-| 0035 | Weapon damage, Strength and Weakness at attack time (`Player.attack`, `Mob.doHurtTarget`) |
-| 0036 | Weapon tooltips in the item codecs, item hashes and recipe displays |
-| 0038 | All five protection enchantments in one roll |
-| 0039 | Sword blocking as the `BLOCKING` damage modifier; the raw-damage invulnerability window |
-| 0040 | 0 damage hits landing on a player; a point of armour wear for them |
-| 0041 | Helmet wear, the exhaustion of being hurt, difficulty scaling |
-| 0042 | Knockback direction, resistance, the extra push, the explosion cause |
-| 0043 | Every damage enchantment with Sharpness, Sharpness on mobs, Bane of Arthropods' slowness |
-| 0044 | Putting out the fire a missed Fire Aspect hit lit |
-| 0045 | No attack sounds, `DAMAGE_DEALT`, the hurt tilt, ladder and water for criticals, the attack speed modifier |
-| 0046 | Reach and swings |
-| 0047 | Arrows, thrown items and ender pearls |
-| 0048 | The fishing rod |
-| 0049 | Explosions |
-| 0050 | Splash potions, potion durations, hidden effects, Absorption, Hunger |
-| 0051 | The enchanted golden apple and its recipe |
-| 0052 | Walking, swimming and mining exhaustion; no saturation in peaceful |
-| 0053 | Shields, the off-hand and totems |
-| 0054 | Falls, hay bales, Fire Protection, fire, Thorns, the iron golem |
-| 0055, 0057 | Three seconds of spawn invulnerability, armed only on joining |
-| 0056 | Primed TNT pushed from its feet |
-| 0058 | Primed TNT explodes at half its height |
+| 0019 | No attack cooldown, no sweep, the 1.8 knockback formula, loading the settings at start-up |
+| 0020 | Criticals, the critical multiplier, sprint knockback strength, the invulnerability window length, sword blocking (use duration, right click), shields and the off-hand swap |
+| 0023 | `(1 + damage) * 0.5` for a raised sword |
+| 0024 | Armour and Protection |
+| 0025 | The single slow regeneration track |
+| 0026 | Attack, regeneration and jump exhaustion |
+| 0027 | Instant Healing and Harming |
+| 0028 | Flat Sharpness |
+| 0029 | Fire Aspect lighting the target before the hit |
+| 0030 | `restore-velocity-after-knockback` |
+| 0038 | Weapon damage, Strength and Weakness at attack time (`Player.attack`, `Mob.doHurtTarget`) |
+| 0039 | Weapon tooltips in the item codecs, item hashes and recipe displays |
+| 0041 | All five protection enchantments in one roll |
+| 0042 | Sword blocking as the `BLOCKING` damage modifier; the raw-damage invulnerability window |
+| 0043 | 0 damage hits landing on a player; a point of armour wear for them |
+| 0044 | Helmet wear, the exhaustion of being hurt, difficulty scaling |
+| 0045 | Knockback direction, resistance, the extra push, the explosion cause |
+| 0046 | Every damage enchantment with Sharpness, Sharpness on mobs, Bane of Arthropods' slowness |
+| 0047 | Putting out the fire a missed Fire Aspect hit lit |
+| 0048 | No attack sounds, `DAMAGE_DEALT`, the hurt tilt, ladder and water for criticals, the attack speed modifier |
+| 0049 | Reach and swings |
+| 0050 | Arrows, thrown items and ender pearls |
+| 0051 | The fishing rod |
+| 0052 | Explosions |
+| 0053 | Splash potions, potion durations, hidden effects, Absorption, Hunger |
+| 0054 | The enchanted golden apple and its recipe |
+| 0055 | Walking, swimming and mining exhaustion; no saturation in peaceful |
+| 0056 | Shields, the off-hand and totems |
+| 0057 | Falls, hay bales, Fire Protection, fire, Thorns, the iron golem |
+| 0058, 0060 | Three seconds of spawn invulnerability, armed only on joining |
+| 0059 | Primed TNT pushed from its feet |
+| 0061 | Primed TNT explodes at half its height |
 
-0018, 0019, 0028–0034 and 0037 in the same range are not combat (configuration files, the lobby,
+0021, 0022, 0031–0037 and 0040 in the same range are not combat (configuration files, the lobby,
 the Nether roof, the locator bar).
 
 ## What actually changed since 1.8

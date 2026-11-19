@@ -471,6 +471,31 @@ del fork. Lo que nos tocó:
 - 325 tests propios en verde (10461 en total, 86 omitidos de upstream); `runDevServer` llega a
   `Done (` con solo los errores ya conocidos (oshi en Windows y ViaVersion 5.11.0).
 
+**Actualización de 2026-11-19 (Paper `5184e9c0`, rc.3).** Merge de `ver/26.3.x` hasta `eca40f9`
+(23 commits): Paper pasa de `804dd0c3` a `5184e9c0`, `channel` pasa a `STABLE` y `projectVersion` a
+`1.0.0-rc.3`. Lo que nos tocó:
+- **Numeración:** upstream añade 3 parches de minecraft (el mapa de Paper) y 1 de Paper, así que
+  los nuestros se desplazan +3 en minecraft (0015–0061) y +1 en Paper (0008–0014). Los de upstream
+  (minecraft 0001–0014, Paper 0001–0007) quedan idénticos a los suyos.
+- **Conflictos de merge:** `gradle.properties` (nuestro `group` y `projectVersion`, `paperRef` de
+  upstream), `build.gradle.kts.patch` (cabeceras de hunk y `mache` `26.3+build.2`) y
+  `0002-Region-Threading-Base.patch` de Paper (se toma el de upstream).
+- **Parches:** solo el del combate de proyectiles (ahora 0050) no aplicó. Upstream cambió las
+  perlas de ender (`773ea83`, `7907989`, `d40d8e1`: `findOwnerIncludingDeadPlayer` y
+  `attemptTeleport(..., this.oldPosition())`); gana upstream y se quita nuestro interruptor
+  `legacyProjectiles() ? oldPosition() : position()`, porque 1.8 también teletransportaba a la
+  posición anterior de la perla. Los demás parches solo movieron líneas.
+- **Ajustes nuevos de Paper**, catalogados: `plugins.commands.server-side-dimension-suggestions`
+  (global, `true`) y `gameplay.environment.fix-missing-tree-snow` (por mundo, `false`). Catálogo en
+  595 claves, 304 por mundo.
+- **Efecto de MC-17876 (upstream):** la vida al cargar ya no se recorta a la vida máxima. Con un
+  `max-health` bajado, un jugador o mob guardado con más vida la conserva al cargar. Es el
+  comportamiento de upstream y no se toca.
+- **Checkstyle:** upstream lo ejecuta ahora también sobre `folia-server`; nuestro paquete
+  `io/github/adrielorihuela/legacyfolia` se excluye en `build.gradle.kts.patch`, porque no es código
+  de Paper. `.gitattributes` fija `*.java` y `*.kts` en LF (la regla de fin de línea de upstream
+  falla con CRLF).
+
 ## 8. Diferencias con Folia y Paper
 
 LegacyFolia mantiene el modelo de hilos por regiones de Folia sin tocarlo; los parches de Folia

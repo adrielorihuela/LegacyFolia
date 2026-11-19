@@ -173,7 +173,7 @@ L60-70). Columnas: claves / con override por mundo / orígenes.
 | `[performance.regions]` | 3 | Folia: paper-global `threaded-regions.*` |
 | `[performance.threads]` | 2 | paper-global `misc.chat-threads.*` |
 
-### 2.5 `gameplay.toml` (207 / 181)
+### 2.5 `gameplay.toml` (208 / 182)
 
 | Sección | Claves | Orígenes |
 |---|---:|---|
@@ -190,7 +190,7 @@ L60-70). Columnas: claves / con override por mundo / orígenes.
 | `[gameplay.commands]` | 6 | paper-mundo `command-blocks.*`, `misc.show-sign-click-command-failure-msgs-to-player`, `spawn.allow-using-signs-inside-spawn-protection`; paper-global `commands.ride-command-allow-player-as-vehicle` |
 | `[gameplay.scoreboards]` | 2 | paper-mundo `scoreboards.*` |
 
-### 2.6 `combat.toml` (62 / 0) y `plugins.toml` (31 / 0)
+### 2.6 `combat.toml` (62 / 0) y `plugins.toml` (32 / 0)
 
 - `[combat]` (58) es del fork: ver [PVP-1.8.md](PVP-1.8.md). `[combat.attribute-limits]` (4) son
   los `settings.attribute.*.max` de spigot.

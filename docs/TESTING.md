@@ -14,7 +14,7 @@ the weapon tooltip with real clients (see `PROGRESS.md` §5). Bots now cover mos
 
 - **Java 25.**
 - **The jar.** `legacyfolia-paperclip-<version>.jar` from the GitHub pre-release
-  (`legacyfolia-paperclip-1.0.0-rc.2.jar` for RC 2). The paperclip jar is the server; it downloads
+  (`legacyfolia-paperclip-1.0.0-rc.3.jar` for RC 3). The paperclip jar is the server; it downloads
   the Minecraft server jar on first start. Nothing else from the build is needed.
 - **Two Minecraft 26.3 clients**, on two accounts, for everything that involves two players.
 - **A 1.8.9 client** for the ViaVersion items, with ViaVersion, ViaBackwards and ViaRewind on the
@@ -63,10 +63,10 @@ item retested, before `v1.0.0`.
 
 ## The automated benches
 
-Since `v1.0.0-rc.2` four programs in `testing/` run part of this list without people. They start the
+Since `v1.0.0-rc.3` four programs in `testing/` run part of this list without people. They start the
 jar in fresh temporary folders (offline mode, the EULA accepted only there), never touch a Minecraft
-account and write their results to `testing/results/` (git-ignored). Pass them the RC 2 jar
-(`legacyfolia-paperclip-1.0.0-rc.2.jar`, from the pre-release or from `./build.sh`); where the
+account and write their results to `testing/results/` (git-ignored). Pass them the RC 3 jar
+(`legacyfolia-paperclip-1.0.0-rc.3.jar`, from the pre-release or from `./build.sh`); where the
 tables below say **bench**, the item has a PASS, FAIL or NOT_RUN of its own in the report. They need
 Java 25; `bot18` and `client` also need Node 24 (`load` runs `java LoadTest.java`).
 

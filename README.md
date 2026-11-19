@@ -3,7 +3,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen)](https://minecraft.net)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://adoptium.net)
 [![Upstream](https://img.shields.io/badge/fork%20of-PaperMC%2FFolia-blue)](https://github.com/PaperMC/Folia)
-[![Status](https://img.shields.io/badge/status-v1.0.0--rc.2%20(testing)-yellow)](https://github.com/adrielorihuela/LegacyFolia/releases)
+[![Status](https://img.shields.io/badge/status-v1.0.0--rc.3%20(testing)-yellow)](https://github.com/adrielorihuela/LegacyFolia/releases)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0-lightgrey)](PATCHES-LICENSE)
 
 **LegacyFolia** is a fork of [Folia](https://github.com/PaperMC/Folia), PaperMC's multithreaded
@@ -24,7 +24,7 @@ It is a Folia server first: regionised multithreading, the Paper and Bukkit plug
 upstream commit merged in. Plugins keep reading Bukkit, Spigot and Paper configuration through the
 usual APIs. Every addition can be switched off.
 
-> **Status: release candidate `v1.0.0-rc.2`, for testing.** The code for 1.0.0 is complete and the
+> **Status: release candidate `v1.0.0-rc.3`, for testing.** The code for 1.0.0 is complete and the
 > automated tests pass. The functional bench (protocol bots, a 1.8.8 client and a real 26.3 client,
 > see [docs/TESTING.md](docs/TESTING.md)) passes on the RC 2 jar, but the 1.8 combat, the locator
 > bar and the EULA prompt on a Linux terminal have not yet been tried by people. Download the jar from
@@ -210,7 +210,7 @@ upstream does.
 1. Install **Java 25**.
 2. Download `legacyfolia-paperclip-<version>.jar` from
    [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), or build it (below). The
-   version in the file name is `projectVersion` in `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.2.jar`),
+   version in the file name is `projectVersion` in `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.3.jar`),
    also for a local build; `/version` still reports the Minecraft version.
 3. Start it in an empty folder, or in the folder of the server you want to migrate:
 

@@ -19,8 +19,8 @@ Moved from CLAUDE.md on 2026-11-06.
 - API-visible changes: `getAllowNether/End` answer from `[dimensions]`; with 1.8 combat on, the NMS
   `Player.canCriticalAttack`, which Paper made public for its API in `bc68acd74`, follows the
   1.8 rule; weapon tooltips show 1.8 damage on the wire only.
-- Upstream patches (minecraft 0001–0011, paper 0001–0006) are untouched; ours start at minecraft 0012
-  (up to 0058) and paper 0007 (up to 0013). The runnable jar is named after `projectVersion` in
+- Upstream patches (minecraft 0001–0014, paper 0001–0007) are untouched; ours start at minecraft 0015
+  (up to 0061) and paper 0008 (up to 0014). The runnable jar is named after `projectVersion` in
   `gradle.properties` (`legacyfolia-paperclip-1.0.0-rc.3.jar`); `/version` reports Minecraft's.
 
 ## Architecture (`folia-server/src/main/java/io/github/adrielorihuela/legacyfolia/`)

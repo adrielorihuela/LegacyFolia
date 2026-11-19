@@ -61,15 +61,15 @@ setting by setting (see [Plugin compatibility](#plugin-compatibility-the-legacy-
 | `config/world.toml` | `[dimensions]`, `[world]`, `.generation`, `.structure-seeds`, `.storage`, `.generators`, `.biome-providers` | 40 | 24 | Which dimensions exist, lobby spawn, Nether roof, world generation, Spigot's structure seeds, world container, plugin world generators |
 | `config/network.toml` | `[network]`, `.velocity`, `.bungeecord`, `.proxy-protocol`, `.rcon`, `.query`, `.management`, `.limits`, `.monitoring` | 45 | 0 | Address and port, compression, proxies, RCON, query, the management server, spam and packet limits, JMX, spark, the update checker |
 | `config/performance.toml` | `[chunks]`, `[chunks.adaptive-view-distance]`, `[performance.entities]`, `.spawning`, `.ticking`, `.regions`, `.threads` | 132 | 98 | View and simulation distance, chunk saving and loading, adaptive view distance, entity activation and tracking, collisions, spawn limits and despawn ranges, tick budgets, Folia's region threads |
-| `config/gameplay.toml` | `[gameplay.hunger]`, `.growth`, `.mobs`, `.mob-spawning`, `.environment`, `.items`, `.redstone`, `.exploits`, `.sounds`, `.players`, `.commands`, `.scoreboards` | 207 | 181 | Rules of play inherited from Spigot and Paper: hunger, crop growth, mob behaviour, weather and fluids, item despawn and loot, redstone, anti-xray and exploit fixes |
+| `config/gameplay.toml` | `[gameplay.hunger]`, `.growth`, `.mobs`, `.mob-spawning`, `.environment`, `.items`, `.redstone`, `.exploits`, `.sounds`, `.players`, `.commands`, `.scoreboards` | 208 | 182 | Rules of play inherited from Spigot and Paper: hunger, crop growth, mob behaviour, weather and fluids, item despawn and loot, redstone, anti-xray and exploit fixes |
 | `config/combat.toml` | `[combat]`, `[combat.attribute-limits]` | 62 | 0 | 1.8 PvP, see [PVP-1.8.md](PVP-1.8.md); also Spigot's attribute caps |
-| `config/plugins.toml` | `[plugins.auto-update]`, `[plugins.api]`, `[plugins.commands]` | 31 | 0 | The plugin auto-updater ([PLUGIN-UPDATER.md](PLUGIN-UPDATER.md)), plugin API behaviour, item validation, command handling and `commands.yml`'s aliases |
+| `config/plugins.toml` | `[plugins.auto-update]`, `[plugins.api]`, `[plugins.commands]` | 32 | 0 | The plugin auto-updater ([PLUGIN-UPDATER.md](PLUGIN-UPDATER.md)), plugin API behaviour, item validation, command handling and `commands.yml`'s aliases |
 | `config/worlds.toml` | `[worlds.default]`, `[worlds.<world>]` | 0 | | Overrides for every world, or for one world |
 
 595 keys in all (counted from `folia-server/src/main/resources/legacyfolia/catalog.tsv`, which
 `SettingsCatalogTest` keeps in step with the files). 80 of them are LegacyFolia's own; the rest
 come from `server.properties` (69), `bukkit.yml` (30), `spigot.yml` (35 global, 105 per world),
-`commands.yml` (3), `paper-global.yml` (88), `paper-world-defaults.yml` (182) and `eula.txt` (1),
+`commands.yml` (3), `paper-global.yml` (89), `paper-world-defaults.yml` (183) and `eula.txt` (1),
 with 21 more legacy locations folded into keys that already existed (Paper's per-world spawn
 limits beside Bukkit's, Spigot's per-world view distance beside vanilla's, and the like).
 
