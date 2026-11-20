@@ -4,7 +4,7 @@ Este documento existe para que el trabajo pueda retomarse exactamente donde qued
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
 **Última actualización:** 2026-11-19 · **Último tag de fase:** `v0.19.0` · **Prerelease de prueba:**
-`v1.0.0-rc.3` (preparada en `main`, pendiente de publicar; las anteriores, `v1.0.0-rc.2` y `v1.0.0-rc.1`, ya publicadas) · **Base:** Folia `ver/26.3.x` en `eca40f9` (merge `02214b9`), Minecraft
+`v1.0.0-rc.3` (publicada como prerelease; las anteriores, `v1.0.0-rc.2` y `v1.0.0-rc.1`, también) · **Base:** Folia `ver/26.3.x` en `eca40f9` (merge `02214b9`), Minecraft
 26.3, Paper `5184e9c0`, Java 25.
 
 ---
@@ -70,7 +70,7 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.19.0 | 10-31 | PvP 1.8 idéntico a Spigot 1.8.8: daño, protección, bloqueo, knockback, alcance, proyectiles, caña, explosiones, pociones, comida, invulnerabilidad al entrar; 12 claves nuevas (parches 0038–0057) |
 | v1.0.0-rc.1 | 10-31 | Prerelease para probar antes de `v1.0.0`: upstream al día (Paper `804dd0c3`), documentación entera revisada contra el código, jar paperclip adjunto en GitHub |
 | v1.0.0-rc.2 | 11-14 | Segunda prerelease (publicada): `server.properties` en la raíz, whitelist, ops y bans en `config/players.toml`, contraseña del keystore de gestión en `config/management-keystore.secret`, jar `legacyfolia-paperclip-1.0.0-rc.2.jar`, el aviso del updater cuenta `GITHUB_TOKEN`, `allow-nether` se importa, la copia de las listas va con el resto del respaldo, la TNT activada explota a media altura (parche 0058), `max-health` comentado; bancos de pruebas en `testing/` (bots, bot18, client, load) |
-| v1.0.0-rc.3 | 11-19 | Tercera prerelease, **pendiente de publicar** (el tag y el sha se anotan aquí al publicarla): upstream al día (Folia `eca40f9`, Paper `5184e9c0`, canal `STABLE`; parches de minecraft 0015–0062 y de Paper 0008–0014), el updater corre antes de que Paper lea `plugins/` (parche 0062), `allow-nether` gana sobre un `paper-global.yml` anterior a la versión 31, los dos ajustes nuevos de Paper catalogados (595 claves), las perlas de ender como upstream (sin nuestro interruptor), checkstyle de Paper sin nuestro paquete y `.gitattributes` con LF, alcance de `/paper reload` documentado, banco con plugin de sonda y resultados de cliente real (§4) |
+| v1.0.0-rc.3 | 11-19 | Tercera prerelease, publicada (jar `legacyfolia-paperclip-1.0.0-rc.3.jar`, sha256 `d12caf7d13c5c2906b8bd83a3a7d5687c5ea43f2289e5b906c3ac2dd04f7975c`): upstream al día (Folia `eca40f9`, Paper `5184e9c0`, canal `STABLE`; parches de minecraft 0015–0062 y de Paper 0008–0014), el updater corre antes de que Paper lea `plugins/` (parche 0062), `allow-nether` gana sobre un `paper-global.yml` anterior a la versión 31, los dos ajustes nuevos de Paper catalogados (595 claves), las perlas de ender como upstream (sin nuestro interruptor), checkstyle de Paper sin nuestro paquete y `.gitattributes` con LF, alcance de `/paper reload` documentado, banco con plugin de sonda y resultados de cliente real (§4) |
 
 **Estado del código hoy** (comprobado leyendo el árbol, no los documentos):
 - Parches propios: minecraft 0015–0062 (48) y paper 0008–0014 (7), encima de los de Folia (minecraft
@@ -211,8 +211,7 @@ tooltip (`v0.16.0`, `v0.17.0`), la locator bar (`v0.18.0`), el PvP 1.8 idéntico
 actualización de upstream a Paper `5184e9c0` (§7), `rc.1`, `rc.2` y, tras ella, los cambios de `rc.3`
 (§2), las pruebas con clientes reales y la documentación entera revisada otra vez contra el código.
 
-**Lo siguiente es publicar `v1.0.0-rc.3`** (tag, jar adjunto y el sha en la fila de §2, con la
-habilidad `release`). **`v1.0.0` solo se publica cuando el usuario lo diga** (§5).
+`v1.0.0-rc.3` está publicada (§2). **Lo siguiente es `v1.0.0`, y solo cuando el usuario lo confirme** (§5).
 
 Resultados de `rc.3` (el detalle y cómo ejecutarlos, en `docs/TESTING.md`):
 - **Tests propios:** 352 en `LegacyFoliaTestSuite`, en 44 archivos de resultados, sin fallos ni omitidos (`./gradlew :folia-server:test`
@@ -245,8 +244,7 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 
 ## 5. Qué falta, en orden
 
-1. **Release `v1.0.0` cuando el usuario lo confirme**, con el jar paperclip adjunto. Antes,
-   publicar `v1.0.0-rc.3` (§4). Lo único que las pruebas de `rc.3` no cubren: el prompt del EULA en una
+1. **Release `v1.0.0` cuando el usuario lo confirme**, con el jar paperclip adjunto. Lo único que las pruebas de `rc.3` no cubren: el prompt del EULA en una
    TTY de Linux, una persona mirando la locator bar y cómo se siente el combate comparado con un servidor 1.8 real (los clientes
    automáticos miden paquetes y estado, no sensaciones). ViaVersion 5.11.0 da un error al arrancar
    porque no soporta 26.3 (§7); para clientes 1.8 hace falta 5.12.1 o posterior.
@@ -331,7 +329,7 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
    `/init` significa eso (`CLAUDE.md`, «Talking to the user»).
 7. **Preparar `rc.2`. HECHO (2026-11-14), publicada.** Los cambios de la fila `rc.2` de §2, los
    bancos de pruebas de `testing/` y la documentación revisada.
-8. **Preparar `rc.3`. HECHO (2026-11-19), pendiente de publicar.** La fila `rc.3` de §2: upstream (§7),
+8. **Preparar `rc.3`. HECHO y publicada (2026-11-19).** La fila `rc.3` de §2: upstream (§7),
    el parche 0062, `allow-nether`, las pruebas sin personas y con clientes reales (§4) y la
    documentación revisada. Falta el tag y el jar en GitHub, que pone la habilidad `release`.
 
