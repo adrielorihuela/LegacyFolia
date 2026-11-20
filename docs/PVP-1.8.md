@@ -540,12 +540,9 @@ still read the modern figure; the hoes, the trident, the mace and an empty hand 
 damage; and a diamond sword a plugin gave a +20 modifier hit for its own 23. The player's path calls
 the same method from `Player.attack`.
 
-**Not verified.** Nothing above has been played with real clients yet: hits, combos and knockback
-between two players, sword blocking and its animation for a 1.8 client through ViaVersion, the
-hidden cooldown indicator, reach through grass, the rod, pearls and arrows, TNT and creepers, potions
-and the notch apple, being hit right after joining, and the tooltip on a modern client and on a 1.8
-one. Nor whether it *feels* right. Both need people in a server hitting each other; neither can be
-established from a test. If something feels wrong, the mechanic is almost certainly switchable on its
+**Checked with real clients in rc.3** (26.3 native, and 1.8 through ViaFabricPlus); see "Real-client
+results (rc.3)" in [TESTING.md](TESTING.md). Not covered there: TNT and creepers, and whether it
+*feels* right, which needs people in a server hitting each other and cannot be established from a test. If something feels wrong, the mechanic is almost certainly switchable on its
 own, which makes it straightforward to narrow down.
 
 ## Every setting

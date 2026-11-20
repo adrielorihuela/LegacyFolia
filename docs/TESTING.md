@@ -94,7 +94,7 @@ Results on the RC 3 jar:
 | bots | 81 PASS, 0 FAIL, 16 NOT_RUN |
 | bot18 | 5 of 5 (`join`, `melee_damage`, `no_attack_cooldown`, `sword_blocking`, `tooltip_damage`) |
 | client | 4 of 4 (`join`, `read_chat`, `send_chat`, `leave`) |
-| load | No capacity figure: SoulFire on Windows crashes and its bots drop at about 14. At 10 to 14 bots the server held TPS 20 and MSPT 13 to 23. Details in [LOAD-TESTING.md](LOAD-TESTING.md) |
+| load | RC 2, not re-run on RC 3. No capacity figure: SoulFire on Windows crashes and its bots drop at about 14. At 10 to 14 bots the server held TPS 20 and MSPT 13 to 23. Details in [LOAD-TESTING.md](LOAD-TESTING.md) |
 
 The 16 items the bots bench cannot do on its own (the results of the unattended ones are in [the unattended run](#unattended-run-of-the-not_run-items-rc-3)): `1j` with a team (Folia has no
 `/team`), `2h` arrows (the shooter's motion belongs to the client), `3d` (`bot18` only checks the

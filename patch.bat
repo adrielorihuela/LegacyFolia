@@ -1,4 +1,5 @@
 @echo off
+setlocal
 rem Windows: long paths on, and LF checkouts whatever the global core.autocrlf says.
 set GIT_CONFIG_COUNT=2
 set GIT_CONFIG_KEY_0=core.longpaths

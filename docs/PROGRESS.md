@@ -230,7 +230,9 @@ Resultados de `rc.3` (el detalle y cómo ejecutarlos, en `docs/TESTING.md`):
   sprint, w-tap, bloqueo, sin indicador de cooldown, alcance, caña, perlas, flechas, pociones,
   manzana de Notch, reaparecer), tooltip `3d`, locator bar y una sesión de **15,08 minutos** (`10c`)
   sin desconexiones ni errores, todo en PASS; los números medidos están en `TESTING.md`. No se
-  encontró ningún fallo del fork; los hallazgos son de ViaVersion, de Windows o de Folia.
+  encontró ningún fallo del fork; los hallazgos son de ViaVersion, de Windows o de Folia, salvo uno:
+  una poción de curación fuerte que un cliente 1.8 bebió una vez sin efecto. No se reprodujo y sigue
+  sin explicación (`TESTING.md:433`).
 - **Prueba de carga local: no hay cifra de capacidad.** SoulFire en Windows se cae y sus bots se
   desconectan hacia los 14; con 10 a 14 bots el servidor mantuvo TPS 20 y MSPT de 13 a 23
   (`docs/LOAD-TESTING.md`).
@@ -245,7 +247,7 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 
 1. **Release `v1.0.0` cuando el usuario lo confirme**, con el jar paperclip adjunto. Antes,
    publicar `v1.0.0-rc.3` (§4). Lo único que las pruebas de `rc.3` no cubren: el prompt del EULA en una
-   TTY de Linux y cómo se siente el combate comparado con un servidor 1.8 real (los clientes
+   TTY de Linux, una persona mirando la locator bar y cómo se siente el combate comparado con un servidor 1.8 real (los clientes
    automáticos miden paquetes y estado, no sensaciones). ViaVersion 5.11.0 da un error al arrancar
    porque no soporta 26.3 (§7); para clientes 1.8 hace falta 5.12.1 o posterior.
 
