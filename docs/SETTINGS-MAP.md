@@ -12,7 +12,7 @@ en que el servidor lee cada cosa y lo que se dejó fuera a propósito. La guía 
 disco y se construyen en memoria (§4). Este archivo empezó como documento de diseño; lo que sigue
 describe el código actual, no un plan.
 
-**Base y números de línea.** Paper `804dd0c3` (Folia `ver/26.3.x`, Minecraft 26.3). Las rutas con
+**Base y números de línea.** Paper `5184e9c0` (Folia `ver/26.3.x`, Minecraft 26.3). Las rutas con
 número de línea se refieren a los árboles generados tras `applyAllPatches` sobre esa base:
 `folia-server/src/minecraft/java/` (vanilla parcheado), `paper-server/src/main/java/` (Paper) y
 `folia-server/src/main/java/io/github/adrielorihuela/legacyfolia/` (abreviado `.../legacyfolia/`).
@@ -32,7 +32,7 @@ notas. Los números de este documento salen de ahí. Tests que lo mantienen hone
   de vanilla desde un archivo vacío, el `spigot.yml` de Spigot con un mundo cargado, el
   `paper-global.yml` y el `paper-world-defaults.yml` de Paper, y las plantillas de `bukkit.yml` y
   `commands.yml`, más las claves de Bukkit que la plantilla no escribe. Si una actualización de
-  Paper añade una clave, falla hasta que se le da sitio (así se catalogaron las dos de `804dd0c3`).
+  Paper añade una clave, falla hasta que se le da sitio (así se catalogaron las dos de `804dd0c3` y las dos de `5184e9c0`).
 - `ServerPropertiesBridgeTest`, `BukkitBridgeTest`, `SpigotBridgeTest`, `PaperBridgeTest`: con los
   TOML por defecto, cada objeto construido en memoria es igual al que escribe un servidor nuevo
   (§4.3, §10).

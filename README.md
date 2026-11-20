@@ -26,8 +26,9 @@ usual APIs. Every addition can be switched off.
 
 > **Status: release candidate `v1.0.0-rc.3`, for testing.** The code for 1.0.0 is complete and the
 > automated tests pass. The functional bench (protocol bots, a 1.8.8 client and a real 26.3 client,
-> see [docs/TESTING.md](docs/TESTING.md)) passes on the RC 2 jar, but the 1.8 combat, the locator
-> bar and the EULA prompt on a Linux terminal have not yet been tried by people. Download the jar from
+> see [docs/TESTING.md](docs/TESTING.md)) passes on the RC 3 jar, and so does a pass with two real clients
+> (26.3, and 1.8 through ViaFabricPlus) with a 15-minute session. People have not yet played the 1.8 combat or
+> watched the locator bar, and the EULA prompt has not been tried on a Linux terminal. Download the jar from
 > [Releases](https://github.com/adrielorihuela/LegacyFolia/releases), try it on a test server with the
 > checklist in [docs/TESTING.md](docs/TESTING.md), and report anything that behaves differently
 > from what is described here to the maintainer (the fork's issue tracker is off). `v1.0.0`

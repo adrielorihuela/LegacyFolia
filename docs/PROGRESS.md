@@ -3,9 +3,9 @@
 Este documento existe para que el trabajo pueda retomarse exactamente donde quedó, por una persona
 o por otra sesión, sin depender de la memoria de nadie. Se actualiza al cerrar cada fase.
 
-**Última actualización:** 2026-11-14 · **Último tag de fase:** `v0.19.0` · **Prerelease de prueba:**
-`v1.0.0-rc.2` (preparada en `main`, aún sin tag; la anterior, `v1.0.0-rc.1`) · **Base:** Folia `ver/26.3.x` en `73865e0` (2026-10-29, merge `e5e16b3`), Minecraft
-26.3, Paper `804dd0c3`, Java 25.
+**Última actualización:** 2026-11-19 · **Último tag de fase:** `v0.19.0` · **Prerelease de prueba:**
+`v1.0.0-rc.3` (preparada en `main`, pendiente de publicar; las anteriores, `v1.0.0-rc.2` y `v1.0.0-rc.1`, ya publicadas) · **Base:** Folia `ver/26.3.x` en `eca40f9` (merge `02214b9`), Minecraft
+26.3, Paper `5184e9c0`, Java 25.
 
 ---
 
@@ -69,22 +69,23 @@ fork, una sola rama `main`). Los requisitos originales, en el orden en que llega
 | v0.18.0 | 10-31 | Locator bar idéntica a la de vanilla: solo la dimensión propia, la máquina de estados de conexiones de vanilla sobre snapshots, todos los paquetes en el hilo del receptor |
 | v0.19.0 | 10-31 | PvP 1.8 idéntico a Spigot 1.8.8: daño, protección, bloqueo, knockback, alcance, proyectiles, caña, explosiones, pociones, comida, invulnerabilidad al entrar; 12 claves nuevas (parches 0038–0057) |
 | v1.0.0-rc.1 | 10-31 | Prerelease para probar antes de `v1.0.0`: upstream al día (Paper `804dd0c3`), documentación entera revisada contra el código, jar paperclip adjunto en GitHub |
-| v1.0.0-rc.2 | 11-14 | Segunda prerelease (el tag se pone al publicarla, no antes): `server.properties` en la raíz, whitelist, ops y bans en `config/players.toml`, contraseña del keystore de gestión en `config/management-keystore.secret`, jar `legacyfolia-paperclip-1.0.0-rc.2.jar`, el aviso del updater cuenta `GITHUB_TOKEN`, `allow-nether` se importa, la copia de las listas va con el resto del respaldo, la TNT activada explota a media altura (parche 0058), `max-health` comentado; bancos de pruebas en `testing/` (bots, bot18, client, load) |
+| v1.0.0-rc.2 | 11-14 | Segunda prerelease (publicada): `server.properties` en la raíz, whitelist, ops y bans en `config/players.toml`, contraseña del keystore de gestión en `config/management-keystore.secret`, jar `legacyfolia-paperclip-1.0.0-rc.2.jar`, el aviso del updater cuenta `GITHUB_TOKEN`, `allow-nether` se importa, la copia de las listas va con el resto del respaldo, la TNT activada explota a media altura (parche 0058), `max-health` comentado; bancos de pruebas en `testing/` (bots, bot18, client, load) |
+| v1.0.0-rc.3 | 11-19 | Tercera prerelease, **pendiente de publicar** (el tag y el sha se anotan aquí al publicarla): upstream al día (Folia `eca40f9`, Paper `5184e9c0`, canal `STABLE`; parches de minecraft 0015–0062 y de Paper 0008–0014), el updater corre antes de que Paper lea `plugins/` (parche 0062), `allow-nether` gana sobre un `paper-global.yml` anterior a la versión 31, los dos ajustes nuevos de Paper catalogados (595 claves), las perlas de ender como upstream (sin nuestro interruptor), checkstyle de Paper sin nuestro paquete y `.gitattributes` con LF, alcance de `/paper reload` documentado, banco con plugin de sonda y resultados de cliente real (§4) |
 
 **Estado del código hoy** (comprobado leyendo el árbol, no los documentos):
-- Parches propios: minecraft 0012–0058 (47) y paper 0007–0013 (7), encima de los de Folia (minecraft
-  0001–0011 y paper 0001–0006, idénticos a upstream). El mapa por número está en `.claude/rules/patches.md`.
-- Catálogo (`legacyfolia/catalog.tsv`): **593 claves**; 303 admiten override por mundo, 19 las
-  reescribe el servidor en caliente (`mutable`), 3 son secretos y 513 tienen origen heredado
-  (Paper global 88, Paper por mundo 182, Spigot 35, Spigot por mundo 105, Bukkit 30, `commands.yml`
-  3, `server.properties` 69, `eula.txt` 1); las 80 restantes son propias. Por archivo: gameplay 207,
+- Parches propios: minecraft 0015–0062 (48) y paper 0008–0014 (7), encima de los de Folia (minecraft
+  0001–0014 y paper 0001–0007, idénticos a upstream). El mapa por número está en `.claude/rules/patches.md`.
+- Catálogo (`legacyfolia/catalog.tsv`): **595 claves**; 304 admiten override por mundo, 19 las
+  reescribe el servidor en caliente (`mutable`), 3 son secretos y 515 tienen origen heredado
+  (Paper global 89, Paper por mundo 183, Spigot 35, Spigot por mundo 105, Bukkit 30, `commands.yml`
+  3, `server.properties` 69, `eula.txt` 1); las 80 restantes son propias. Por archivo: gameplay 208,
   performance 132 (`[chunks]` 31 y `[performance.*]` 101), server 76, combat 62, network 45, world
-  40 (`[dimensions]` 3 y `[world.*]` 37), plugins 31; `worlds.toml` solo tiene ejemplos.
+  40 (`[dimensions]` 3 y `[world.*]` 37), plugins 32; `worlds.toml` solo tiene ejemplos.
 - **Tests:** 352 en `LegacyFoliaTestSuite`, en 44 archivos de resultados, sin fallos ni omitidos
-  (2026-11-14, `./gradlew :folia-server:test` sobre `main`). La ejecución completa de
-  `:folia-server:test` dio 10461 tests con 86 omitidos, todos de upstream, el 2026-10-31 (con 325 propios).
+  (2026-11-19, `./gradlew :folia-server:test` sobre `main`). La ejecución completa de
+  `:folia-server:test` dio 10587 tests con 22 omitidos, todos de upstream, el 2026-11-19 (con 352 propios; el 2026-10-31 fueron 10461 y 86).
 - El jar que sale de `./build.sh` es `folia-server/build/libs/legacyfolia-paperclip-<versión>.jar`;
-  la versión es `projectVersion` de `gradle.properties` (hoy `1.0.0-rc.2`), no la de Minecraft:
+  la versión es `projectVersion` de `gradle.properties` (hoy `1.0.0-rc.3`), no la de Minecraft:
   `/version` sigue dando 26.3.
 - Archivos de `config/`: los ocho TOML de ajustes más `players.toml` (whitelist, ops y bans, datos y
   no ajustes). `server.properties` vive en la raíz del servidor desde `rc.2` (antes, en `config/`).
@@ -203,25 +204,36 @@ fuente de todo lo que lee el servidor.
 
 ## 4. Punto exacto de reanudación
 
-Al escribir esto (2026-11-14), `main` es la única rama, con los commits de `rc.2` **sin subir** a
-origin y sin tag (`git log origin/main..main`). Todo lo que había que hacer antes de `v1.0.0` está
-hecho: la fase de enganche (`v0.15.0`), el daño de las armas y su tooltip (`v0.16.0`, `v0.17.0`), la
-locator bar (`v0.18.0`), el PvP 1.8 idéntico (`v0.19.0`), la actualización de upstream a Paper
-`804dd0c3` (§7), `rc.1` y, tras ella, los cambios de `rc.2` (§2) y la documentación entera revisada
-otra vez contra el código.
+Al escribir esto (2026-11-19), `main` es la única rama, con los commits de `rc.3` **sin subir** a
+origin y sin tag (`git log origin/main..main`; `v1.0.0-rc.2` ya está publicada). Todo lo que había
+que hacer antes de `v1.0.0` está hecho: la fase de enganche (`v0.15.0`), el daño de las armas y su
+tooltip (`v0.16.0`, `v0.17.0`), la locator bar (`v0.18.0`), el PvP 1.8 idéntico (`v0.19.0`), la
+actualización de upstream a Paper `5184e9c0` (§7), `rc.1`, `rc.2` y, tras ella, los cambios de `rc.3`
+(§2), las pruebas con clientes reales y la documentación entera revisada otra vez contra el código.
 
-**Lo siguiente es que el usuario pruebe `v1.0.0-rc.2`**: publicarla (tag y jar adjunto, con la
-habilidad `release`) y que la pruebe a mano con `docs/TESTING.md` (§5, punto 1). Lo que encuentre se
-corrige en `main` y, si hace falta otra ronda, sale un `rc.3`.
-**`v1.0.0` solo se publica cuando el usuario lo diga** (§5, punto 2).
+**Lo siguiente es publicar `v1.0.0-rc.3`** (tag, jar adjunto y el sha en la fila de §2, con la
+habilidad `release`). **`v1.0.0` solo se publica cuando el usuario lo diga** (§5).
 
-Resultados de los bancos de `testing/` sobre el jar final de `rc.2` (el detalle y cómo ejecutarlos,
-en `docs/TESTING.md`): **bots** 81 PASS, 0 FAIL y 16 NOT_RUN (`1j-team`, `2h-arrow`, `5i`, EULA
-`4a`/`4b`/`4c`/`4e`, updater `9b` a `9h`, `3d` y `10c`); **bot18** (cliente 1.8.8 vía ViaVersion) 5 de 5;
-**cliente real** (HeadlessMC con Fabric 26.3) 4 de 4. Folia no tiene `/data`, `/item`, `/loot` ni
-`/team`, y eso cambia algunas comprobaciones manuales. **Prueba de carga local: no hay cifra de
-capacidad.** SoulFire en Windows se cae y sus bots se desconectan hacia los 14; con 10 a 14 bots el
-servidor mantuvo TPS 20 y MSPT de 13 a 23 (`docs/LOAD-TESTING.md`).
+Resultados de `rc.3` (el detalle y cómo ejecutarlos, en `docs/TESTING.md`):
+- **Tests propios:** 352 en `LegacyFoliaTestSuite`, en 44 archivos de resultados, sin fallos ni omitidos (`./gradlew :folia-server:test`
+  sobre `main`).
+- **Bancos de `testing/`** sobre el jar de `rc.3`: **bots** 81 PASS, 0 FAIL y 16 NOT_RUN;
+  **bot18** (cliente 1.8.8 vía ViaVersion) 5 de 5; **cliente real** (HeadlessMC con Fabric 26.3) 4
+  de 4. Folia no tiene `/data`, `/item`, `/loot` ni `/team`, y eso cambia algunas comprobaciones.
+- **Los 16 NOT_RUN, repetidos sin personas** (sección «Unattended run» de `TESTING.md`): EULA `4a` a
+  `4f` con un pseudoterminal real de Windows, `5i` con el plugin de sonda, `5j`, migración `6a` a
+  `6h` con jars reales de Paper y Folia, `7a` a `7i`, updater `9a` a `9h` (`9b` y `9d` repetidos tras el
+  parche 0062). `1j-team` sigue en FAIL por una limitación de Folia (`Entity#getTeam()` es null y
+  `registerNewTeam` lanza), no por el fork. Sin hacer: el prompt del EULA en una TTY de Linux.
+- **Clientes reales** (sección «Real-client results (rc.3)»; dos clientes Fabric 26.3, uno de ellos
+  1.8 vía ViaFabricPlus 5.1.3 con ViaVersion 5.12.3-SNAPSHOT en el servidor): PvP (golpe, combo,
+  sprint, w-tap, bloqueo, sin indicador de cooldown, alcance, caña, perlas, flechas, pociones,
+  manzana de Notch, reaparecer), tooltip `3d`, locator bar y una sesión de **15,08 minutos** (`10c`)
+  sin desconexiones ni errores, todo en PASS; los números medidos están en `TESTING.md`. No se
+  encontró ningún fallo del fork; los hallazgos son de ViaVersion, de Windows o de Folia.
+- **Prueba de carga local: no hay cifra de capacidad.** SoulFire en Windows se cae y sus bots se
+  desconectan hacia los 14; con 10 a 14 bots el servidor mantuvo TPS 20 y MSPT de 13 a 23
+  (`docs/LOAD-TESTING.md`).
 
 La comprobación de arranque está hecha sobre 26.3: con `run/config/*.toml` borrados,
 `runDevServer` llega a `Done (` y genera los ocho TOML; un segundo arranque con los archivos
@@ -231,27 +243,11 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
 
 ## 5. Qué falta, en orden
 
-1. **Probar `v1.0.0-rc.2`** (la publica el usuario o se lo pide a la sesión; §4). Los bancos de
-   `testing/` ya pasan (§4), pero un bot solo comprueba los paquetes que lee. Lo que sigue sin
-   comprobar con personas y clientes reales, y los 16 puntos que el banco de bots no puede hacer:
-   - **PvP 1.8:** golpes, combos y knockback entre dos jugadores; bloqueo con espada y su animación;
-     el indicador de cooldown oculto; alcance a través de hierba; caña, perlas y flechas; explosiones
-     de TNT y creeper; pociones y manzana de Notch; reaparecer y recibir un golpe al momento; el
-     tooltip de las armas en un cliente moderno y en uno 1.8 vía ViaVersion; cómo se siente
-     comparado con un servidor 1.8 real.
-   - **Locator bar:** dos clientes a más de 332 bloques, en dimensiones distintas, agachados y con
-     cabeza puesta.
-   - **EULA:** el prompt en Linux con una TTY real (ENTER acepta, ESC cancela).
-   - **Configuración:** un servidor nuevo (en la raíz solo el jar, `server.properties` con solo la
-     cabecera y las carpetas que genera; en `config/` los ocho TOML y `players.toml`), una migración
-     desde un Paper o Folia real (las listas de jugadores acaban en `players.toml`),
-     `/legacyfolia properties on|off|status`, `/whitelist on` y `/paper reload` con un plugin que lea
-     los valores de Bukkit, Spigot y Paper, y pasar de una `rc.1` con su `config/server.properties`.
-   - **Auto-updater** con al menos una fuente activada, y los interruptores de dimensiones, lobby y
-     techo del Nether.
-   - ViaVersion 5.11.0 da un error al arrancar porque no soporta 26.3 (§7); para probar con clientes
-     1.8 hace falta 5.12.1 o posterior.
-2. **Release `v1.0.0`**, con el jar paperclip adjunto, **solo cuando el usuario lo indique**.
+1. **Release `v1.0.0` cuando el usuario lo confirme**, con el jar paperclip adjunto. Antes,
+   publicar `v1.0.0-rc.3` (§4). Lo único que las pruebas de `rc.3` no cubren: el prompt del EULA en una
+   TTY de Linux y cómo se siente el combate comparado con un servidor 1.8 real (los clientes
+   automáticos miden paquetes y estado, no sensaciones). ViaVersion 5.11.0 da un error al arrancar
+   porque no soporta 26.3 (§7); para clientes 1.8 hace falta 5.12.1 o posterior.
 
 ### Hecho (de lo que había en esta lista)
 
@@ -303,7 +299,7 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
    movimientos en ese tick llegan como un solo `update`; el reaparecer de Folia reutiliza el mismo
    `ServerPlayer`, así que no hay el primer tick que vanilla tiene tras reaparecer; y un
    `remakeConnections` sobre un emisor no seguido (agachado) no conecta a los espectadores como en
-   vanilla. **Sin comprobar con un cliente real.**
+   vanilla. Comprobado con clientes reales en `rc.3` (§4).
 4. **PvP 1.8 idéntico al original. HECHO (2026-10-31, `v0.19.0`).** Se compararon todas las mecánicas
    con el código de Spigot/CraftBukkit 1.8.8 y se corrigieron en los parches 0038–0057, cada uno con
    su clave o con `enabled`: Fuerza y Debilidad, las cinco protecciones (redondeo hacia abajo, vacío),
@@ -327,13 +323,15 @@ vuelve a llegar a `Done (` y añade las dos claves nuevas a los TOML existentes.
    Lo que no se pudo igualar (hitbox agachado, camas/miel/carga de viento, animación de bloqueo en
    cliente moderno; la caña en el agua y clavada mantiene la lógica moderna) está en `PVP-1.8.md`.
    Probado con 325 tests y arrancando el servidor (`Done (`).
-   **Sin comprobar con clientes reales**: es lo primero del punto 1 de arriba.
+   Comprobado con clientes reales en `rc.3` (§4).
 5. **Actualización de upstream a Paper `804dd0c3`. HECHO (2026-10-31).** Detalles en §7.
 6. **`/init`. HECHO (2026-10-31).** Documentación entera revisada contra el código; desde ahora
    `/init` significa eso (`CLAUDE.md`, «Talking to the user»).
-7. **Preparar `rc.2`. HECHO (2026-11-14), sin publicar.** Los cambios de la fila `rc.2` de §2, los
-   bancos de pruebas de `testing/` y la documentación revisada. Pendiente de publicar: el tag y el
-   jar en GitHub, solo cuando el usuario lo pida.
+7. **Preparar `rc.2`. HECHO (2026-11-14), publicada.** Los cambios de la fila `rc.2` de §2, los
+   bancos de pruebas de `testing/` y la documentación revisada.
+8. **Preparar `rc.3`. HECHO (2026-11-19), pendiente de publicar.** La fila `rc.3` de §2: upstream (§7),
+   el parche 0062, `allow-nether`, las pruebas sin personas y con clientes reales (§4) y la
+   documentación revisada. Falta el tag y el jar en GitHub, que pone la habilidad `release`.
 
 ## 6. Decisiones del usuario (decididas)
 
@@ -396,7 +394,7 @@ en el catálogo `config/catalog/`; desde la etapa 5b el servidor las lee todas):
 `ip = "127.0.0.1"` y `password-file = "rcon.secret"` en lugar de `password`, y los mensajes de
 `[server.messages]` en MiniMessage con `translate:`.
 
-**Verificaciones manuales pendientes:** están en §5, punto 1.
+**Verificaciones manuales pendientes:** solo las que cita §5.
 
 ## 7. Upstream
 
@@ -475,7 +473,7 @@ del fork. Lo que nos tocó:
 (23 commits): Paper pasa de `804dd0c3` a `5184e9c0`, `channel` pasa a `STABLE` y `projectVersion` a
 `1.0.0-rc.3`. Lo que nos tocó:
 - **Numeración:** upstream añade 3 parches de minecraft (el mapa de Paper) y 1 de Paper, así que
-  los nuestros se desplazan +3 en minecraft (0015–0061) y +1 en Paper (0008–0014). Los de upstream
+  los nuestros se desplazan +3 en minecraft (0015–0061; el 0062, el del updater, vino después) y +1 en Paper (0008–0014). Los de upstream
   (minecraft 0001–0014, Paper 0001–0007) quedan idénticos a los suyos.
 - **Conflictos de merge:** `gradle.properties` (nuestro `group` y `projectVersion`, `paperRef` de
   upstream), `build.gradle.kts.patch` (cabeceras de hunk y `mache` `26.3+build.2`) y
@@ -499,16 +497,16 @@ del fork. Lo que nos tocó:
 ## 8. Diferencias con Folia y Paper
 
 LegacyFolia mantiene el modelo de hilos por regiones de Folia sin tocarlo; los parches de Folia
-(minecraft 0001–0011, paper 0001–0006) son los de upstream. Lo que cambia para quien lo usa:
+(minecraft 0001–0014, paper 0001–0007) son los de upstream. Lo que cambia para quien lo usa:
 - **Archivos:** no hay `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-global.yml`,
   `paper-world-defaults.yml`, `paper-world.yml` ni `eula.txt`. Los ocho TOML de `config/` son la
   fuente, y los objetos que leen los plugins (`YamlConfiguration` de Bukkit y Spigot, nodos de
-  Configurate de Paper, `DedicatedServerProperties`) se construyen en memoria (paper 0010–0012,
-  minecraft 0032). `/paper reload`, `/spigot reload` y el reload de Bukkit releen los TOML.
+  Configurate de Paper, `DedicatedServerProperties`) se construyen en memoria (paper 0011–0013,
+  minecraft 0035). `/paper reload`, `/spigot reload` y el reload de Bukkit releen los TOML.
 - **`server.properties`** es opcional y vive en la raíz del servidor (en `config/` hasta `rc.1`): solo
   lo que difiere del default, y manda sobre los TOML (§6, decisión 6). Whitelist, ops y bans en
   `config/players.toml`, los secretos en `config/` y la caché de usuarios en `cache/` (minecraft
-  0018–0019).
+  0021–0022).
 - **Migración** automática desde vanilla, Spigot, Paper o Folia en el primer arranque (§6,
   decisión 7).
 - **Defaults distintos:** whitelist apagada (26.3 la enciende), spawn protection 0 (vanilla 16),
@@ -516,9 +514,9 @@ LegacyFolia mantiene el modelo de hilos por regiones de Folia sin tocarlo; los p
   encendido.
 - **Jugabilidad:** PvP 1.8 (`PVP-1.8.md`), locator bar que funciona con regiones, interruptores de
   dimensiones, lobby, techo del Nether, distancia de visión adaptativa.
-- **API:** `getAllowNether/End` responden desde `[dimensions]` (paper 0007); el secreto de Velocity
-  sale de `config/forwarding.secret` (paper 0008); `canSee` por id de entidad (paper 0009); con el
+- **API:** `getAllowNether/End` responden desde `[dimensions]` (paper 0008); el secreto de Velocity
+  sale de `config/forwarding.secret` (paper 0009); `canSee` por id de entidad (paper 0010); con el
   combate 1.8 encendido, `Player.canCriticalAttack` de NMS, que Paper hizo público para su API,
   sigue la regla de 1.8; el tooltip de las armas solo cambia en lo que se envía al cliente. Comando
-  propio `/legacyfolia` (paper 0013).
+  propio `/legacyfolia` (paper 0014).
 
