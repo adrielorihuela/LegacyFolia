@@ -3,6 +3,12 @@ rem Pull in new Folia commits and re-apply our patches.
 rem Safe to run on a fresh clone: the upstream remote is created if missing.
 setlocal
 cd /d "%~dp0"
+rem Windows: long paths on, and LF checkouts whatever the global core.autocrlf says.
+set GIT_CONFIG_COUNT=2
+set GIT_CONFIG_KEY_0=core.longpaths
+set GIT_CONFIG_VALUE_0=true
+set GIT_CONFIG_KEY_1=core.autocrlf
+set GIT_CONFIG_VALUE_1=false
 
 git remote get-url upstream >nul 2>&1
 if errorlevel 1 (

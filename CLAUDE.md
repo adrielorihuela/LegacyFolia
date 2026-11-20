@@ -39,8 +39,10 @@ what was already said. The user prefers work to be done through subagents.
 
 ## Commands
 
-On Windows, `applyAllPatches` needs long paths:
-`GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true ./gradlew applyAllPatches`
+On Windows, `applyAllPatches` needs long paths and LF checkouts (global `core.autocrlf=true` gives the
+generated trees CRLF, which fails checkstyle and changes the jar hash). `patch`, `build` and `update`
+set both; by hand:
+`GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true GIT_CONFIG_KEY_1=core.autocrlf GIT_CONFIG_VALUE_1=false ./gradlew applyAllPatches`
 
 - Apply patches: `./gradlew applyAllPatches` (or `patch.sh`/`patch.bat`)
 - Build jar: `./build.sh`/`build.bat` → `applyAllPatches` + `build createPaperclipJar`; the runnable jar

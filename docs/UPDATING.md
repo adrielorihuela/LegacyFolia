@@ -25,12 +25,13 @@ that does not go cleanly.
 
 `update.txt` is Folia's own list of things to recheck on an update, not ours.
 
-**Windows.** `applyAllPatches` writes paths longer than Windows allows by default, and neither
-`update.bat` nor `build.bat` turns on git's long-path support. Either set it once for your user
-(`git config --global core.longpaths true`) or run the Gradle step with it in the environment:
+**Windows.** `applyAllPatches` writes paths longer than Windows allows by default, and a global
+`core.autocrlf=true` would check the generated trees out with CRLF (checkstyle fails and the jar hash
+changes). `patch`, `build` and `update` (`.sh` and `.bat`) therefore set `core.longpaths=true` and
+`core.autocrlf=false` through the environment. When running Gradle by hand, do the same:
 
 ```bash
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true ./gradlew applyAllPatches
+GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true GIT_CONFIG_KEY_1=core.autocrlf GIT_CONFIG_VALUE_1=false ./gradlew applyAllPatches
 ```
 
 **Which jar to run.** The build writes three jars to `folia-server/build/libs/`, named after the
