@@ -258,7 +258,7 @@ Details: [docs/PVP-1.8.md](docs/PVP-1.8.md#what-could-not-be-made-identical).
 Applies the patches and builds the jars into `folia-server/build/libs/`; the one to run is
 `legacyfolia-paperclip-<version>.jar`, named after `projectVersion` in `gradle.properties`. Requires Java 25. On Windows, `build.sh`, `build.bat`, `patch.*` and `update.*`
 set `core.longpaths` and `core.autocrlf=false` themselves. If you run `./gradlew applyAllPatches` by hand, pass the same variables:
-`GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true ./gradlew applyAllPatches`.
+`GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.longpaths GIT_CONFIG_VALUE_0=true GIT_CONFIG_KEY_1=core.autocrlf GIT_CONFIG_VALUE_1=false ./gradlew applyAllPatches`.
 
 ## Updating to a new Folia build
 
