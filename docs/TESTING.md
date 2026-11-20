@@ -327,3 +327,115 @@ Off by default. Rules in [PLUGIN-UPDATER.md](PLUGIN-UPDATER.md).
 | 10a | Fresh directory, start, accept the EULA, stop. | `server.properties` is in the root, beside the jar. No `bukkit.yml`, `spigot.yml`, `commands.yml`, `paper-*.yml`, `eula.txt`, `whitelist.json`, `ops.json`, ban lists or `usercache.json` in the root: they are in `config/` and `cache/`, or not written at all. `help.yml` and `permissions.yml` are still read from the root, as before. |
 | 10b | `config/` | Nine TOML files (`server`, `world`, `network`, `performance`, `gameplay`, `combat`, `plugins`, `worlds`, and `players`), the eight settings files with every setting commented, and `players.toml`, which holds the whitelist, ops and bans as data. |
 | 10c | Play normally for a while with several players spread far apart, with ViaVersion loaded. | No errors in the log other than ones a plugin causes. |
+
+## Real-client results (rc.3)
+
+Run on 2026-11-19 with real Minecraft clients, no bots: two Fabric 26.3 clients (HeadlessMC and a small
+control mod that presses the real keys and reads the client's own state, `ClaudeCraft/tools/client-harness`),
+offline accounts on a loopback server, muted (every sound category 0, OpenAL not loaded). A 1.8 client is the
+same 26.3 client with ViaFabricPlus 5.1.3 set to 1.8.x (protocol 47) and, on the server, ViaVersion and
+ViaBackwards 5.12.3-SNAPSHOT with ViaRewind 4.2.0. Windows 11, Java 25.0.2,
+`legacyfolia-paperclip-1.0.0-rc.3.jar` (the build moved from `26.3-DEV-main@9c76923` to `@d382ff9` during the
+pass; the commits in between are docs and start-up changes, no combat file). Difficulty normal, a flat world,
+400 health unless a check says otherwise, so a combo does not kill anyone.
+
+Four set-ups: **native** (26.3 vs 26.3), **Bob 1.8** (Alice 26.3, Bob 1.8), **both 1.8**, and **baseline**
+(`combat.enabled = false`, 26.3 vs 26.3, to show what 26.3 does with the same inputs; the locator bar is the
+same code in both). Numbers are what the clients measured. "Velocity" is the knockback velocity the victim's
+client received (horizontal / vertical, blocks per tick); a 1.8 client has no usable velocity under
+ViaFabricPlus, so for it the velocity is the position change per tick (its first sample shows the same packet
+values). The 1.8.8 figures to compare with are in `PVP-1.8.md`.
+
+A 1.8 client sees a void below y 0 (ViaBackwards: no increased world height; the server logs a warning when
+the player joins), so on a flat world with its surface at y -60 it stands on nothing: it cannot walk, jump or be
+knocked back. The 1.8 runs therefore use a flat world whose surface is at y 100; the native and baseline runs
+use the default one.
+
+### PvP
+
+| Item | Result | Measured (LegacyFolia / baseline 26.3) |
+|---|---|---|
+| Plain hit, diamond sword | PASS | 8 / 7 damage, three hits each. A standing hit gives the same velocity in both: 0.4 / 0.361, then 0.218 / 0.275, 0.199 / 0.191, 0.181 / 0.109; the target slides about 1.99 blocks. |
+| Combo (8 hits 0.66 s apart, Alice walking after Bob) | PASS | 7 of 8 land in both (the miss is Bob knocked out of reach); 56 / 49 damage. Bob 1.8: 7 of 8, 56. |
+| Sprint-hit knockback | PASS | A sprinting hit gives 0.9 / 0.461 against 0.4 / 0.361 for a standing one; 26.3 gives 0.7 / 0.4. Bob 1.8 sees the same 0.9 / 0.461. |
+| W-tap | PASS | With forward and sprint held, the second hit is a plain one (0.218 / 0.275: the client says "sprinting", the server's sprint was cancelled by the first hit). Release and press again 120 ms later and it is a sprint hit: 0.922 / 0.461 (1.8 Bob 0.929 / 0.461). 26.3: 0.234 / 0.275 held, 0.395 / 0.314 tapped. |
+| Airborne combo lift | PASS | Bob 3 to 4 blocks up: vertical velocity before the hit 0.03 to 0.11, after it 0.4 in 5 of 5 hits (+0.29 to +0.37). 26.3 leaves it alone: -0.05 to 0.11 before, -0.05 to 0.19 after (+0 to +0.08). 1.8 Bob (dropped from 3 blocks): +0.32 to +0.40 in the 3 hits that landed; both 1.8: +0.32, +0.32, +0.40. |
+| Sword block, damage | PASS | Open 8, blocking 4.5 = (1 + 8) x 0.5, for a 26.3 and for a 1.8 blocker. 26.3: 7 and 7 (a sword does nothing). |
+| Sword block, what a viewer sees | PASS | A 26.3 viewer sees `usingItem = true`, `blocking = false` and the sword as the used item (there is no block pose in its models, as `PVP-1.8.md` says). A 1.8 viewer sees `usingItem = true` and `blocking = true` for a 26.3 blocker and for a 1.8 blocker (ViaVersion turns the use flag back into 1.8's block). That is the client's state flag, not a rendered frame. 26.3 baseline: the flag is never set. |
+| No cooldown indicator | PASS | Client attack charge 1.0 at 30, 80, 150, 300 and 600 ms after a swing, charge delay 0.02 ticks (the +1024 modifier). Baseline: 0.08, 0.24, 0.40, 0.64 and 1.0 at 600 ms, delay 12.5 ticks. 1.8 clients: 1.0 throughout (delay 0.02 for Bob, 1 for a both-1.8 Alice). The crosshair option stays "crosshair" but nothing is ever below 1.0, so nothing is drawn. |
+| Reach | PASS | Feet to feet: hit at 2.0, 4.5 and 5.5, not at 6.5; a stone wall at 4.5 blocks it. 26.3 + Paper: hit at 2.0, 4.5 and 5.5, not 6.5 (3 + 3 of leniency), and it hits through the wall. Same for a 1.8 Bob. |
+| Reach through grass | PASS | A 2-high tall grass between them at 4.5: blocked, as a wall. Short grass at the feet at 4.5: hits (the head-to-head line passes above it). Baseline: both hit. |
+| Rod pull | PASS | The hook hurts for 0 and knocks Bob back (0.218 / 0.275); reeling in moves Bob's client 0.0 blocks (1.8 Bob: 0.0 too). 26.3: the hook neither hurts nor knocks back, and the reel-in pulls Bob's client 0.765 blocks. |
+| Ender pearl damage | PASS | 5 hp lost to the landing, native and 1.8. |
+| Ender pearl, no cooldown | PASS | Two clicks 180 ms apart throw two pearls and the client never sees a cooldown on the item. Baseline: one pearl, cooldown shown. |
+| Arrow inherits the shooter's motion (2h-arrow) | PASS | Horizontal arrow speed standing 2.967, running (shooter 0.231 b/t) 2.975: +0.008. 26.3: 2.978 and 3.115 (shooter 0.321): +0.137. 1.8 Bob: 2.981 and 2.969. |
+| TNT and creeper | INFO | TNT one block away 53 and 45 hp (two goes), 2.5 blocks 34, creeper beside the target 18; 1.8 Bob 52 and 45, 34, 11. 26.3: 46.9 and 43.1, 31.9, 16.0. Exposure is random, so figures move a few points between goes; the ratio is about 8/7, the 1.8 constant against 26.3's. Not checked against the exact formula. |
+| Potions: instant health and damage | PASS | Harming II by command 20 to 8 (12), Healing II 8 to 16 (+8). A strong healing potion drunk, 8 to 16. A strong harming splash thrown at the feet of a target 3 blocks away: 12. Same in 26.3 and with a 1.8 target. |
+| Potions: regeneration | PASS | Regeneration I heals 4 in 10 s (one per 50 ticks) in every set-up. |
+| Notch apple | PASS | Absorption I (4 hp) with 2371 ticks left, Regeneration V 571, Resistance and Fire Resistance 5971; 26.3: Absorption IV (16 hp), Regeneration II 371. A 1.8 Bob gets the legacy effects. |
+| Hit right after respawn | PASS | Dead screen seen, respawned in about 0.14 s, hit 0.74 to 0.83 s after respawning: 20 to 12 (8). 26.3: 7. 1.8 Bob: 8. |
+
+### Tooltip (3d)
+
+| Client | Diamond sword | Iron sword | Stone axe | Diamond axe | Iron pickaxe | Stone shovel | Diamond hoe |
+|---|---|---|---|---|---|---|---|
+| 26.3, LegacyFolia | 8 | 7 | 5 | 7 | 5 | 3 | 1 |
+| 26.3, baseline | 7 | 6 | 9 | 9 | 4 | 3.5 | 1 |
+| 1.8 (ViaFabricPlus), LegacyFolia | 7 | 6 | 4 | 6 | 4 | 2 | no line |
+
+PASS. Each cell is the "N Attack Damage" line of the item tooltip. The 26.3 client adds its own 1.0, so 8 is
+the hit damage. The 1.8 client draws the item's attribute modifier alone, which is how 1.8's own tooltip read
+(`+7` on a diamond sword); the hit is still 8. The line is drawn by the modern client's tooltip code from what
+ViaFabricPlus translated, so it is not a picture of a genuine 1.8 client. `PVP-1.8.md` said a 1.8 client had not
+been tried; it has now.
+
+### Locator bar
+
+All PASS, with Alice 26.3 as the observer (a 1.8 client has no locator bar, so its own list stays empty and is
+not judged).
+
+| Check | Measured |
+|---|---|
+| 100 blocks apart | A chunk waypoint at 104.3 (Alice's view) and 92.3 (Bob's). |
+| 400, 1000 and 3000 blocks apart | Both clients get an azimuth waypoint with no distance; the bar angle is 0 facing the other player and -180 turned away, both ways round. |
+| Different dimensions | Bob in the Nether: both lists empty. Back in the overworld: both have one. |
+| Crouching | Bob crouching: Alice's list empty (Bob still sees Alice); one waypoint again when he stands. |
+| Pumpkin and heads | A carved pumpkin and the player, skeleton, zombie, creeper, wither skeleton and piglin heads hide the wearer, as in the 26.3 source. Invisibility hides too. |
+| Spectator | A spectator Alice sees an ordinary Bob but not a crouching or pumpkin-wearing one: those are not tracked at all (transmit range 0), also in the 26.3 source. |
+
+### Long session (10c)
+
+PASS for what 10c asks. Alice 26.3 and Bob 1.8 for **15.08 minutes** through ViaVersion: no disconnect, both
+clients still in the game at the end, and nothing at ERROR or WARN in the server console after the join except
+ViaBackwards' world-height warning. Bob covered about 1385 blocks on foot, jumped, registered 18 hurt events (Alice's
+sword and rod hooks, which hurt for 0), had a rod cast at him 17 times and threw 17 pearls; Alice swung 109 times and Bob 76 (direct attacks, so no crosshair is
+needed). An earlier session with the same set-up on the y -60 world also ran 15 minutes without a disconnect,
+but Bob could not move there (see above).
+
+### Baseline
+
+The same inputs with `combat.enabled = false`: 7 where LegacyFolia does 8, a 12.5-tick attack charge where
+there is none, sprint knockback 0.7 / 0.4 against 0.9 / 0.461, no airborne lift, reach 6 through walls, a rod
+that does not hurt and pulls, a pearl with a cooldown, an arrow that takes the shooter's speed, Absorption IV on
+the Notch apple and the 26.3 tooltips. The 1.8 differences are real and come from the fork.
+
+### Findings (no LegacyFolia bug found)
+
+- ViaVersion/ViaRewind, not ours: the very first 1.8 login after a server start was once kicked a second
+  after joining ("Disconnecting Alice for sending keepalive response (9160442) without matching challenge!",
+  in `testing/.cache/harness/real-both18.server.log`). It did not come back in any later 1.8 login, and the
+  harness rejoins if it happens, so no result above depends on it.
+- The server console prints `oshi`/`jna` errors at start-up on this Windows machine ("Unable to locate English
+  counter names in registry Perflib 009"); they are the only errors in any run.
+- Console commands that read blocks throw on Folia (`/execute if block` from the console:
+  `Level.getCurrentWorldData() is null`), and there is no `/item`, so the harness runs `/fill`, `/setblock` and
+  `/summon` as an op player. Folia's rule, not changed here.
+- One drink of a strong healing potion by a 1.8 Bob had no effect in three tries in one run (the 1.8 Bob and
+  both-1.8 runs that followed all drank it fine, and the held item was a potion); not reproduced, not understood.
+- The 1.8 knockback and walking failures of the first 1.8 runs came from the void below y 0 described above,
+  not from the fork: with combat on and off, a 1.8 victim saw the knockback of 12 of 12 hits once the surface
+  was at y 100.
+
+Re-run: `node ClaudeCraft/tools/client-harness/real.mjs --jar <paperclip jar> --label x [--a 1.8] [--b 1.8]
+[--baseline] [--tests t1,t2] [--minutes 15]`. Raw results of this pass are in `testing/results/real-client/`
+(not tracked).
